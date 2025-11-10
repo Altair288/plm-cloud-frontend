@@ -1,0 +1,510 @@
+/* IBM 风格登录页面样式 */
+.ibm-login-page {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Header */
+.ibm-login-header {
+  height: 48px;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+}
+
+.ibm-header-content {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.ibm-logo {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #161616;
+}
+
+/* Main Content */
+.ibm-login-main {
+  flex: 1;
+  display: flex;
+  position: relative;
+}
+
+.ibm-login-container {
+  display: flex;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Left Form Section */
+.ibm-login-form-section {
+  flex: 0 0 480px;
+  display: flex;
+  background: #fff;
+  position: relative;
+  z-index: 2;
+}
+
+.ibm-login-form-wrap {
+  width: 100%;
+  max-width: 400px;
+  padding: 80px 40px 40px;
+  margin: 0 auto;
+}
+
+.login-title {
+  font-size: 32px !important;
+  font-weight: 400 !important;
+  margin-bottom: 8px !important;
+  color: #161616;
+  line-height: 1.2 !important;
+}
+
+.login-subtitle {
+  display: block;
+  font-size: 14px;
+  color: #525252;
+  margin-bottom: 32px;
+}
+
+.login-subtitle a {
+  color: #0f62fe;
+  text-decoration: none;
+}
+
+.login-subtitle a:hover {
+  text-decoration: underline;
+}
+
+/* Form Styles */
+.ibm-login-form {
+  margin-top: 32px;
+}
+
+.ibm-login-form .ant-form-item-label > label {
+  font-size: 12px;
+  font-weight: 400;
+  color: #161616;
+}
+
+.ibm-input {
+  height: 48px;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid #8d8d8d;
+  background-color: #F4F4F4;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.ibm-input:hover,
+.ibm-input:focus {
+  border-bottom-color: #0f62fe;
+  box-shadow: none;
+}
+
+.ibm-continue-btn {
+  background: #0f62fe;
+  border: none;
+  border-radius: 0;
+  height: 48px;
+  font-size: 14px;
+  font-weight: 400;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ibm-continue-btn:hover {
+  background: #0353e9;
+}
+
+.ibm-checkbox {
+  font-size: 14px;
+  color: #525252;
+}
+
+.divider-text {
+  text-align: left;
+  font-size: 12px;
+  color: #525252;
+  margin: 24px 0 16px;
+}
+
+.google-login-btn {
+  border: 1px solid #8d8d8d;
+  border-radius: 0;
+  height: 48px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+}
+
+.google-login-btn:hover {
+  border-color: #0f62fe;
+  color: #0f62fe;
+}
+
+.login-footer-links {
+  margin-top: 24px;
+  font-size: 14px;
+}
+
+.footer-text {
+  color: #525252;
+}
+
+.footer-text a {
+  color: #0f62fe;
+  text-decoration: none;
+}
+
+.footer-text a:hover {
+  text-decoration: underline;
+}
+
+/* Right Art Section */
+.ibm-login-art {
+  flex: 1;
+  position: relative;
+  background: #f4f4f4;
+  overflow: hidden;
+  display: none;
+}
+
+@media (min-width: 992px) {
+  .ibm-login-art {
+    display: block;
+  }
+}
+
+.art-background {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Dot Grid Background */
+.dot-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle, #d0d0d0 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.5;
+}
+
+/* Animated Shapes Container */
+.animated-shapes {
+  position: absolute;
+  inset: 0;
+}
+
+/* 顶部蓝色小圆点群 */
+.top-dots {
+  position: absolute;
+  top: 15%;
+  left: 25%;
+}
+
+.top-dots .dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #8c9eff;
+  border-radius: 50%;
+  animation: float 3s ease-in-out infinite;
+}
+
+.top-dots .dot-1 { left: 0; top: 0; animation-delay: 0s; }
+.top-dots .dot-2 { left: 20px; top: -10px; animation-delay: 0.3s; }
+.top-dots .dot-3 { left: 40px; top: 5px; animation-delay: 0.6s; }
+.top-dots .dot-4 { left: 60px; top: -5px; animation-delay: 0.9s; }
+
+/* 中心主要图形组 */
+.center-shapes {
+  position: absolute;
+  top: 35%;
+  left: 45%;
+  transform: translate(-50%, -50%);
+}
+
+.diamond {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #a78bfa 0%, #c4b5fd 100%);
+  transform: rotate(45deg);
+  border-radius: 8px;
+  animation: pulse 4s ease-in-out infinite;
+}
+
+.diamond-1 {
+  left: -40px;
+  top: -20px;
+  opacity: 0.3;
+  animation-delay: 0s;
+}
+
+.diamond-2 {
+  left: 20px;
+  top: 10px;
+  opacity: 0.5;
+  animation-delay: 0.5s;
+}
+
+.diamond-3 {
+  left: 50px;
+  top: -10px;
+  opacity: 0.8;
+  width: 50px;
+  height: 50px;
+  animation-delay: 1s;
+}
+
+.diamond-4 {
+  left: 80px;
+  top: 5px;
+  opacity: 0.7;
+  width: 45px;
+  height: 45px;
+  animation-delay: 1.5s;
+}
+
+.circle-ring {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border: 3px solid rgba(167, 139, 250, 0.3);
+  border-radius: 50%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  animation: rotate 20s linear infinite;
+}
+
+/* 右侧紫色竖条 */
+.vertical-bar {
+  position: absolute;
+  top: 45%;
+  right: 15%;
+  width: 16px;
+  height: 200px;
+  background: linear-gradient(180deg, #a78bfa 0%, #ddd6fe 100%);
+  border-radius: 8px;
+  animation: slideUpDown 5s ease-in-out infinite;
+}
+
+/* 底部蓝色元素 */
+.bottom-elements {
+  position: absolute;
+  bottom: 25%;
+  left: 30%;
+}
+
+.blue-diamond {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: #60a5fa;
+  transform: rotate(45deg);
+  border-radius: 4px;
+  left: 0;
+  animation: float 4s ease-in-out infinite;
+}
+
+.blue-bar {
+  position: absolute;
+  width: 80px;
+  height: 12px;
+  background: linear-gradient(90deg, #60a5fa 0%, #93c5fd 100%);
+  border-radius: 6px;
+  left: 60px;
+  top: 15px;
+  animation: expandShrink 3s ease-in-out infinite;
+}
+
+.blue-circle {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  background: #93c5fd;
+  border-radius: 50%;
+  animation: float 3.5s ease-in-out infinite;
+}
+
+.blue-circle-1 {
+  left: 160px;
+  top: 0;
+  animation-delay: 0.5s;
+}
+
+.blue-circle-2 {
+  left: 220px;
+  top: 10px;
+  width: 40px;
+  height: 40px;
+  animation-delay: 1s;
+}
+
+/* 散布的圆点 */
+.scattered-dots .gray-dot {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #9ca3af;
+  border-radius: 50%;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.gray-dot-1 { top: 50%; left: 60%; animation-delay: 0s; }
+.gray-dot-2 { top: 65%; left: 75%; animation-delay: 1s; }
+.gray-dot-3 { bottom: 15%; right: 20%; animation-delay: 2s; }
+
+.scattered-dots .purple-dot {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #c4b5fd;
+  border-radius: 50%;
+  animation: float 4s ease-in-out infinite;
+}
+
+.purple-dot-1 { top: 25%; right: 30%; animation-delay: 0.5s; }
+.purple-dot-2 { top: 55%; right: 25%; animation-delay: 1.5s; }
+.purple-dot-3 { bottom: 30%; left: 20%; animation-delay: 2.5s; }
+
+/* 圆形轨道 */
+.orbit {
+  position: absolute;
+  border: 2px solid rgba(167, 139, 250, 0.15);
+  border-radius: 50%;
+  animation: rotate 30s linear infinite;
+}
+
+.orbit-1 {
+  width: 400px;
+  height: 400px;
+  top: 30%;
+  left: 35%;
+}
+
+.orbit-2 {
+  width: 600px;
+  height: 600px;
+  top: 20%;
+  left: 25%;
+  animation-duration: 40s;
+  animation-direction: reverse;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(-20px) translateX(10px); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1) rotate(45deg); opacity: 0.8; }
+  50% { transform: scale(1.1) rotate(45deg); opacity: 1; }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slideUpDown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-30px); }
+}
+
+@keyframes expandShrink {
+  0%, 100% { transform: scaleX(1); }
+  50% { transform: scaleX(1.2); }
+}
+
+/* Footer */
+.ibm-login-footer {
+  background: #161616;
+  color: #f4f4f4;
+  padding: 16px 32px;
+  position: relative;
+  z-index: 10;
+}
+
+.footer-content {
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.footer-links {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.footer-links a {
+  color: #f4f4f4;
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
+.footer-copyright {
+  font-size: 12px;
+  color: #c6c6c6;
+}
+
+/* Responsive */
+@media (max-width: 991px) {
+  .ibm-login-form-section {
+    flex: 1;
+    max-width: 100%;
+  }
+
+  .ibm-login-form-wrap {
+    padding: 40px 24px;
+  }
+
+  .login-title {
+    font-size: 28px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .ibm-header-content {
+    padding: 0 16px;
+  }
+
+  .ibm-login-form-wrap {
+    padding: 32px 20px;
+  }
+
+  .footer-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

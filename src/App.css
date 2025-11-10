@@ -1,4 +1,10 @@
 #root {
+  width: 100%;
+  height: 100%;
+}
+
+/* 只对非登录页面应用宽度限制 */
+#root:not(:has(.ibm-login-page)) {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;

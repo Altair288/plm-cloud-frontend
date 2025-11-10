@@ -24,10 +24,14 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+}
+
+/* 只对非登录页面应用居中布局 */
+body:not(:has(.ibm-login-page)) {
+  display: flex;
+  place-items: center;
 }
 
 h1 {
