@@ -5,7 +5,8 @@
   display: flex;
   flex-direction: column;
   background: #fff;
-  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
 }
 
 /* Header */
@@ -49,7 +50,7 @@
 
 /* Left Form Section */
 .ibm-login-form-section {
-  flex: 0 0 480px;
+  flex: 0 0 560px; /* 加宽登录表单区域 */
   display: flex;
   background: #fff;
   position: relative;
@@ -58,8 +59,8 @@
 
 .ibm-login-form-wrap {
   width: 100%;
-  max-width: 400px;
-  padding: 80px 40px 40px;
+  max-width: 480px; /* 与加宽保持协调 */
+  padding: 80px 48px 40px;
   margin: 0 auto;
 }
 
@@ -103,7 +104,7 @@
   border-radius: 0;
   border: none;
   border-bottom: 1px solid #8d8d8d;
-  background-color: #F4F4F4;
+  background-color: #f4f4f4;
   padding: 8px 0;
   font-size: 14px;
 }
@@ -181,7 +182,7 @@
 .ibm-login-art {
   flex: 1;
   position: relative;
-  background: #f4f4f4;
+  background: #fff;
   overflow: hidden;
   display: none;
 }
@@ -193,249 +194,36 @@
 }
 
 .art-background {
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
-
-/* Dot Grid Background */
-.dot-grid {
   position: absolute;
-  inset: 0;
-  background-image: 
-    radial-gradient(circle, #d0d0d0 1px, transparent 1px);
-  background-size: 24px 24px;
-  opacity: 0.5;
-}
-
-/* Animated Shapes Container */
-.animated-shapes {
-  position: absolute;
-  inset: 0;
-}
-
-/* 顶部蓝色小圆点群 */
-.top-dots {
-  position: absolute;
-  top: 15%;
-  left: 25%;
-}
-
-.top-dots .dot {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  background: #8c9eff;
-  border-radius: 50%;
-  animation: float 3s ease-in-out infinite;
-}
-
-.top-dots .dot-1 { left: 0; top: 0; animation-delay: 0s; }
-.top-dots .dot-2 { left: 20px; top: -10px; animation-delay: 0.3s; }
-.top-dots .dot-3 { left: 40px; top: 5px; animation-delay: 0.6s; }
-.top-dots .dot-4 { left: 60px; top: -5px; animation-delay: 0.9s; }
-
-/* 中心主要图形组 */
-.center-shapes {
-  position: absolute;
-  top: 35%;
-  left: 45%;
-  transform: translate(-50%, -50%);
-}
-
-.diamond {
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  background: linear-gradient(135deg, #a78bfa 0%, #c4b5fd 100%);
-  transform: rotate(45deg);
-  border-radius: 8px;
-  animation: pulse 4s ease-in-out infinite;
-}
-
-.diamond-1 {
-  left: -40px;
-  top: -20px;
-  opacity: 0.3;
-  animation-delay: 0s;
-}
-
-.diamond-2 {
-  left: 20px;
-  top: 10px;
-  opacity: 0.5;
-  animation-delay: 0.5s;
-}
-
-.diamond-3 {
-  left: 50px;
-  top: -10px;
-  opacity: 0.8;
-  width: 50px;
-  height: 50px;
-  animation-delay: 1s;
-}
-
-.diamond-4 {
-  left: 80px;
-  top: 5px;
-  opacity: 0.7;
-  width: 45px;
-  height: 45px;
-  animation-delay: 1.5s;
-}
-
-.circle-ring {
-  position: absolute;
-  width: 200px;
-  height: 200px;
-  border: 3px solid rgba(167, 139, 250, 0.3);
-  border-radius: 50%;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  animation: rotate 20s linear infinite;
-}
-
-/* 右侧紫色竖条 */
-.vertical-bar {
-  position: absolute;
-  top: 45%;
-  right: 15%;
-  width: 16px;
-  height: 200px;
-  background: linear-gradient(180deg, #a78bfa 0%, #ddd6fe 100%);
-  border-radius: 8px;
-  animation: slideUpDown 5s ease-in-out infinite;
-}
-
-/* 底部蓝色元素 */
-.bottom-elements {
-  position: absolute;
-  bottom: 25%;
-  left: 30%;
-}
-
-.blue-diamond {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  background: #60a5fa;
-  transform: rotate(45deg);
-  border-radius: 4px;
+  bottom: 0; /* 贴紧底部 footer 上缘 */
   left: 0;
-  animation: float 4s ease-in-out infinite;
+  width: 100%;
+  height: auto;
+  padding: 0 0 0 0;
+  display: absolute;
+  justify-content: center;
+  pointer-events: none;
 }
 
-.blue-bar {
-  position: absolute;
-  width: 80px;
-  height: 12px;
-  background: linear-gradient(90deg, #60a5fa 0%, #93c5fd 100%);
-  border-radius: 6px;
-  left: 60px;
-  top: 15px;
-  animation: expandShrink 3s ease-in-out infinite;
+.login-illustration {
+  width: 100%; /* 缩小整体 SVG */
+  height: auto;
+  max-height: 850px; /* 避免过高溢出 */
+  object-fit: contain;
+  opacity: 0.9;
+  animation: fadeIn 0.8s ease;
+  transform-origin: bottom center;
 }
 
-.blue-circle {
-  position: absolute;
-  width: 50px;
-  height: 50px;
-  background: #93c5fd;
-  border-radius: 50%;
-  animation: float 3.5s ease-in-out infinite;
-}
-
-.blue-circle-1 {
-  left: 160px;
-  top: 0;
-  animation-delay: 0.5s;
-}
-
-.blue-circle-2 {
-  left: 220px;
-  top: 10px;
-  width: 40px;
-  height: 40px;
-  animation-delay: 1s;
-}
-
-/* 散布的圆点 */
-.scattered-dots .gray-dot {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  background: #9ca3af;
-  border-radius: 50%;
-  animation: pulse 3s ease-in-out infinite;
-}
-
-.gray-dot-1 { top: 50%; left: 60%; animation-delay: 0s; }
-.gray-dot-2 { top: 65%; left: 75%; animation-delay: 1s; }
-.gray-dot-3 { bottom: 15%; right: 20%; animation-delay: 2s; }
-
-.scattered-dots .purple-dot {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  background: #c4b5fd;
-  border-radius: 50%;
-  animation: float 4s ease-in-out infinite;
-}
-
-.purple-dot-1 { top: 25%; right: 30%; animation-delay: 0.5s; }
-.purple-dot-2 { top: 55%; right: 25%; animation-delay: 1.5s; }
-.purple-dot-3 { bottom: 30%; left: 20%; animation-delay: 2.5s; }
-
-/* 圆形轨道 */
-.orbit {
-  position: absolute;
-  border: 2px solid rgba(167, 139, 250, 0.15);
-  border-radius: 50%;
-  animation: rotate 30s linear infinite;
-}
-
-.orbit-1 {
-  width: 400px;
-  height: 400px;
-  top: 30%;
-  left: 35%;
-}
-
-.orbit-2 {
-  width: 600px;
-  height: 600px;
-  top: 20%;
-  left: 25%;
-  animation-duration: 40s;
-  animation-direction: reverse;
-}
-
-/* Animations */
-@keyframes float {
-  0%, 100% { transform: translateY(0) translateX(0); }
-  50% { transform: translateY(-20px) translateX(10px); }
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1) rotate(45deg); opacity: 0.8; }
-  50% { transform: scale(1.1) rotate(45deg); opacity: 1; }
-}
-
-@keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes slideUpDown {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-30px); }
-}
-
-@keyframes expandShrink {
-  0%, 100% { transform: scaleX(1); }
-  50% { transform: scaleX(1.2); }
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 0.9;
+    transform: translateY(0);
+  }
 }
 
 /* Footer */
@@ -477,6 +265,8 @@
   font-size: 12px;
   color: #c6c6c6;
 }
+
+/* 移除重复的 .art-background 定义，已在上方统一 */
 
 /* Responsive */
 @media (max-width: 991px) {

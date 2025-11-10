@@ -2,6 +2,7 @@ import { Form, Input, Button, Typography, Checkbox } from "antd";
 import { useState } from "react";
 import "./login.css";
 import { ArrowRightOutlined, GoogleOutlined, GithubOutlined, QuestionCircleOutlined } from "@ant-design/icons";
+import Illustration from "@/assets/illustration-final.svg";
 
 const { Title, Text, Link } = Typography;
 
@@ -110,54 +111,9 @@ export default function LoginPage() {
           </section>
 
           {/* 右侧装饰区域 */}
-          <aside className="ibm-login-art">
+          <aside className="ibm-login-art" aria-hidden="true">
             <div className="art-background">
-              <div className="dot-grid"></div>
-              
-              {/* 动画装饰元素 */}
-              <div className="animated-shapes">
-                {/* 顶部蓝色小圆点群 */}
-                <div className="shape-group top-dots">
-                  <div className="dot dot-1"></div>
-                  <div className="dot dot-2"></div>
-                  <div className="dot dot-3"></div>
-                  <div className="dot dot-4"></div>
-                </div>
-
-                {/* 中间主要图形组 */}
-                <div className="shape-group center-shapes">
-                  <div className="diamond diamond-1"></div>
-                  <div className="diamond diamond-2"></div>
-                  <div className="diamond diamond-3"></div>
-                  <div className="diamond diamond-4"></div>
-                  <div className="circle-ring"></div>
-                </div>
-
-                {/* 右侧紫色竖条 */}
-                <div className="vertical-bar"></div>
-
-                {/* 底部圆点和蓝色元素 */}
-                <div className="shape-group bottom-elements">
-                  <div className="blue-diamond"></div>
-                  <div className="blue-bar"></div>
-                  <div className="blue-circle blue-circle-1"></div>
-                  <div className="blue-circle blue-circle-2"></div>
-                </div>
-
-                {/* 其他装饰圆点 */}
-                <div className="shape-group scattered-dots">
-                  <div className="gray-dot gray-dot-1"></div>
-                  <div className="gray-dot gray-dot-2"></div>
-                  <div className="gray-dot gray-dot-3"></div>
-                  <div className="purple-dot purple-dot-1"></div>
-                  <div className="purple-dot purple-dot-2"></div>
-                  <div className="purple-dot purple-dot-3"></div>
-                </div>
-
-                {/* 圆形轨道 */}
-                <div className="orbit orbit-1"></div>
-                <div className="orbit orbit-2"></div>
-              </div>
+              <img src={Illustration} alt="" className="login-illustration" />
             </div>
           </aside>
         </div>
