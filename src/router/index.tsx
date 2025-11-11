@@ -3,9 +3,11 @@ import AppLayout from '@/layouts/AppLayout';
 import Dashboard from '@/pages/Dashboard';
 import ProductPage from '@/pages/Product';
 import LoginPage from '@/pages/Login';
+import RegisterPage from '@/pages/Register';
 
 const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
+  { path: '/register', element: <RegisterPage /> },
   {
     path: '/',
     element: <AppLayout />,

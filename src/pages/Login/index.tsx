@@ -49,7 +49,7 @@ export default function LoginPage() {
                 登录 PLM Cloud Platform
               </Title>
               <Text className="login-subtitle">
-                没有账号？ <Link href="#">创建 PLM Cloud Platform 账号</Link>
+                没有账号？ <Link href="/register">创建 PLM Cloud Platform 账号</Link>
               </Text>
 
               {step === 1 && (
@@ -65,7 +65,7 @@ export default function LoginPage() {
                     rules={[{ required: true, message: "请输入PLM Cloud Platform ID" }]}
                   >
                     <Input
-                      placeholder="例如: user.name"
+                      placeholder=""
                       size="large"
                       className="ibm-input"
                     />
