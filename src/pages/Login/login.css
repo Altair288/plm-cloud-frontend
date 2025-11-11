@@ -102,17 +102,21 @@
 .ibm-input {
   height: 48px;
   border-radius: 0;
-  border: none;
-  border-bottom: 1px solid #8d8d8d;
+  border: 1px solid transparent;
   background-color: #f4f4f4;
-  padding: 8px 0;
+  padding: 8px 12px;
   font-size: 14px;
 }
 
-.ibm-input:hover,
-.ibm-input:focus {
-  border-bottom-color: #0f62fe;
-  box-shadow: none;
+.ibm-input:hover {
+  background-color: #f4f4f4;
+  border-color: transparent;
+}
+
+.ibm-input:focus, .ibm-input:focus-within {
+  background-color: #f4f4f4;
+  border-color: #0f62fe;
+  box-shadow: 0 0 0 1px #0f62fe inset;
 }
 
 .ibm-continue-btn {
@@ -143,6 +147,17 @@
   color: #525252;
   margin: 24px 0 16px;
 }
+
+/* Step2 additions */
+.step2-header { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+.back-btn { padding:0; }
+.identity-row { display:flex; justify-content:space-between; align-items:center; font-size:14px; color:#161616; }
+.identity-row .id-label strong { font-weight:600; }
+.not-you { padding:0; }
+.step-divider { margin:12px 0; }
+.forgot-link { font-size:14px; margin-top:8px; display:inline-block; }
+.step2-extra { margin-top:8px; }
+.footer-text.small { font-size:12px; }
 
 .google-login-btn {
   border: 1px solid #8d8d8d;
@@ -195,20 +210,17 @@
 
 .art-background {
   position: absolute;
-  bottom: 0; /* 贴紧底部 footer 上缘 */
-  left: 0;
-  width: 100%;
+  bottom: 0; /* 与底部紧贴 */
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
   height: auto;
-  padding: 0 0 0 0;
-  display: absolute;
-  justify-content: center;
   pointer-events: none;
 }
 
 .login-illustration {
-  width: 100%; /* 缩小整体 SVG */
+  width: 1000px; /* 固定宽度不随容器缩放 */
   height: auto;
-  max-height: 850px; /* 避免过高溢出 */
   object-fit: contain;
   opacity: 0.9;
   animation: fadeIn 0.8s ease;
@@ -273,6 +285,10 @@
   .ibm-login-form-section {
     flex: 1;
     max-width: 100%;
+  }
+
+  .login-illustration {
+    width: 640px; /* 小屏保留一定可见性 */
   }
 
   .ibm-login-form-wrap {
