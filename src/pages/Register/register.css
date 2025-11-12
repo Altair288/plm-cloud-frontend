@@ -102,7 +102,7 @@
   align-items: flex-start;
   justify-content: center;
   overflow-y: auto;
-  padding: 60px 0px 40px;
+  padding: 48px 0 32px; /* 缩减垂直内边距，减少1080p高度溢出 */
   position: relative;
   z-index: 2;
   min-width: 0;
@@ -125,7 +125,7 @@
 }
 
 .form-header {
-  margin-bottom: 32px;
+  margin-bottom: 24px; /* 收紧 */
 }
 
 .form-title {
@@ -152,7 +152,7 @@
 
 /* Google 登录按钮 */
 .google-signin {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .google-btn {
@@ -182,20 +182,20 @@
 
 /* 分割线 */
 .form-divider {
-  margin: 24px 0;
+  margin: 0px 0px;
   color: #8d8d8d;
   font-size: 12px;
 }
 
 /* Collapse 折叠面板样式 */
 .form-collapse {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .form-collapse .ant-collapse-item {
   border: none;
   background: #fff;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .form-collapse .ant-collapse-header {
@@ -292,7 +292,7 @@
 }
 .password-rules-panel {
   position: absolute;
-  top: 70px;
+  top: 60px; /* 轻微上移以适应压缩后布局 */
   background: #2e2e2e;
   color: #fff;
   padding: 16px 20px 14px;
@@ -367,7 +367,7 @@
 
 /* 表单项 */
 .register-form .ant-form-item {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 /* 两列布局 */
@@ -407,7 +407,7 @@
 
 /* 表单底部 */
 .form-footer {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .footer-text {
@@ -428,7 +428,7 @@
 /* 底部操作 */
 .bottom-actions {
   text-align: center;
-  padding-top: 16px;
+  padding-top: 12px;
   border-top: 1px solid #e0e0e0;
 }
 
@@ -502,6 +502,16 @@
 }
 
 /* ========== 响应式设计 ========== */
+@media (max-height: 1080px) {
+  .register-right-section { padding: 20px 0 20px; }
+  .form-header { margin-bottom: 18px; }
+  .password-rules-panel { top: 56px; }
+  .register-form .ant-form-item { margin-bottom: 14px; }
+  .form-collapse { margin-bottom: 12px; }
+  .form-collapse .ant-collapse-item { margin-bottom: 10px; }
+  .form-footer { margin-bottom: 10px; }
+  .bottom-actions { padding-top: 8px; }
+}
 @media (max-width: 991px) {
   .register-right-section {
     flex: 1;
