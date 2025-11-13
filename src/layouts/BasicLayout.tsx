@@ -144,6 +144,7 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
             colorBgMenuItemSelected: palette.menuItemSelectedBg,
           },
         }}
+        contentStyle={{ padding: 0 }}
         logo={false}
         layout="mix" // top + side
         fixedHeader
