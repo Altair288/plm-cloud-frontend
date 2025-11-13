@@ -2,7 +2,7 @@
 // 可扩展：暗色模式、品牌定制、尺寸密度等
 export const themeTokens = {
   colorPrimary: '#0f62fe',
-  borderRadius: 4,
+  borderRadius: 10,
   headerHeight: 56,
   siderWidth: 224,
 };

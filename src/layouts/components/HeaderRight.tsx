@@ -24,7 +24,7 @@ const HeaderRight: React.FC<HeaderRightProps> = ({ isDarkMode, onToggleTheme, pa
       {
         key: 'profile-group',
         type: 'group',
-        label: '配置文件',
+        label: '配置个人信息',
         children: [
           {
             key: 'profile-email',
@@ -36,7 +36,7 @@ const HeaderRight: React.FC<HeaderRightProps> = ({ isDarkMode, onToggleTheme, pa
                 </Typography.Text>
               </Space>
             ),
-            disabled: true,
+            disabled: false,
           },
         ],
       },
@@ -96,7 +96,7 @@ const HeaderRight: React.FC<HeaderRightProps> = ({ isDarkMode, onToggleTheme, pa
       >
         <Avatar size={28} icon={<UserOutlined />} />
         <Typography.Text strong style={{ color: palette.textPrimary }}>
-          个人简介
+          用户信息站位
         </Typography.Text>
         <SettingOutlined style={{ color: palette.iconColor }} />
       </div>

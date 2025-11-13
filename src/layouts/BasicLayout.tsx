@@ -6,6 +6,18 @@ import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { themeTokens, componentTokens } from '../styles/theme';
 import { getPalette } from '../styles/colors';
 import type { AppPalette } from '../styles/colors';
+import {
+  DashboardOutlined,
+  AppstoreOutlined,
+  DeploymentUnitOutlined,
+  FileTextOutlined,
+  PieChartOutlined,
+  DatabaseOutlined,
+  ApiOutlined,
+  SettingOutlined,
+  UserOutlined,
+  FolderOpenOutlined,
+} from '@ant-design/icons';
 
 // 简易菜单数据（后续可由权限/接口动态生成）
 interface MenuItem {
@@ -16,10 +28,16 @@ interface MenuItem {
 }
 
 const menuData: MenuItem[] = [
-  { path: '/dashboard', name: '仪表盘' },
-  { path: '/product', name: '产品管理' },
-  { path: '/system', name: '系统设置' },
-  { path: '/user', name: '用户中心' },
+  { path: '/dashboard', name: '仪表盘', icon: <DashboardOutlined /> },
+  { path: '/products', name: '产品管理', icon: <AppstoreOutlined /> },
+  { path: '/projects', name: '项目集', icon: <FolderOpenOutlined /> },
+  { path: '/workflow', name: '流程编排', icon: <DeploymentUnitOutlined /> },
+  { path: '/documents', name: '文档中心', icon: <FileTextOutlined /> },
+  { path: '/analytics', name: '数据分析', icon: <PieChartOutlined /> },
+  { path: '/assets', name: '资产管理', icon: <DatabaseOutlined /> },
+  { path: '/integration', name: '系统集成', icon: <ApiOutlined /> },
+  { path: '/system', name: '系统设置', icon: <SettingOutlined /> },
+  { path: '/user', name: '用户中心', icon: <UserOutlined /> },
 ];
 
 // 选中菜单 key 通过 location.pathname 自动匹配，无需在 menu 里直接传 selectedKeys（否则类型不匹配）
@@ -48,8 +66,13 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
       return;
     }
     window.localStorage.setItem('plm-theme-mode', isDarkMode ? 'dark' : 'light');
-    document.body.setAttribute('data-theme', palette.mode);
+    const html = document.documentElement;
+    const mode = palette.mode;
+    html.setAttribute('data-theme', mode);
+    document.body.setAttribute('data-theme', mode);
+    html.style.backgroundColor = palette.bgLayout;
     document.body.style.backgroundColor = palette.bgLayout;
+    html.style.color = palette.textPrimary;
     document.body.style.color = palette.textPrimary;
   }, [isDarkMode, palette]);
 
