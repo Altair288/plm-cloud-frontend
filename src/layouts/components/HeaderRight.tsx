@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import type { MenuProps } from 'antd';
-import { Dropdown, Avatar, Typography, Space } from 'antd';
+import { Dropdown, Avatar, Typography, Space, Input, Badge, Button, Tooltip } from 'antd';
 import {
   UserOutlined,
   SettingOutlined,
@@ -9,6 +9,8 @@ import {
   GlobalOutlined,
   FileTextOutlined,
   CreditCardOutlined,
+  BellOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import type { AppPalette } from '@/styles/colors';
 
@@ -76,31 +78,62 @@ const HeaderRight: React.FC<HeaderRightProps> = ({ isDarkMode, onToggleTheme, pa
     }
   };
 
+  const searchInputStyle: React.CSSProperties = {
+    width: 240,
+    borderRadius: 999,
+    backgroundColor: palette.mode === 'dark' ? 'rgba(32, 44, 58, 0.86)' : '#ffffff',
+    border: palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #e5e7eb',
+    color: palette.textPrimary,
+  };
+
   return (
-    <Dropdown
-      trigger={['click']}
-      menu={{ items: menuItems, onClick: handleMenuClick }}
-      placement="bottomRight"
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '4px 12px',
-          cursor: 'pointer',
-          borderRadius: 999,
-          transition: 'background-color 0.2s ease',
-          color: palette.textPrimary,
-        }}
+    <Space align="center" size={16}>
+      <Input
+        allowClear
+        placeholder="搜索功能/页面"
+        prefix={<SearchOutlined style={{ color: palette.textSecondary }} />}
+        style={searchInputStyle}
+        size="middle"
+      />
+      <Tooltip title="消息通知">
+        <Badge dot offset={[-2, 2]}>
+          <Button
+            type="text"
+            icon={<BellOutlined style={{ color: palette.iconColor }} />}
+            style={{
+              padding: 8,
+              borderRadius: 999,
+                backgroundColor: palette.notificationBg,
+                boxShadow: `0 0 0 1px ${palette.notificationBorder}`,
+            }}
+          />
+        </Badge>
+      </Tooltip>
+      <Dropdown
+        trigger={['click']}
+        menu={{ items: menuItems, onClick: handleMenuClick }}
+        placement="bottomRight"
       >
-        <Avatar size={28} icon={<UserOutlined />} />
-        <Typography.Text strong style={{ color: palette.textPrimary }}>
-          用户信息站位
-        </Typography.Text>
-        <SettingOutlined style={{ color: palette.iconColor }} />
-      </div>
-    </Dropdown>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '4px 12px',
+            cursor: 'pointer',
+            borderRadius: 999,
+            transition: 'background-color 0.2s ease',
+            color: palette.textPrimary,
+          }}
+        >
+          <Avatar size={28} icon={<UserOutlined />} />
+          <Typography.Text strong style={{ color: palette.textPrimary }}>
+            用户信息站位
+          </Typography.Text>
+          <SettingOutlined style={{ color: palette.iconColor }} />
+        </div>
+      </Dropdown>
+    </Space>
   );
 };
 
