@@ -48,10 +48,10 @@ export const darkPalette: AppPalette = {
   mode: 'dark',
   textPrimary: '#e6f1ff', // 主文本颜色
   textSecondary: 'rgba(229, 234, 244, 0.65)', // 次级文本颜色
-  bgLayout: '#0f111a', // 全局页面背景色
-  bgContainer: '#141414', // 卡片/容器背景色
+  bgLayout: '#212121', // 全局页面背景色
+  bgContainer: '#181818', // 卡片/容器背景色
   headerBg: '#141414', // 顶部导航背景色
-  siderBg: '#1f1f1f', // 侧边栏背景色
+  siderBg: '#181818', // 侧边栏背景色
   menuText: '#d3d7de', // 菜单文字颜色
   menuTextSecondary: 'rgba(211, 215, 222, 0.65)', // 菜单次级文字颜色
   menuTextSelected: '#ffffff', // 菜单选中项文字颜色
