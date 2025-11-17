@@ -534,7 +534,13 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
         >
           <Breadcrumb
             items={breadcrumbItems}
-            style={{ fontSize: 13, color: palette.textSecondary }}
+            style={{
+              fontSize: 13,
+              color: palette.textSecondary,
+              height: 22,
+              display: "flex",
+              alignItems: "center",
+            }}
           />
           <div
             style={{
