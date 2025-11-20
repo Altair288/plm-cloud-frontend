@@ -9,6 +9,7 @@ import { getPalette } from "../styles/colors";
 import type { AppPalette } from "../styles/colors";
 import "./BasicLayout.css";
 import {
+  UnorderedListOutlined,
   DashboardOutlined,
   AppstoreOutlined,
   DeploymentUnitOutlined,
@@ -91,6 +92,14 @@ const menuData: MenuItem[] = [
           { path: "/products/specs/template", name: "模板管理" },
         ],
       },
+    ],
+  },
+  {
+    path: "/category",
+    name: "分类管理",
+    icon: <UnorderedListOutlined />,
+    children: [
+      { path: "/category/list", name: "分类集合" },
     ],
   },
   {
@@ -234,6 +243,11 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
     return initial;
   });
 
+  const palette = useMemo<AppPalette>(
+    () => getPalette(isDarkMode ? "dark" : "light"),
+    [isDarkMode]
+  );
+
   const tabItems = useMemo<TabsProps["items"]>(
     () =>
       tabs.map((tab) => ({
@@ -251,7 +265,9 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
         key: item.path,
         title:
           index === breadcrumbTrail.length - 1 ? (
-            <span>{item.name}</span>
+            <span style={{ color: palette.menuTextSelected, fontWeight: 600 }}>
+              {item.name}
+            </span>
           ) : (
             <a
               onClick={(event) => {
@@ -263,7 +279,7 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
             </a>
           ),
       })),
-    [breadcrumbTrail, navigate]
+    [breadcrumbTrail, navigate, palette]
   );
 
   const handleTabChange = (key: string) => {
@@ -329,11 +345,6 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
       return next;
     });
   }, [currentPath, activeLabel]);
-
-  const palette = useMemo<AppPalette>(
-    () => getPalette(isDarkMode ? "dark" : "light"),
-    [isDarkMode]
-  );
 
   useEffect(() => {
     if (typeof window === "undefined") {

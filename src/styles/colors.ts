@@ -32,7 +32,7 @@ export const lightPalette: AppPalette = {
   siderBg: '#ffffff', // 侧边栏背景色
   menuText: '#1f2329', // 菜单文字颜色
   menuTextSecondary: '#6b7280', // 菜单次级文字颜色
-  menuTextSelected: '#0f62fe', // 菜单选中项文字颜色
+  menuTextSelected: '#517ed1ff', // 菜单选中项文字颜色
   menuItemSelectedBg: '#e8f2ff', // 菜单选中项背景色
   menuBgHover: '#f5f8ff', // 菜单悬停背景色
   menuBgActive: '#e0e9ff', // 菜单激活背景色
