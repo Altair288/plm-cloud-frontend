@@ -20,6 +20,7 @@ export interface AppPalette {
   iconColorActive: string;
   notificationBg: string;
   notificationBorder: string;
+  tabHomeIconBg: string;
 }
 
 export const lightPalette: AppPalette = {
@@ -36,12 +37,13 @@ export const lightPalette: AppPalette = {
   menuItemSelectedBg: '#e8f2ff', // 菜单选中项背景色
   menuBgHover: '#f5f8ff', // 菜单悬停背景色
   menuBgActive: '#e0e9ff', // 菜单激活背景色
-  borderColor: '#e5e7eb', // 边框颜色
+  borderColor: '#cececeff', // 边框颜色
   shadowColor: 'rgba(15, 24, 40, 0.08)', // 阴影颜色
   iconColor: 'rgba(0, 0, 0, 0.45)', // 图标默认颜色
   iconColorActive: '#0f62fe', // 图标激活颜色
   notificationBg: 'rgba(15, 98, 254, 0.08)', // 通知背景色
   notificationBorder: 'rgba(15, 98, 254, 0.15)', // 通知边框颜色
+  tabHomeIconBg: '#f1f5ff', // 首页标签图标背景
 };
 
 export const darkPalette: AppPalette = {
@@ -58,12 +60,13 @@ export const darkPalette: AppPalette = {
   menuItemSelectedBg: 'rgba(15, 98, 254, 0.25)', // 菜单选中项背景色
   menuBgHover: 'rgba(255, 255, 255, 0.06)', // 菜单悬停背景色
   menuBgActive: 'rgba(15, 98, 254, 0.35)', // 菜单激活背景色
-  borderColor: 'rgba(255, 255, 255, 0.12)', // 边框颜色
+  borderColor: 'rgba(255, 255, 255, 0.22)', // 边框颜色
   shadowColor: 'rgba(0, 0, 0, 0.35)', // 阴影颜色
   iconColor: 'rgba(255, 255, 255, 0.65)', // 图标默认颜色
   iconColorActive: '#3d8bfd', // 图标激活颜色
   notificationBg: 'rgba(255, 255, 255, 0.08)', // 通知背景色
   notificationBorder: 'rgba(255, 255, 255, 0.08)', // 通知边框颜色
+  tabHomeIconBg: 'rgba(255, 255, 255, 0.14)', // 首页标签图标背景
 };
 
 export const getPalette = (mode: ThemeMode): AppPalette =>

@@ -144,7 +144,7 @@ export default function Dashboard() {
           <Table<RecordItem>
             columns={tableColumns}
             dataSource={tableData}
-            bordered={false}
+            bordered={true}
             pagination={false}
           />
         </ProCard>

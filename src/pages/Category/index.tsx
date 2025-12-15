@@ -43,7 +43,7 @@ const CategoryPage: React.FC = () => {
         >
           <CategoryTree onSelect={onSelect} />
         </Splitter.Panel>
-        <Splitter.Panel collapsible={{ start: true, showCollapsibleIcon: leftCollapsed ? true : 'auto' }}>
+        <Splitter.Panel>
           <div style={{ height: '100%', padding: '24px 0' }}>
             <CategoryDetail selectedKey={selectedKey} selectedNode={selectedNode} />
           </div>

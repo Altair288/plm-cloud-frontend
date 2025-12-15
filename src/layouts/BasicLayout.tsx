@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Breadcrumb, Button, ConfigProvider, Tabs, theme } from "antd";
 import type { TabsProps } from "antd";
 import { ProLayout } from "@ant-design/pro-components";
@@ -22,6 +22,9 @@ import {
   FolderOpenOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  CloseOutlined,
+  HomeOutlined,
+  HomeTwoTone,
 } from "@ant-design/icons";
 
 // 简易菜单数据（后续可由权限/接口动态生成）
@@ -248,17 +251,6 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
     [isDarkMode]
   );
 
-  const tabItems = useMemo<TabsProps["items"]>(
-    () =>
-      tabs.map((tab) => ({
-        key: tab.key,
-        label: tab.label,
-        closable: tab.closable,
-        children: null,
-      })),
-    [tabs]
-  );
-
   const breadcrumbItems = useMemo(
     () =>
       breadcrumbTrail.map((item, index) => ({
@@ -288,34 +280,124 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
     }
   };
 
-  const handleTabRemove = (targetKey: string) => {
-    if (targetKey === HOME_PATH) {
-      return;
-    }
-    setTabs((prev) => {
-      const next = prev.filter((tab) => tab.key !== targetKey);
-      if (next.length === prev.length) {
-        return prev;
+  const handleTabRemove = useCallback(
+    (targetKey: string) => {
+      if (targetKey === HOME_PATH) {
+        return;
       }
-      if (currentPath === targetKey) {
-        const fallback = next[next.length - 1] ?? {
-          key: HOME_PATH,
-          label: "仪表盘",
-          closable: false,
-        };
-        setTimeout(() => navigate(fallback.key), 0);
-      }
-      return next.length
-        ? next
-        : [{ key: HOME_PATH, label: "仪表盘", closable: false }];
-    });
-  };
+      setTabs((prev) => {
+        const next = prev.filter((tab) => tab.key !== targetKey);
+        if (next.length === prev.length) {
+          return prev;
+        }
+        if (currentPath === targetKey) {
+          const fallback = next[next.length - 1] ?? {
+            key: HOME_PATH,
+            label: "仪表盘",
+            closable: false,
+          };
+          setTimeout(() => navigate(fallback.key), 0);
+        }
+        return next.length
+          ? next
+          : [{ key: HOME_PATH, label: "仪表盘", closable: false }];
+      });
+    },
+    [currentPath, navigate]
+  );
 
-  const handleTabEdit: TabsProps["onEdit"] = (targetKey, action) => {
-    if (action === "remove" && typeof targetKey === "string") {
-      handleTabRemove(targetKey);
-    }
-  };
+  const tabTextRefs = useRef<Map<string, HTMLSpanElement>>(new Map());
+  const tabResizeObservers = useRef<Map<string, ResizeObserver>>(new Map());
+  const [tabTextWidths, setTabTextWidths] = useState<Record<string, number>>({});
+
+  const registerTabTextRef = useCallback(
+    (key: string) => (node: HTMLSpanElement | null) => {
+      const observers = tabResizeObservers.current;
+      const existing = observers.get(key);
+      if (existing) {
+        existing.disconnect();
+        observers.delete(key);
+      }
+      if (!node) {
+        tabTextRefs.current.delete(key);
+        setTabTextWidths((prev) => {
+          if (!(key in prev)) {
+            return prev;
+          }
+          const rest = { ...prev };
+          delete (rest as Record<string, unknown>)[key];
+          return rest;
+        });
+        return;
+      }
+      tabTextRefs.current.set(key, node);
+      const measure = () => {
+        const width = node.getBoundingClientRect().width;
+        setTabTextWidths((prev) => {
+          if (prev[key] === width) {
+            return prev;
+          }
+          return { ...prev, [key]: width };
+        });
+      };
+      measure();
+      if (typeof window !== "undefined" && "ResizeObserver" in window) {
+        const observer = new ResizeObserver(() => measure());
+        observer.observe(node);
+        observers.set(key, observer);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    return () => {
+      tabResizeObservers.current.forEach((observer) => observer.disconnect());
+      tabResizeObservers.current.clear();
+      tabTextRefs.current.clear();
+    };
+  }, []);
+
+  const tabItems = useMemo<TabsProps["items"]>(
+    () =>
+      tabs.map((tab) => ({
+        key: tab.key,
+        label: (
+          <span
+            className={`layout-tab-label${tab.key === HOME_PATH ? " layout-tab-label-home" : ""}`}
+            onMouseDown={(event) => {
+              if (tab.closable && event.button === 1) {
+                event.preventDefault();
+                event.stopPropagation();
+                handleTabRemove(tab.key);
+              }
+            }}
+          >
+            <span
+              className="layout-tab-text"
+              ref={registerTabTextRef(tab.key)}
+            >
+              {tab.key === HOME_PATH ? (
+                currentPath === HOME_PATH ? <HomeTwoTone /> : <HomeOutlined />
+              ) : (
+                tab.label
+              )}
+            </span>
+            {tab.closable && (
+              <CloseOutlined
+                className="layout-tab-close"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleTabRemove(tab.key);
+                }}
+              />
+            )}
+          </span>
+        ),
+        children: null,
+      })),
+    [currentPath, handleTabRemove, registerTabTextRef, tabs]
+  );
 
   useEffect(() => {
     if (location.pathname === "/") {
@@ -370,6 +452,11 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
     rootStyle.setProperty("--menu-selected-bg", palette.menuItemSelectedBg);
     rootStyle.setProperty("--menu-text", palette.menuText);
     rootStyle.setProperty("--menu-text-selected", palette.menuTextSelected);
+    rootStyle.setProperty("--tab-bar-bg", palette.bgContainer);
+    rootStyle.setProperty("--tab-shadow-color", palette.shadowColor);
+    rootStyle.setProperty("--tab-underline-color", palette.borderColor);
+    rootStyle.setProperty("--tab-close-color", palette.iconColor);
+    rootStyle.setProperty("--tab-home-icon-bg", palette.tabHomeIconBg);
   }, [isDarkMode, palette]);
 
   useEffect(() => {
@@ -566,14 +653,22 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
           >
             <Tabs
               className="layout-tabs"
-              type="editable-card"
-              hideAdd
               activeKey={currentPath}
               onChange={handleTabChange}
-              onEdit={handleTabEdit}
               tabBarGutter={0}
-              animated={false}
+              animated
               tabBarStyle={{ padding: "0 16px 0 0", margin: 0 }}
+              indicator={{
+                size: (origin: number, info?: { tabKey?: React.Key }) => {
+                  const key = info?.tabKey != null ? String(info.tabKey) : undefined;
+                  if (key && tabTextWidths[key] != null) {
+                    const width = tabTextWidths[key];
+                    return Math.min(origin, Math.max(width, 24));
+                  }
+                  return Math.max(origin - 24, 32);
+                },
+                align: "center",
+              }}
               items={tabItems}
             />
             <div
