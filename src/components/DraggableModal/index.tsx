@@ -1,0 +1,125 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Modal, type ModalProps } from 'antd';
+import { FullscreenOutlined, FullscreenExitOutlined } from '@ant-design/icons';
+
+interface DraggableModalProps extends ModalProps {
+  children: React.ReactNode;
+}
+
+const DraggableModal: React.FC<DraggableModalProps> = ({ title, children, ...props }) => {
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const isDragging = useRef(false);
+
+  // Reset position when opening
+  useEffect(() => {
+    if (props.open) {
+      setPosition({ x: 0, y: 0 });
+      setIsFullScreen(false);
+    }
+  }, [props.open]);
+
+  // Reset position when toggling fullscreen to avoid offset issues
+  useEffect(() => {
+    if (isFullScreen) {
+      setPosition({ x: 0, y: 0 });
+    }
+  }, [isFullScreen]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (isFullScreen) return;
+    if (e.button !== 0) return;
+    
+    isDragging.current = true;
+    dragStartPos.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y,
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging.current) return;
+    const newX = e.clientX - dragStartPos.current.x;
+    const newY = e.clientY - dragStartPos.current.y;
+    setPosition({ x: newX, y: newY });
+  };
+
+  const handleMouseUp = () => {
+    isDragging.current = false;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  };
+
+  const renderTitle = () => (
+    <div 
+      style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        cursor: isFullScreen ? 'default' : 'move',
+        userSelect: 'none',
+        width: '100%',
+        paddingRight: 32 // Avoid overlap with close button
+      }}
+      onMouseDown={handleMouseDown}
+    >
+      <div style={{ flex: 1 }}>{title}</div>
+      <div 
+        style={{ cursor: 'pointer', marginLeft: 8 }} 
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsFullScreen(!isFullScreen);
+        }}
+      >
+        {isFullScreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+      </div>
+    </div>
+  );
+
+  return (
+    <Modal
+      centered
+      {...props}
+      title={renderTitle()}
+      width={isFullScreen ? '100%' : props.width}
+      style={isFullScreen ? { ...props.style, top: 0, margin: 0, padding: 0, maxWidth: '100vw', height: '100vh' } : props.style}
+      styles={{
+        ...props.styles,
+        content: {
+          ...(props.styles?.content),
+          ...(isFullScreen ? { 
+            display: 'flex', 
+            flexDirection: 'column', 
+            height: '100vh',
+            overflow: 'hidden'
+          } : {})
+        },
+        body: {
+          ...(props.styles?.body),
+          ...(isFullScreen ? { 
+            flex: 1, 
+            overflow: 'auto', 
+            height: 'auto' 
+          } : {})
+        }
+      }}
+      modalRender={(modal) => (
+        <div style={{ 
+            transform: isFullScreen ? 'none' : `translate(${position.x}px, ${position.y}px)`, 
+            transition: isDragging.current ? 'none' : 'transform 0.1s' 
+        }}>
+          {modal}
+        </div>
+      )}
+    >
+      {children}
+    </Modal>
+  );
+};
+
+export default DraggableModal;
