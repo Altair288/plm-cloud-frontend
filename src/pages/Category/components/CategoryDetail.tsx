@@ -1,17 +1,20 @@
 import React from 'react';
-import { Card, Descriptions, Tabs, Tag, Typography, Empty, Button, Space } from 'antd';
+import { Card, Descriptions, Tabs, Tag, Typography, Empty, Button, Space, Modal } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
-import { EditOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { EditOutlined, PlusOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import type { DataNode } from 'antd/es/tree';
 
 const { Title } = Typography;
+const { confirm } = Modal;
 
 interface CategoryDetailProps {
   selectedKey?: React.Key;
   selectedNode?: DataNode;
+  onDelete?: (key: React.Key) => void;
+  onCreateSub?: (parentKey: React.Key) => void;
 }
 
-const CategoryDetail: React.FC<CategoryDetailProps> = ({ selectedKey, selectedNode }) => {
+const CategoryDetail: React.FC<CategoryDetailProps> = ({ selectedKey, selectedNode, onDelete, onCreateSub }) => {
   if (!selectedKey) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#999' }}>
@@ -22,6 +25,20 @@ const CategoryDetail: React.FC<CategoryDetailProps> = ({ selectedKey, selectedNo
 
   // 模拟根据 selectedKey 获取的数据
   const isIndustry = String(selectedKey).startsWith('IND');
+
+  const handleDelete = () => {
+    confirm({
+      title: '确认删除分类?',
+      icon: <ExclamationCircleOutlined />,
+      content: '删除后无法恢复，且该分类下的所有子分类也将被删除。',
+      okText: '确认删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk() {
+        onDelete?.(selectedKey);
+      },
+    });
+  };
 
   const items = [
     {
@@ -93,8 +110,8 @@ const CategoryDetail: React.FC<CategoryDetailProps> = ({ selectedKey, selectedNo
           {typeof selectedNode?.title === 'function' ? (selectedNode!.title as (data: DataNode) => React.ReactNode)(selectedNode as DataNode) : selectedNode?.title}
         </Title>
         <Space>
-          {!isIndustry && <Button danger icon={<DeleteOutlined />}>删除分类</Button>}
-          <Button type="primary" icon={<PlusOutlined />}>新建子分类</Button>
+          {!isIndustry && <Button danger icon={<DeleteOutlined />} onClick={handleDelete}>删除分类</Button>}
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => onCreateSub?.(selectedKey)}>新建子分类</Button>
         </Space>
       </div>
       <Tabs defaultActiveKey="1" items={items} />
