@@ -1,13 +1,17 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Typography, Divider, message, Collapse, Checkbox, Flex } from 'antd';
 import { GoogleOutlined, CheckCircleFilled } from '@ant-design/icons';
-import { evaluatePassword } from '../../utils/passwordRules';
+import { evaluatePassword } from '@/utils/passwordRules';
 import './register.css';
-import { register } from '../../services/auth';
-import { useNavigate } from 'react-router-dom';
-import URXBgSvg from '../../assets/URX-bg.svg';
+import { register } from '@/services/auth';
+import { useRouter } from 'next/navigation';
+import URXBgSvg from '@/assets/URX-bg.svg';
+import Image from 'next/image';
+import NextLink from 'next/link';
 
-const { Title, Text, Link } = Typography;
+const { Title, Text, Link: AntLink } = Typography;
 
 interface RegisterFormValues {
   email: string;
@@ -55,7 +59,7 @@ const RegisterPage: React.FC = () => {
       if(emailValidated) setEmailValidated(false);
     }
   }, [emailValue, emailFocused, emailValidated]);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleRegister = async (values: RegisterFormValues) => {
     setLoading(true);
@@ -68,7 +72,7 @@ const RegisterPage: React.FC = () => {
         company: values.company,
       });
       message.success('注册成功，请登录');
-      navigate('/login');
+      router.push('/login');
     } catch {
       message.error('注册失败，请稍后重试');
     } finally {
@@ -250,7 +254,7 @@ const RegisterPage: React.FC = () => {
           {/* 左侧SVG背景区域 */}
           <div className="register-left-section">
             <div className="art-background">
-              <img src={URXBgSvg} alt="" className="bg-svg" aria-hidden="true" />
+              <Image src={URXBgSvg} alt="" className="bg-svg" aria-hidden="true" />
             </div>
           </div>
 
@@ -260,7 +264,7 @@ const RegisterPage: React.FC = () => {
             <div className="form-header">
               <Title level={2} className="form-title">创建 PLM Cloud Platform 账号</Title>
               <Text className="form-subtitle">
-                已有 PLM Cloud Platform 账号？ <Link href="/login">登录</Link>
+                已有 PLM Cloud Platform 账号？ <NextLink href="/login" passHref legacyBehavior><AntLink>登录</AntLink></NextLink>
               </Text>
             </div>
 
@@ -299,7 +303,7 @@ const RegisterPage: React.FC = () => {
               />
               <div className="form-footer">
                 <Text type="secondary" className="footer-text">
-                  继续操作即表示您同意我们的 <Link href="#">隐私政策</Link> 与 <Link href="#">使用条款</Link>。
+                  继续操作即表示您同意我们的 <NextLink href="#" passHref legacyBehavior><AntLink>隐私政策</AntLink></NextLink> 与 <NextLink href="#" passHref legacyBehavior><AntLink>使用条款</AntLink></NextLink>。
                 </Text>
               </div>
             </Form>

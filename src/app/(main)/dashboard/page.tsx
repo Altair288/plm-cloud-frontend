@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useRef } from 'react';
 import { PageContainer, ProCard, StatisticCard } from '@ant-design/pro-components';
 import { Col, List, Row, Space, Table, Tag } from 'antd';

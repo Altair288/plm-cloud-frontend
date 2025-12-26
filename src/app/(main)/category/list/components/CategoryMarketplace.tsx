@@ -3,8 +3,8 @@ import { Typography, Checkbox, Button, List, Tag, message, Empty, Input, Space, 
 import { ShoppingCartOutlined, PlusOutlined, DeleteOutlined, SearchOutlined, EditOutlined, AppstoreOutlined, DatabaseOutlined, ArrowRightOutlined, FolderOutlined } from '@ant-design/icons';
 import { ProCard } from '@ant-design/pro-components';
 import type { DataNode, TreeProps } from 'antd/es/tree';
-import DraggableModal from '../../../components/DraggableModal';
-import { lightPalette } from '../../../styles/colors';
+import DraggableModal from '../../../../../components/DraggableModal';
+import { lightPalette } from '../../../../../styles/colors';
 
 import { LIBRARIES, MOCK_DB, MOCK_ATTRIBUTES, type CategoryItem } from '../mockData';
 
