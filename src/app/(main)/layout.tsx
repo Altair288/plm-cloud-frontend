@@ -1,13 +1,15 @@
+'use client';
+
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Breadcrumb, Button, ConfigProvider, Tabs, theme } from "antd";
 import type { TabsProps } from "antd";
 import { ProLayout } from "@ant-design/pro-components";
-import HeaderRight from "./components/HeaderRight";
+import HeaderRight from "@/layouts/components/HeaderRight";
 import { usePathname, useRouter } from "next/navigation";
-import { themeTokens, componentTokens } from "../styles/theme";
-import { getPalette } from "../styles/colors";
-import type { AppPalette } from "../styles/colors";
-import "./BasicLayout.css";
+import { themeTokens, componentTokens } from "@/styles/theme";
+import { getPalette } from "@/styles/colors";
+import type { AppPalette } from "@/styles/colors";
+import "@/layouts/BasicLayout.css";
 import {
   UnorderedListOutlined,
   DashboardOutlined,
@@ -192,12 +194,11 @@ const menuData: MenuItem[] = [
   },
 ];
 
-// 选中菜单 key 通过 location.pathname 自动匹配，无需在 menu 里直接传 selectedKeys（否则类型不匹配）
-
 const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
   const pathname = usePathname();
   const router = useRouter();
   const currentPath = pathname === "/" ? HOME_PATH : pathname;
+
   const [collapsed, setCollapsed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     if (typeof window === "undefined") {
@@ -521,8 +522,6 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
   const handleToggleCollapsed = () => {
     setCollapsed((prev) => !prev);
   };
-
-  // ProLayout 根据 location 自动匹配选中菜单，无需手动 selectedKeys
 
   return (
     <ConfigProvider

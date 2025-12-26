@@ -1,10 +1,15 @@
+'use client';
+
 import { Form, Input, Button, Typography, Checkbox, Divider } from "antd";
 import { useState } from "react";
 import "./login.css";
 import { ArrowRightOutlined, GoogleOutlined, GithubOutlined, QuestionCircleOutlined, LeftOutlined } from "@ant-design/icons";
 import Illustration from "@/assets/illustration-final.svg";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-const { Title, Text, Link } = Typography;
+const { Title, Text } = Typography;
 
 interface LoginFormValuesStep1 {
   plmId: string;
@@ -18,6 +23,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [plmIdCache, setPlmIdCache] = useState('');
+  const router = useRouter();
 
   const handleStep1Finish = ({ plmId }: LoginFormValuesStep1) => {
     setPlmIdCache(plmId.trim());
@@ -29,7 +35,8 @@ export default function LoginPage() {
     console.log("Login submit:", values);
     await new Promise((r) => setTimeout(r, 800));
     setLoading(false);
-    // TODO: 实际认证逻辑，成功后跳转 dashboard
+    // 实际认证逻辑，成功后跳转 dashboard
+    router.push('/dashboard');
   };
 
   return (
@@ -49,7 +56,7 @@ export default function LoginPage() {
                 登录 PLM Cloud Platform
               </Title>
               <Text className="login-subtitle">
-                没有账号？ <Link href="/register">创建 PLM Cloud Platform 账号</Link>
+                没有账号？ <Link href="/register" style={{ color: '#0f62fe' }}>创建 PLM Cloud Platform 账号</Link>
               </Text>
 
               {step === 1 && (
@@ -103,7 +110,7 @@ export default function LoginPage() {
                   </Button>
                   <div className="login-footer-links">
                     <Text className="footer-text">
-                      忘记 PLM Cloud Platform ID？ <Link href="#">帮助</Link>
+                      忘记 PLM Cloud Platform ID？ <Link href="#" style={{ color: '#0f62fe' }}>帮助</Link>
                     </Text>
                   </div>
                 </Form>
@@ -156,10 +163,10 @@ export default function LoginPage() {
                     </Button>
                   </Form.Item>
                   <div className="login-footer-links step2-extra">
-                    <Link href="#" className="forgot-link">忘记密码?</Link>
+                    <Link href="#" className="forgot-link" style={{ color: '#0f62fe' }}>忘记密码?</Link>
                     <Divider className="step-divider" />
                     <Text className="footer-text small">
-                      忘记 ID? <Link href="#">帮助中心</Link>
+                      忘记 ID? <Link href="#" style={{ color: '#0f62fe' }}>帮助中心</Link>
                     </Text>
                   </div>
                 </Form>
@@ -170,7 +177,7 @@ export default function LoginPage() {
           {/* 右侧装饰区域 */}
           <aside className="ibm-login-art" aria-hidden="true">
             <div className="art-background">
-              <img src={Illustration} alt="" className="login-illustration" />
+              <Image src={Illustration} alt="" className="login-illustration" />
             </div>
           </aside>
         </div>
@@ -179,10 +186,10 @@ export default function LoginPage() {
       <footer className="ibm-login-footer">
         <div className="footer-content">
           <div className="footer-links">
-            <Link href="#">联系</Link>
-            <Link href="#">隐私条款</Link>
-            <Link href="#">使用条款</Link>
-            <Link href="#">辅助功能选项</Link>
+            <Link href="#" style={{ color: '#0f62fe' }}>联系</Link>
+            <Link href="#" style={{ color: '#0f62fe' }}>隐私条款</Link>
+            <Link href="#" style={{ color: '#0f62fe' }}>使用条款</Link>
+            <Link href="#" style={{ color: '#0f62fe' }}>辅助功能选项</Link>
           </div>
           <Text className="footer-copyright">
             Powered by PLM Cloud Platform © 2025 All Rights Reserved.

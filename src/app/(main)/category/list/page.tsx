@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { theme, Splitter, Button, Space, message, Modal, Input, Form } from 'antd';
 import { PlusOutlined, ShoppingCartOutlined, FolderOutlined } from '@ant-design/icons';

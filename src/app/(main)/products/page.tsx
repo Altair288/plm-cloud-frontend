@@ -1,3 +1,5 @@
+'use client';
+
 import { ProTable } from '@ant-design/pro-components';
 import { useCallback, useState } from 'react';
 import { listProducts } from '@/services/product';
