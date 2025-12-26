@@ -2,7 +2,7 @@
 
 This project is the frontend for the PLM (Product Lifecycle Management) Cloud Platform, recently refactored from a Vite-based SPA to a modern **Next.js 15** application using the **App Router**. It integrates **Ant Design 5** and **ECharts** to provide a robust, enterprise-grade user interface.
 
-## 🚀 Key Features
+## Key Features
 
 - **Next.js 15 & App Router**: Utilizes the latest React Server Components (RSC) architecture and file-system based routing for improved performance and SEO.
 - **Ant Design 5**: Built with the latest version of Ant Design, featuring a flexible design system and comprehensive component library.
@@ -11,7 +11,7 @@ This project is the frontend for the PLM (Product Lifecycle Management) Cloud Pl
 - **TypeScript**: Fully typed codebase for better developer experience and code quality.
 - **Responsive Design**: Adaptive layouts that work seamlessly across different screen sizes.
 
-## 📂 Project Structure
+## Project Structure
 
 ```text
 src/
@@ -33,7 +33,7 @@ src/
   middleware.ts        # Next.js middleware (optional)
 ```
 
-## 🛠️ Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -80,7 +80,7 @@ Start the production server:
 npm start
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 The application uses environment variables for configuration. Create a `.env` or `.env.local` file in the root directory:
 
@@ -89,7 +89,7 @@ The application uses environment variables for configuration. Create a `.env` or
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ```
 
-## 🧩 Tech Stack
+## Tech Stack
 
 - **Framework**: [Next.js 15](https://nextjs.org/)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
@@ -99,6 +99,6 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 - **HTTP Client**: [Axios](https://axios-http.com/)
 - **Icons**: [Ant Design Icons](https://ant.design/components/icon)
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License.
