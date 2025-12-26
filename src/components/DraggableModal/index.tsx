@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Modal, type ModalProps } from 'antd';
-import { FullscreenOutlined, FullscreenExitOutlined } from '@ant-design/icons';
+import { Modal, type ModalProps, Button } from 'antd';
+import { FullscreenOutlined, FullscreenExitOutlined, CloseOutlined } from '@ant-design/icons';
+import { lightPalette } from '../../styles/colors';
 
 interface DraggableModalProps extends ModalProps {
   children: React.ReactNode;
@@ -64,19 +65,34 @@ const DraggableModal: React.FC<DraggableModalProps> = ({ title, children, ...pro
         cursor: isFullScreen ? 'default' : 'move',
         userSelect: 'none',
         width: '100%',
-        paddingRight: 32 // Avoid overlap with close button
       }}
       onMouseDown={handleMouseDown}
     >
       <div style={{ flex: 1 }}>{title}</div>
       <div 
-        style={{ cursor: 'pointer', marginLeft: 8 }} 
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsFullScreen(!isFullScreen);
-        }}
+        style={{ display: 'flex', alignItems: 'center', gap: 4 }} 
+        onMouseDown={(e) => e.stopPropagation()}
       >
-        {isFullScreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+        <Button
+          type="text"
+          icon={isFullScreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsFullScreen(!isFullScreen);
+          }}
+          style={{ color: lightPalette.iconColor }}
+        />
+        {(props.closable ?? true) && (
+          <Button
+            type="text"
+            icon={<CloseOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              props.onCancel?.(e as any);
+            }}
+            style={{ color: lightPalette.iconColor }}
+          />
+        )}
       </div>
     </div>
   );
@@ -85,6 +101,7 @@ const DraggableModal: React.FC<DraggableModalProps> = ({ title, children, ...pro
     <Modal
       centered
       {...props}
+      closable={false}
       title={renderTitle()}
       width={isFullScreen ? '100%' : props.width}
       style={isFullScreen ? { ...props.style, top: 0, margin: 0, padding: 0, maxWidth: '100vw', height: '100vh' } : props.style}

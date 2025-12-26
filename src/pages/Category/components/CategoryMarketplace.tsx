@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Typography, Checkbox, Button, List, Tag, message, Empty, Input, Space, Badge, Statistic, Tooltip, Select, Spin, Breadcrumb, Modal, Splitter, Tree } from 'antd';
 import { ShoppingCartOutlined, PlusOutlined, DeleteOutlined, SearchOutlined, EditOutlined, AppstoreOutlined, DatabaseOutlined, ArrowRightOutlined, FolderOutlined } from '@ant-design/icons';
 import { ProCard } from '@ant-design/pro-components';
@@ -49,6 +49,28 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
   const [selectedTargetNodeKey, setSelectedTargetNodeKey] = useState<React.Key | null>(null);
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
   const [autoExpandParent, setAutoExpandParent] = useState<boolean>(true);
+  
+  // Tree height auto-adjustment
+  const [treeHeight, setTreeHeight] = useState<number>(600);
+  const treeContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (stage === 1 && treeContainerRef.current) {
+      const updateHeight = () => {
+        if (treeContainerRef.current) {
+          setTreeHeight(treeContainerRef.current.offsetHeight);
+        }
+      };
+
+      // Initial calculation
+      updateHeight();
+
+      const observer = new ResizeObserver(updateHeight);
+      observer.observe(treeContainerRef.current);
+      
+      return () => observer.disconnect();
+    }
+  }, [stage]);
 
   // --- 业务逻辑 ---
 
@@ -753,7 +775,7 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
               extra={<Text type="secondary">支持拖拽调整位置</Text>}
               bodyStyle={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}
             >
-              <div style={{ flex: 1, overflowY: 'auto' }}>
+              <div ref={treeContainerRef} style={{ flex: 1, overflow: 'hidden' }}>
                 <Tree
                   treeData={previewTreeData}
                   draggable
@@ -764,7 +786,8 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
                   onDrop={onDrop}
                   onSelect={(keys) => setSelectedTargetNodeKey(keys[0])}
                   selectedKeys={selectedTargetNodeKey ? [selectedTargetNodeKey] : []}
-                  height={600} // Virtual scroll
+                  height={treeHeight} // Dynamic height for virtual scroll
+                  virtual // Explicitly enable virtual scroll
                 />
               </div>
             </ProCard>

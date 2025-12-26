@@ -111,7 +111,7 @@ const CategoryPage: React.FC = () => {
   };
 
   return (
-    <div style={{ height: 'calc(100vh - 201px)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ height: 'calc(100vh - 201px)', display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Space>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenCreateModal(null)}>新建分类</Button>
@@ -123,10 +123,12 @@ const CategoryPage: React.FC = () => {
         onCollapse={(collapsed) => setLeftCollapsed(collapsed[0] ?? false)}
         style={{
           flex: 1,
+          minHeight: 0,
           background: colorBgContainer,
           borderRadius: borderRadiusLG,
           border: `1px solid ${colorBorderSecondary}`,
           boxShadow: '0 0 10px rgba(0, 0, 0, 0.05)',
+          overflow: 'hidden',
         }}
       >
         <Splitter.Panel
