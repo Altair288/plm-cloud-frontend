@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Typography, Checkbox, Button, List, Tag, message, Empty, Input, Space, Badge, Statistic, Tooltip, Select, Spin, Breadcrumb, Modal, Splitter, Tree } from 'antd';
+import { Typography, Checkbox, Button, List, Tag, Empty, Input, Space, Badge, Statistic, Tooltip, Select, Spin, Breadcrumb, Modal, Splitter, Tree, App } from 'antd';
 import { ShoppingCartOutlined, PlusOutlined, DeleteOutlined, SearchOutlined, EditOutlined, AppstoreOutlined, DatabaseOutlined, ArrowRightOutlined, FolderOutlined } from '@ant-design/icons';
 import { ProCard } from '@ant-design/pro-components';
 import type { DataNode, TreeProps } from 'antd/es/tree';
@@ -25,6 +25,7 @@ interface CategoryMarketplaceProps {
 }
 
 const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCancel, onOk, userTreeData = [] }) => {
+  const { message, modal } = App.useApp();
   // --- 状态管理 ---
 
   const [stage, setStage] = useState<0 | 1>(0); // 0: 选品, 1: 分配位置
@@ -153,18 +154,16 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
       attributes: checkedAttributes,
     };
 
-    setCart(prev => {
-      const index = prev.findIndex(item => item.key === newItem.key);
-      if (index > -1) {
-        const newCart = [...prev];
-        newCart[index] = newItem;
-        message.success('已更新配置');
-        return newCart;
-      } else {
-        message.success('已加入清单');
-        return [...prev, newItem];
-      }
-    });
+    const index = cart.findIndex(item => item.key === newItem.key);
+    if (index > -1) {
+      const newCart = [...cart];
+      newCart[index] = newItem;
+      setCart(newCart);
+      message.success('已更新配置');
+    } else {
+      setCart([...cart, newItem]);
+      message.success('已加入清单');
+    }
   };
 
   const handleRemoveFromCart = (key: string) => {
@@ -175,7 +174,7 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
   };
 
   const handleClearCart = () => {
-    Modal.confirm({
+    modal.confirm({
       title: '确认清空清单?',
       content: '此操作将移除所有已选分类，且不可恢复。',
       onOk: () => {
@@ -421,7 +420,7 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
 
   const handleFinalSubmit = () => {
     if (pendingItems.length > 0) {
-      Modal.confirm({
+      modal.confirm({
         title: '还有未分配的分类',
         content: `还有 ${pendingItems.length} 个分类未分配到树中。继续提交将忽略这些分类。`,
         onOk: () => {
@@ -467,7 +466,7 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
             {isInCart && <Badge status="processing" text={<span style={{ fontSize: 12, color: lightPalette.textSecondary }}>已选</span>} />}
           </div>
           <Space size={4} style={{ flexWrap: 'wrap' }}>
-            <Tag bordered={false} style={{ fontSize: 10, margin: 0 }}>{item.code}</Tag>
+            <Tag variant="filled" style={{ fontSize: 10, margin: 0 }}>{item.code}</Tag>
             <Text type="secondary" style={{ fontSize: 12 }}>
               {item.path.join(' / ')}
             </Text>
@@ -516,7 +515,7 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
               style={{ height: '100%', display: 'flex', flexDirection: 'column', border: 'none' }}
               bodyStyle={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', backgroundColor: '#fafafa' }}
             >
-              <Space direction="vertical" style={{ width: '100%', marginBottom: 16 }}>
+              <Space orientation="vertical" style={{ width: '100%', marginBottom: 16 }}>
                 <Select
                   style={{ width: '100%' }}
                   value={selectedLibrary}
@@ -713,7 +712,7 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
               bodyStyle={{ padding: '0', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', backgroundColor: '#fafafa' }}
             >
               <div style={{ padding: '12px', borderBottom: `1px solid ${lightPalette.borderColor}`, backgroundColor: '#fff' }}>
-                <Space direction="vertical" style={{ width: '100%' }}>
+                <Space orientation="vertical" style={{ width: '100%' }}>
                   <Text type="secondary">选中下方分类，然后在右侧树中选择目标节点，点击分配。</Text>
                   <Button 
                     type="primary" 

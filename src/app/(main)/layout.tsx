@@ -5,6 +5,7 @@ import { Breadcrumb, Button, ConfigProvider, Tabs, theme } from "antd";
 import type { TabsProps } from "antd";
 import dynamic from 'next/dynamic';
 const ProLayout = dynamic(() => import('@ant-design/pro-components').then(mod => mod.ProLayout), { ssr: false });
+const AntdApp = dynamic(() => import('antd').then(mod => mod.App), { ssr: false });
 import HeaderRight from "@/layouts/components/HeaderRight";
 import { usePathname, useRouter } from "next/navigation";
 import { themeTokens, componentTokens } from "@/styles/theme";
@@ -541,6 +542,7 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
         components: currentComponentTokens,
       }}
     >
+      <AntdApp {...({ suppressHydrationWarning: true } as any)}>
       <ProLayout
         suppressHydrationWarning
         title="PLM Cloud Platform"
@@ -685,6 +687,7 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
           </div>
         </div>
       </ProLayout>
+      </AntdApp>
     </ConfigProvider>
   );
 };

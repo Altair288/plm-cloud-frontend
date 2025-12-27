@@ -101,7 +101,7 @@ export default function Dashboard() {
         paddingInlinePageContainerContent: 16,
       }}
     >
-      <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <Space orientation="vertical" size={16} style={{ width: '100%' }}>
         <Row gutter={16}>
           {overviewItems.map((item) => (
             <Col key={item.title} xs={24} sm={12} lg={6}>

@@ -7,7 +7,7 @@ interface DraggableModalProps extends ModalProps {
   children: React.ReactNode;
 }
 
-const DraggableModal: React.FC<DraggableModalProps> = ({ title, children, ...props }) => {
+const DraggableModal: React.FC<DraggableModalProps> = ({ title, children, destroyOnClose, ...props }) => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const dragStartPos = useRef({ x: 0, y: 0 });
@@ -100,6 +100,7 @@ const DraggableModal: React.FC<DraggableModalProps> = ({ title, children, ...pro
   return (
     <Modal
       centered
+      destroyOnHidden={destroyOnClose}
       {...props}
       closable={false}
       title={renderTitle()}
@@ -108,7 +109,7 @@ const DraggableModal: React.FC<DraggableModalProps> = ({ title, children, ...pro
       styles={{
         ...props.styles,
         content: {
-          ...(props.styles?.content),
+          ...((props.styles as any)?.content),
           ...(isFullScreen ? { 
             display: 'flex', 
             flexDirection: 'column', 
@@ -117,14 +118,14 @@ const DraggableModal: React.FC<DraggableModalProps> = ({ title, children, ...pro
           } : {})
         },
         body: {
-          ...(props.styles?.body),
+          ...((props.styles as any)?.body),
           ...(isFullScreen ? { 
             flex: 1, 
             overflow: 'auto', 
             height: 'auto' 
           } : {})
         }
-      }}
+      } as any}
       modalRender={(modal) => (
         <div style={{ 
             transform: isFullScreen ? 'none' : `translate(${position.x}px, ${position.y}px)`, 

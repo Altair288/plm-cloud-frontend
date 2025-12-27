@@ -1,11 +1,10 @@
 import React from 'react';
-import { Card, Descriptions, Tabs, Tag, Typography, Empty, Button, Space, Modal } from 'antd';
+import { Card, Descriptions, Tabs, Tag, Typography, Empty, Button, Space, Modal, App } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
 import { EditOutlined, PlusOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import type { DataNode } from 'antd/es/tree';
 
 const { Title } = Typography;
-const { confirm } = Modal;
 
 interface CategoryDetailProps {
   selectedKey?: React.Key;
@@ -15,6 +14,8 @@ interface CategoryDetailProps {
 }
 
 const CategoryDetail: React.FC<CategoryDetailProps> = ({ selectedKey, selectedNode, onDelete, onCreateSub }) => {
+  const { modal } = App.useApp();
+
   if (!selectedKey) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#999' }}>
@@ -27,7 +28,7 @@ const CategoryDetail: React.FC<CategoryDetailProps> = ({ selectedKey, selectedNo
   const isIndustry = String(selectedKey).startsWith('IND');
 
   const handleDelete = () => {
-    confirm({
+    modal.confirm({
       title: '确认删除分类?',
       icon: <ExclamationCircleOutlined />,
       content: '删除后无法恢复，且该分类下的所有子分类也将被删除。',

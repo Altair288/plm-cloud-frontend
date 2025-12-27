@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { theme, Splitter, Button, Space, message, Modal, Input, Form } from 'antd';
+import { theme, Splitter, Button, Space, App, Modal, Input, Form } from 'antd';
 import { PlusOutlined, ShoppingCartOutlined, FolderOutlined } from '@ant-design/icons';
 import type { DataNode, TreeProps } from 'antd/es/tree';
 import CategoryTree from './components/CategoryTree';
@@ -10,6 +10,7 @@ import CategoryMarketplace from './components/CategoryMarketplace';
 import { defaultUserTreeData } from './mockData';
 
 const CategoryPage: React.FC = () => {
+  const { message } = App.useApp();
   const {
     token: { colorBgContainer, borderRadiusLG, colorBorderSecondary },
   } = theme.useToken();
@@ -165,7 +166,7 @@ const CategoryPage: React.FC = () => {
         open={createModalVisible}
         onOk={handleCreateSubmit}
         onCancel={() => setCreateModalVisible(false)}
-        destroyOnClose
+        destroyOnHidden={true}
       >
         <Form form={form} layout="vertical">
           <Form.Item
