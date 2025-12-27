@@ -3,7 +3,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Breadcrumb, Button, ConfigProvider, Tabs, theme } from "antd";
 import type { TabsProps } from "antd";
-import { ProLayout } from "@ant-design/pro-components";
+import dynamic from 'next/dynamic';
+const ProLayout = dynamic(() => import('@ant-design/pro-components').then(mod => mod.ProLayout), { ssr: false });
 import HeaderRight from "@/layouts/components/HeaderRight";
 import { usePathname, useRouter } from "next/navigation";
 import { themeTokens, componentTokens } from "@/styles/theme";
@@ -200,16 +201,16 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
   const currentPath = pathname === "/" ? HOME_PATH : pathname;
 
   const [collapsed, setCollapsed] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+
+  useEffect(() => {
     const stored = window.localStorage.getItem("plm-theme-mode");
     if (stored) {
-      return stored === "dark";
+      setIsDarkMode(stored === "dark");
+    } else {
+      setIsDarkMode(window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false);
     }
-    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
-  });
+  }, []);
 
   const matchedMenuPath = useMemo(
     () => findMenuPath(menuData, currentPath) ?? [],
@@ -541,6 +542,7 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
       }}
     >
       <ProLayout
+        suppressHydrationWarning
         title="PLM Cloud Platform"
         token={{
           header: {
