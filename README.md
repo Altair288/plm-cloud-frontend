@@ -42,11 +42,10 @@ src/
 
 ### Installation
 
-1.  Clone the repository and switch to the refactored branch:
+1.  Clone the repository:
     ```bash
     git clone https://github.com/Altair288/plm-cloud-frontend.git
     cd plm-cloud-frontend
-    git checkout refactor/nextjs
     ```
 
 2.  Install dependencies:
