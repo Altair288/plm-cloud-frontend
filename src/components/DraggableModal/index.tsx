@@ -99,7 +99,7 @@ const DraggableModal: React.FC<DraggableModalProps> = ({ title, children, destro
 
   return (
     <Modal
-      centered
+      centered={isFullScreen ? false : (props.centered ?? true)}
       destroyOnHidden={destroyOnClose}
       {...props}
       closable={false}
@@ -108,21 +108,27 @@ const DraggableModal: React.FC<DraggableModalProps> = ({ title, children, destro
       style={isFullScreen ? { ...props.style, top: 0, margin: 0, padding: 0, maxWidth: '100vw', height: '100vh' } : props.style}
       styles={{
         ...props.styles,
-        content: {
-          ...((props.styles as any)?.content),
-          ...(isFullScreen ? { 
-            display: 'flex', 
-            flexDirection: 'column', 
-            height: '100vh',
-            overflow: 'hidden'
-          } : {})
+        wrapper: {
+          ...((props.styles as any)?.wrapper),
+          ...(isFullScreen ? { padding: 0 } : {}),
+        },
+        container: {
+          ...((props.styles as any)?.container),
+          ...(isFullScreen
+            ? {
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100vh',
+                overflow: 'hidden',
+              }
+            : {}),
         },
         body: {
           ...((props.styles as any)?.body),
           ...(isFullScreen ? { 
             flex: 1, 
-            overflow: 'auto', 
-            height: 'auto' 
+            minHeight: 0,
+            overflow: 'auto'
           } : {})
         }
       } as any}
