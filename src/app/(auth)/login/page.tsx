@@ -85,7 +85,7 @@ export default function LoginPage() {
                       size="large"
                       className="ibm-continue-btn"
                       icon={<ArrowRightOutlined />}
-                      iconPosition="end"
+                      iconPlacement="end"
                     >
                       继续
                     </Button>
