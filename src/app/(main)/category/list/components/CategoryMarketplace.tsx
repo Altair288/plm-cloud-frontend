@@ -6,7 +6,9 @@ import type { DataNode, TreeProps } from 'antd/es/tree';
 import DraggableModal from '../../../../../components/DraggableModal';
 import { lightPalette } from '../../../../../styles/colors';
 
-import { LIBRARIES, MOCK_DB, MOCK_ATTRIBUTES, type CategoryItem } from '../mockData';
+import { LIBRARIES, MOCK_DB, MOCK_ATTRIBUTES, type CategoryItem, UNSPSC_DATA, type MillerNode } from '../mockData';
+import MillerColumns from './MillerColumns';
+import CategoryBrowser from './CategoryBrowser';
 
 const { Title, Text } = Typography;
 
@@ -41,6 +43,56 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
   // 3. 当前选中的分类 (配置区)
   const [activeCategory, setActiveCategory] = useState<CategoryItem | null>(null);
   const [checkedAttributes, setCheckedAttributes] = useState<string[]>([]);
+  const [selectedMillerPath, setSelectedMillerPath] = useState<string[]>([]);
+
+  // Handler for CategoryBrowser selection (Leaf node)
+  const handleBrowserSelect = (node: MillerNode) => {
+    // Find path for breadcrumbs (Simplified logic for demo)
+    // In real app, node should carry its path or we traverse up
+    // Note: CategoryBrowser now handles 4 levels internally, but here we just need to pass the leaf node
+    // We can try to reconstruct path if needed, or just use title
+    const pathTitles: string[] = ['UNSPSC', node.title]; 
+    
+    const categoryItem: CategoryItem = {
+      key: node.key,
+      title: node.title,
+      code: node.code,
+      path: pathTitles,
+      library: 'UNSPSC'
+    };
+    handleSelectCategory(categoryItem);
+  };
+
+  const handleMillerSelect = (node: MillerNode, level: number) => {
+    // Update selected path
+    const newPath = selectedMillerPath.slice(0, level);
+    newPath.push(node.key);
+    setSelectedMillerPath(newPath);
+
+    if (node.isLeaf) {
+      // Helper to find path titles
+      const pathTitles: string[] = [];
+      let currentNodes = UNSPSC_DATA;
+      for (const key of newPath) {
+        const found = currentNodes.find(n => n.key === key);
+        if (found) {
+          pathTitles.push(found.title);
+          if (found.children) {
+            currentNodes = found.children;
+          }
+        }
+      }
+
+      const categoryItem: CategoryItem = {
+        key: node.key,
+        title: node.title,
+        code: node.code,
+        path: pathTitles,
+        library: 'UNSPSC'
+      };
+      handleSelectCategory(categoryItem);
+    }
+  };
 
   // 4. Stage 2 状态
   const [previewTreeData, setPreviewTreeData] = useState<DataNode[]>([]);
@@ -75,20 +127,42 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
 
   // --- 业务逻辑 ---
 
+  // Helper to flatten UNSPSC tree for search
+  const flattenUNSPSC = (nodes: MillerNode[], parentPath: string[] = []): CategoryItem[] => {
+    let result: CategoryItem[] = [];
+    nodes.forEach(node => {
+      const currentPath = [...parentPath, node.title];
+      if (node.isLeaf) {
+        result.push({
+          key: node.key,
+          title: node.title,
+          code: node.code,
+          path: currentPath,
+          library: 'UNSPSC'
+        });
+      }
+      if (node.children) {
+        result = result.concat(flattenUNSPSC(node.children, currentPath));
+      }
+    });
+    return result;
+  };
+
   // 模拟后端搜索 API
   const handleSearch = useCallback(async (query: string) => {
     setIsSearching(true);
 
     // 模拟网络延迟
     setTimeout(() => {
-      const source = MOCK_DB[selectedLibrary] || [];
-      const results = source.filter(item =>
-        item.title.includes(query) || item.code.includes(query)
+      // Search in UNSPSC data
+      const allItems = flattenUNSPSC(UNSPSC_DATA);
+      const results = allItems.filter(item =>
+        item.title.toLowerCase().includes(query.toLowerCase()) || item.code.includes(query)
       );
       setSearchResults(results);
       setIsSearching(false);
     }, 300);
-  }, [selectedLibrary]);
+  }, []);
 
   // --- 持久化逻辑 ---
   const STORAGE_KEY = 'PLM_CATEGORY_CART_DRAFT';
@@ -508,23 +582,16 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
       {stage === 0 ? (
         <Splitter style={{ height: '100%', boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }}>
           {/* --- 左侧：选品区 (Discovery) --- */}
-          <Splitter.Panel defaultSize="30%" min="20%" max="40%">
+          <Splitter.Panel defaultSize="50%" min="30%" max="70%">
             <ProCard
-              title="1. 选品 (Discovery)"
+              title="1. 选品 (Discovery - UNSPSC)"
               headerBordered
               style={{ height: '100%', display: 'flex', flexDirection: 'column', border: 'none' }}
               bodyStyle={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', backgroundColor: '#fafafa' }}
             >
               <Space orientation="vertical" style={{ width: '100%', marginBottom: 16 }}>
-                <Select
-                  style={{ width: '100%' }}
-                  value={selectedLibrary}
-                  onChange={handleLibraryChange}
-                  options={LIBRARIES}
-                  prefix={<DatabaseOutlined />}
-                />
                 <Input.Search
-                  placeholder="输入编码或名称搜索..."
+                  placeholder="输入 UNSPSC 编码或名称搜索..."
                   allowClear
                   onSearch={handleSearch}
                   onChange={(e) => {
@@ -534,23 +601,25 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
                 />
               </Space>
 
-              <div style={{ flex: 1, overflowY: 'auto', margin: '0 -8px', padding: '0 8px' }}>
-                <Spin spinning={isSearching}>
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                {isSearching && searchResults.length > 0 ? (
                   <List
                     dataSource={searchResults}
                     renderItem={renderSearchResultItem}
-                    locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无相关分类" /> }}
+                    style={{ height: '100%', overflowY: 'auto' }}
                   />
-                </Spin>
-              </div>
-              <div style={{ marginTop: 8, textAlign: 'center' }}>
-                <Text type="secondary" style={{ fontSize: 12 }}>显示前 {searchResults.length} 条结果</Text>
+                ) : (
+                  <CategoryBrowser 
+                    data={UNSPSC_DATA} 
+                    onSelect={handleBrowserSelect} 
+                  />
+                )}
               </div>
             </ProCard>
           </Splitter.Panel>
 
           {/* --- 中间：配置区 (Configuration) --- */}
-          <Splitter.Panel defaultSize="40%" min="30%">
+          <Splitter.Panel defaultSize="25%" min="20%">
             <ProCard
               title="2. 配置 (Configuration)"
               headerBordered
@@ -618,7 +687,7 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
         </Splitter.Panel>
 
         {/* --- 右侧：清单区 (Cart) --- */}
-        <Splitter.Panel defaultSize="30%" min="20%" max="40%">
+        <Splitter.Panel defaultSize="25%" min="20%" max="40%">
           <ProCard
             title={
               <Space>
