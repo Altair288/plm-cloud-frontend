@@ -297,13 +297,22 @@ const CategoryBrowser: React.FC<CategoryBrowserProps> = ({ onSelect }) => {
                             transition: 'all 0.2s',
                             minWidth: 120,
                             display: 'flex',
-                            flexDirection: 'column',
+                            flexDirection: 'row',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 4,
+                            gap: 6,
                             textAlign: 'center'
                           }}
                         >
+                          {!node.hasChildren && (
+                            <TagOutlined 
+                              style={{ 
+                                fontSize: 14, 
+                                opacity: 0.6,
+                                color: isSelected ? token.colorPrimary : token.colorTextTertiary 
+                              }} 
+                            />
+                          )}
                           <Text strong={isSelected} style={{ color: isSelected ? token.colorPrimary : token.colorText }}>
                             {node.title}
                           </Text>
