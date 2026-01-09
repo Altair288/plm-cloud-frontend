@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { List, Card, Typography, Space, Button, Tag, Empty, theme, Tabs, Spin } from 'antd';
-import { RightOutlined, LeftOutlined, AppstoreOutlined, ShopOutlined } from '@ant-design/icons';
+import { RightOutlined, LeftOutlined, AppstoreOutlined, ShopOutlined, TagOutlined } from '@ant-design/icons';
 import type { MillerNode } from '../mockData';
 import { metaCategoryApi, type MetaCategoryBrowseNodeDto, type MetaCategoryClassGroupDto } from '../../../../../services/metaCategory';
 
@@ -38,6 +38,9 @@ const CategoryBrowser: React.FC<CategoryBrowserProps> = ({ onSelect }) => {
   const [classGroups, setClassGroups] = useState<MetaCategoryClassGroupDto[]>([]);
   const [classGroupsLoading, setClassGroupsLoading] = useState(false);
 
+  // Selected leaf node for confirmation
+  const [selectedLeaf, setSelectedLeaf] = useState<MillerNode | null>(null);
+
   // Load groups once
   useEffect(() => {
     let cancelled = false;
@@ -70,6 +73,7 @@ const CategoryBrowser: React.FC<CategoryBrowserProps> = ({ onSelect }) => {
       setActiveScope(null);
       setScopeStack([]);
       setClassGroups([]);
+      setSelectedLeaf(null);
       try {
         const resp = await metaCategoryApi.listUnspscFamilies(activeGroupKey);
         if (cancelled) return;
@@ -88,6 +92,7 @@ const CategoryBrowser: React.FC<CategoryBrowserProps> = ({ onSelect }) => {
   useEffect(() => {
     setActiveScope(activeFamily);
     setScopeStack([]);
+    setSelectedLeaf(null);
   }, [activeFamily?.key]);
 
   // Load right-side classes-with-commodities when scope changes
@@ -158,7 +163,6 @@ const CategoryBrowser: React.FC<CategoryBrowserProps> = ({ onSelect }) => {
                   }}
                 >
                   <span style={{ marginRight: 8, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }} title={item.title}>
-                    <span style={{ opacity: 0.7, marginRight: 6, fontSize: 12, fontWeight: 'normal' }}>{item.code}</span>
                     {item.title}
                   </span>
                   {isActive && <RightOutlined style={{ fontSize: 10, flexShrink: 0 }} />}
@@ -190,8 +194,11 @@ const CategoryBrowser: React.FC<CategoryBrowserProps> = ({ onSelect }) => {
           return [...prev, current];
         });
         setActiveScope(node);
+        setSelectedLeaf(null);
         return;
       }
+      
+      setSelectedLeaf(node);
       onSelect(node);
     };
 
@@ -207,6 +214,7 @@ const CategoryBrowser: React.FC<CategoryBrowserProps> = ({ onSelect }) => {
         setActiveScope(last ?? activeFamily);
         return next;
       });
+      setSelectedLeaf(null);
     };
 
     const headerTitle = activeScope?.title ?? activeFamily.title;
@@ -238,6 +246,33 @@ const CategoryBrowser: React.FC<CategoryBrowserProps> = ({ onSelect }) => {
             {classGroups.map((group) => {
               const clazzNode = mapBrowseNodeToMillerNode(group.clazz);
               const commodities = (group.commodities || []).map(mapBrowseNodeToMillerNode);
+
+              // Special case: Single Leaf Class (No commodities, no sub-classes)
+              // 直接点击整个标题框，提示用户选中高亮显示
+              if (commodities.length === 0 && !group.clazz.hasChildren) {
+                const isSelected = selectedLeaf?.key === clazzNode.key;
+                return (
+                  <Card
+                    key={group.clazz.key}
+                    size="small"
+                    hoverable
+                    onClick={() => handleClickNode(clazzNode)}
+                    style={{ 
+                      marginBottom: 16, 
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                      borderColor: isSelected ? token.colorPrimary : token.colorBorderSecondary,
+                      backgroundColor: isSelected ? token.colorPrimaryBg : token.colorBgContainer
+                    }}
+                    bodyStyle={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                  >
+                    <Space style={{ color: isSelected ? token.colorPrimary : token.colorText, fontWeight: isSelected ? 600 : 400 }}>
+                      <TagOutlined />
+                      {clazzNode.title}
+                    </Space>
+                  </Card>
+                );
+              }
+
               return (
                 <Card
                   key={group.clazz.key}
@@ -247,27 +282,34 @@ const CategoryBrowser: React.FC<CategoryBrowserProps> = ({ onSelect }) => {
                   headStyle={{ backgroundColor: token.colorBgContainer, borderBottom: `1px solid ${token.colorBorderSecondary}` }}
                 >
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {commodities.map((node) => (
-                      <Button
-                        key={node.key}
-                        type="text"
-                        style={{ backgroundColor: token.colorFillQuaternary, border: `1px solid ${token.colorBorderSecondary}` }}
-                        onClick={() => handleClickNode(node)}
-                      >
-                        {node.title}
-                      </Button>
-                    ))}
-
-                    {commodities.length === 0 && !group.clazz.hasChildren && (
-                      <Button
-                        type="primary"
-                        ghost
-                        size="small"
-                        onClick={() => handleClickNode(clazzNode)}
-                      >
-                        选择该分类
-                      </Button>
-                    )}
+                    {commodities.map((node) => {
+                      const isSelected = selectedLeaf?.key === node.key;
+                      return (
+                        <div
+                          key={node.key}
+                          onClick={() => handleClickNode(node)}
+                          style={{
+                            cursor: 'pointer',
+                            borderRadius: token.borderRadius,
+                            border: `1px solid ${isSelected ? token.colorPrimary : token.colorBorderSecondary}`,
+                            backgroundColor: isSelected ? token.colorPrimaryBg : token.colorFillQuaternary,
+                            padding: '8px 12px',
+                            transition: 'all 0.2s',
+                            minWidth: 120,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 4,
+                            textAlign: 'center'
+                          }}
+                        >
+                          <Text strong={isSelected} style={{ color: isSelected ? token.colorPrimary : token.colorText }}>
+                            {node.title}
+                          </Text>
+                        </div>
+                      );
+                    })}
 
                     {commodities.length === 0 && group.clazz.hasChildren && (
                       <Button
