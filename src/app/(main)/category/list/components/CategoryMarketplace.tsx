@@ -6,7 +6,8 @@ import type { DataNode, TreeProps } from 'antd/es/tree';
 import DraggableModal from '../../../../../components/DraggableModal';
 import { lightPalette } from '../../../../../styles/colors';
 
-import { LIBRARIES, MOCK_DB, MOCK_ATTRIBUTES, type CategoryItem, UNSPSC_DATA, type MillerNode } from '../mockData';
+import { LIBRARIES, MOCK_DB, MOCK_ATTRIBUTES, type CategoryItem, type MillerNode } from '../mockData';
+import { metaCategoryApi } from '../../../../../services/metaCategory';
 import MillerColumns from './MillerColumns';
 import CategoryBrowser from './CategoryBrowser';
 
@@ -39,6 +40,7 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
   const [selectedLibrary, setSelectedLibrary] = useState<string>('GB');
   const [searchResults, setSearchResults] = useState<CategoryItem[]>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // 3. 当前选中的分类 (配置区)
   const [activeCategory, setActiveCategory] = useState<CategoryItem | null>(null);
@@ -47,11 +49,9 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
 
   // Handler for CategoryBrowser selection (Leaf node)
   const handleBrowserSelect = (node: MillerNode) => {
-    // Find path for breadcrumbs (Simplified logic for demo)
-    // In real app, node should carry its path or we traverse up
-    // Note: CategoryBrowser now handles 4 levels internally, but here we just need to pass the leaf node
-    // We can try to reconstruct path if needed, or just use title
-    const pathTitles: string[] = ['UNSPSC', node.title]; 
+    const pathTitles: string[] = node.fullPathName
+      ? node.fullPathName.split('/').filter(Boolean)
+      : ['UNSPSC', node.title];
     
     const categoryItem: CategoryItem = {
       key: node.key,
@@ -70,24 +70,11 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
     setSelectedMillerPath(newPath);
 
     if (node.isLeaf) {
-      // Helper to find path titles
-      const pathTitles: string[] = [];
-      let currentNodes = UNSPSC_DATA;
-      for (const key of newPath) {
-        const found = currentNodes.find(n => n.key === key);
-        if (found) {
-          pathTitles.push(found.title);
-          if (found.children) {
-            currentNodes = found.children;
-          }
-        }
-      }
-
       const categoryItem: CategoryItem = {
         key: node.key,
         title: node.title,
         code: node.code,
-        path: pathTitles,
+        path: ['UNSPSC', node.title],
         library: 'UNSPSC'
       };
       handleSelectCategory(categoryItem);
@@ -127,42 +114,38 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
 
   // --- 业务逻辑 ---
 
-  // Helper to flatten UNSPSC tree for search
-  const flattenUNSPSC = (nodes: MillerNode[], parentPath: string[] = []): CategoryItem[] => {
-    let result: CategoryItem[] = [];
-    nodes.forEach(node => {
-      const currentPath = [...parentPath, node.title];
-      if (node.isLeaf) {
-        result.push({
-          key: node.key,
-          title: node.title,
-          code: node.code,
-          path: currentPath,
-          library: 'UNSPSC'
-        });
-      }
-      if (node.children) {
-        result = result.concat(flattenUNSPSC(node.children, currentPath));
-      }
-    });
-    return result;
-  };
-
-  // 模拟后端搜索 API
+  // UNSPSC search via backend; other libraries stay on mock
   const handleSearch = useCallback(async (query: string) => {
-    setIsSearching(true);
+    setSearchQuery(query);
+    const q = query.trim();
+    if (!q) {
+      setSearchResults([]);
+      return;
+    }
 
-    // 模拟网络延迟
-    setTimeout(() => {
-      // Search in UNSPSC data
-      const allItems = flattenUNSPSC(UNSPSC_DATA);
-      const results = allItems.filter(item =>
-        item.title.toLowerCase().includes(query.toLowerCase()) || item.code.includes(query)
-      );
-      setSearchResults(results);
+    setIsSearching(true);
+    try {
+      if (selectedLibrary === 'UNSPSC') {
+        const hits = await metaCategoryApi.searchUnspsc({ q, limit: 50 });
+        const results: CategoryItem[] = hits.map((hit) => ({
+          key: hit.key,
+          title: hit.title,
+          code: hit.code,
+          path: hit.fullPathName ? hit.fullPathName.split('/').filter(Boolean) : ['UNSPSC', hit.title],
+          library: 'UNSPSC',
+        }));
+        setSearchResults(results);
+      } else {
+        const source = MOCK_DB[selectedLibrary] || [];
+        const results = source.filter(item =>
+          item.title.toLowerCase().includes(q.toLowerCase()) || item.code.includes(q)
+        );
+        setSearchResults(results);
+      }
+    } finally {
       setIsSearching(false);
-    }, 300);
-  }, []);
+    }
+  }, [selectedLibrary]);
 
   // --- 持久化逻辑 ---
   const STORAGE_KEY = 'PLM_CATEGORY_CART_DRAFT';
@@ -183,11 +166,12 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
         }
       }
       // 初始加载列表
-      handleSearch('');
+      setSearchQuery('');
+      setSearchResults([]);
       // 重置 Stage
       setStage(0);
     }
-  }, [open, handleSearch]);
+  }, [open]);
 
   // 自动保存
   useEffect(() => {
@@ -595,24 +579,30 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
                   allowClear
                   onSearch={handleSearch}
                   onChange={(e) => {
-                    if (e.target.value === '') handleSearch('');
+                    if (e.target.value === '') {
+                      setSearchQuery('');
+                      setSearchResults([]);
+                    }
                   }}
                   enterButton={<Button icon={<SearchOutlined />} type="primary" />}
                 />
               </Space>
 
               <div style={{ flex: 1, overflow: 'hidden' }}>
-                {isSearching && searchResults.length > 0 ? (
-                  <List
-                    dataSource={searchResults}
-                    renderItem={renderSearchResultItem}
-                    style={{ height: '100%', overflowY: 'auto' }}
-                  />
+                {searchQuery.trim() ? (
+                  isSearching ? (
+                    <div style={{ padding: 24 }}><Spin /></div>
+                  ) : searchResults.length > 0 ? (
+                    <List
+                      dataSource={searchResults}
+                      renderItem={renderSearchResultItem}
+                      style={{ height: '100%', overflowY: 'auto' }}
+                    />
+                  ) : (
+                    <Empty description="未找到匹配结果" />
+                  )
                 ) : (
-                  <CategoryBrowser 
-                    data={UNSPSC_DATA} 
-                    onSelect={handleBrowserSelect} 
-                  />
+                  <CategoryBrowser onSelect={handleBrowserSelect} />
                 )}
               </div>
             </ProCard>

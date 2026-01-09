@@ -12,19 +12,11 @@ export const defaultUserTreeData: DataNode[] = [
         title: '产成品',
         key: 'CAT-001-01',
         icon: <FolderOutlined />,
-        children: [
-          { title: '休闲零食', key: 'CAT-001-01-01', icon: <FolderOutlined />, isLeaf: true },
-          { title: '饮料', key: 'CAT-001-01-02', icon: <FolderOutlined />, isLeaf: true },
-        ],
       },
       {
         title: '原材料',
         key: 'CAT-001-02',
         icon: <FolderOutlined />,
-        children: [
-          { title: '面粉', key: 'CAT-001-02-01', icon: <FolderOutlined />, isLeaf: true },
-          { title: '糖类', key: 'CAT-001-02-02', icon: <FolderOutlined />, isLeaf: true },
-        ],
       },
       { title: '包材', key: 'CAT-001-03', icon: <FolderOutlined />, isLeaf: true },
     ],
@@ -34,8 +26,17 @@ export const defaultUserTreeData: DataNode[] = [
     key: 'IND-002',
     icon: <AppstoreOutlined />,
     children: [
-      { title: '卷烟', key: 'CAT-002-01', icon: <FolderOutlined />, isLeaf: true },
-      { title: '烟叶原料', key: 'CAT-002-02', icon: <FolderOutlined />, isLeaf: true },
+      {
+        title: '产成品',
+        key: 'CAT-002-01',
+        icon: <FolderOutlined />,
+      },
+      {
+        title: '原材料',
+        key: 'CAT-002-02',
+        icon: <FolderOutlined />,
+      },
+      { title: '包材', key: 'CAT-002-03', icon: <FolderOutlined />, isLeaf: true },
     ],
   },
   {
@@ -43,8 +44,17 @@ export const defaultUserTreeData: DataNode[] = [
     key: 'IND-003',
     icon: <AppstoreOutlined />,
     children: [
-      { title: '棉纺织', key: 'CAT-003-01', icon: <FolderOutlined />, isLeaf: true },
-      { title: '化纤织造', key: 'CAT-003-02', icon: <FolderOutlined />, isLeaf: true },
+      {
+        title: '产成品',
+        key: 'CAT-003-01',
+        icon: <FolderOutlined />,
+      },
+      {
+        title: '原材料',
+        key: 'CAT-003-02',
+        icon: <FolderOutlined />,
+      },
+      { title: '包材', key: 'CAT-003-03', icon: <FolderOutlined />, isLeaf: true },
     ],
   },
   {
@@ -62,6 +72,17 @@ export const defaultUserTreeData: DataNode[] = [
           { title: '螺丝类原材料', key: 'CAT-004-02-02', icon: <FolderOutlined />, isLeaf: true },
         ],
       },
+      {
+        title: '产成品',
+        key: 'CAT-004-03',
+        icon: <FolderOutlined />,
+      },
+      {
+        title: '原材料',
+        key: 'CAT-004-04',
+        icon: <FolderOutlined />,
+      },
+      { title: '包材', key: 'CAT-004-05', icon: <FolderOutlined />, isLeaf: true },
     ],
   },
 ];
@@ -109,6 +130,9 @@ export interface MillerNode {
   key: string;
   title: string;
   code: string;
+  hasChildren?: boolean;
+  depth?: number;
+  fullPathName?: string;
   children?: MillerNode[];
   isLeaf?: boolean;
 }
