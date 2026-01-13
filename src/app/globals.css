@@ -229,3 +229,8 @@ body[data-theme='dark'] a:hover {
   background-color: var(--menu-selected-bg, rgba(0, 0, 0, 0.08)) !important;
   color: var(--menu-text-selected, inherit) !important;
 }
+
+/* Smooth transition for Tabs navigation scrolling */
+.ant-tabs-nav-list {
+  transition: transform 0.2s cubic-bezier(0.645, 0.045, 0.355, 1) !important;
+}
