@@ -1,25 +1,18 @@
+'use client';
+
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Breadcrumb, Button, ConfigProvider, Tabs, theme } from "antd";
 import type { TabsProps } from "antd";
-import { ProLayout } from "@ant-design/pro-components";
-import HeaderRight from "./components/HeaderRight";
+import dynamic from 'next/dynamic';
+const ProLayout = dynamic(() => import('@ant-design/pro-components').then(mod => mod.ProLayout), { ssr: false });
+const AntdApp = dynamic(() => import('antd').then(mod => mod.App), { ssr: false });
+import HeaderRight from "@/layouts/components/HeaderRight";
 import { usePathname, useRouter } from "next/navigation";
-import { themeTokens, componentTokens } from "../styles/theme";
-import { getPalette } from "../styles/colors";
-import type { AppPalette } from "../styles/colors";
-import "./BasicLayout.css";
+import { themeTokens, componentTokens } from "@/styles/theme";
+import { getPalette } from "@/styles/colors";
+import type { AppPalette } from "@/styles/colors";
+import "@/layouts/UnifiedLayout.css";
 import {
-  UnorderedListOutlined,
-  DashboardOutlined,
-  AppstoreOutlined,
-  DeploymentUnitOutlined,
-  FileTextOutlined,
-  PieChartOutlined,
-  DatabaseOutlined,
-  ApiOutlined,
-  SettingOutlined,
-  UserOutlined,
-  FolderOpenOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   CloseOutlined,
@@ -28,14 +21,23 @@ import {
 } from "@ant-design/icons";
 
 // 简易菜单数据（后续可由权限/接口动态生成）
-interface MenuItem {
+export interface MenuItem {
   path: string;
   name: string;
   icon?: React.ReactNode;
   children?: MenuItem[];
 }
 
-const HOME_PATH = "/dashboard";
+export interface UnifiedLayoutProps {
+    children: React.ReactNode;
+    menuData: MenuItem[];
+    homePath?: string;
+    homeTitle?: string;
+    title?: string;
+}
+
+const DefaultHomePath = "/dashboard";
+const DefaultHomeTitle = "仪表盘";
 
 type RouteTab = {
   key: string;
@@ -58,10 +60,10 @@ const findMenuPath = (menus: MenuItem[], target: string): MenuItem[] | null => {
   return null;
 };
 
-const normalizeLabelFromPath = (path: string) => {
+const normalizeLabelFromPath = (path: string, homePath: string, homeTitle: string) => {
   const segments = path.split("/").filter(Boolean);
-  if (!segments.length || path === HOME_PATH) {
-    return "仪表盘";
+  if (!segments.length || path === homePath) {
+    return homeTitle;
   }
   const raw = segments[segments.length - 1];
   return raw
@@ -69,157 +71,39 @@ const normalizeLabelFromPath = (path: string) => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-const menuData: MenuItem[] = [
-  {
-    path: "/dashboard",
-    name: "仪表盘",
-    icon: <DashboardOutlined />,
-    children: [
-      { path: "/dashboard/workbench", name: "工作台" },
-      { path: "/dashboard/analysis", name: "分析概览" },
-      { path: "/dashboard/monitor", name: "实时监控" },
-    ],
-  },
-  {
-    path: "/products",
-    name: "产品管理",
-    icon: <AppstoreOutlined />,
-    children: [
-      { path: "/products/catalog", name: "产品目录" },
-      { path: "/products/version", name: "版本管理" },
-      {
-        path: "/products/specs",
-        name: "规格配置",
-        children: [
-          { path: "/products/specs/attribute", name: "属性定义" },
-          { path: "/products/specs/template", name: "模板管理" },
-        ],
-      },
-    ],
-  },
-  {
-    path: "/category",
-    name: "分类管理",
-    icon: <UnorderedListOutlined />,
-    children: [
-      { path: "/category/list", name: "分类集合" },
-    ],
-  },
-  {
-    path: "/projects",
-    name: "项目集",
-    icon: <FolderOpenOutlined />,
-    children: [
-      { path: "/projects/list", name: "项目列表" },
-      { path: "/projects/milestone", name: "里程碑" },
-      { path: "/projects/kanban", name: "任务看板" },
-    ],
-  },
-  {
-    path: "/workflow",
-    name: "流程编排",
-    icon: <DeploymentUnitOutlined />,
-    children: [
-      { path: "/workflow/definition", name: "流程定义" },
-      { path: "/workflow/instance", name: "流程实例" },
-      { path: "/workflow/form", name: "表单管理" },
-    ],
-  },
-  {
-    path: "/documents",
-    name: "文档中心",
-    icon: <FileTextOutlined />,
-    children: [
-      { path: "/documents/library", name: "资料库" },
-      { path: "/documents/approval", name: "审批记录" },
-    ],
-  },
-  {
-    path: "/analytics",
-    name: "数据分析",
-    icon: <PieChartOutlined />,
-    children: [
-      { path: "/analytics/report", name: "报表中心" },
-      { path: "/analytics/insight", name: "洞察平台" },
-    ],
-  },
-  {
-    path: "/assets",
-    name: "资产管理",
-    icon: <DatabaseOutlined />,
-    children: [
-      { path: "/assets/library", name: "资产库" },
-      { path: "/assets/quality", name: "质量追踪" },
-      { path: "/assets/warranty", name: "质保信息" },
-    ],
-  },
-  {
-    path: "/integration",
-    name: "系统集成",
-    icon: <ApiOutlined />,
-    children: [
-      { path: "/integration/adapter", name: "接口适配" },
-      { path: "/integration/sync", name: "同步任务" },
-      {
-        path: "/integration/monitor",
-        name: "运行监控",
-        children: [
-          { path: "/integration/monitor/log", name: "日志审计" },
-          { path: "/integration/monitor/alert", name: "告警规则" },
-        ],
-      },
-    ],
-  },
-  {
-    path: "/system",
-    name: "系统设置",
-    icon: <SettingOutlined />,
-    children: [
-      { path: "/system/organization", name: "组织管理" },
-      { path: "/system/role", name: "角色权限" },
-      { path: "/system/preferences", name: "个性化设置" },
-    ],
-  },
-  {
-    path: "/user",
-    name: "用户中心",
-    icon: <UserOutlined />,
-    children: [
-      { path: "/user/profile", name: "个人信息" },
-      { path: "/user/security", name: "安全设置" },
-      { path: "/user/notification", name: "通知偏好" },
-    ],
-  },
-];
-
-// 选中菜单 key 通过 location.pathname 自动匹配，无需在 menu 里直接传 selectedKeys（否则类型不匹配）
-
-const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
+const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({ 
+    children, 
+    menuData, 
+    homePath = DefaultHomePath, 
+    homeTitle = DefaultHomeTitle,
+    title = "PLM Cloud Platform"
+}) => {
   const pathname = usePathname();
   const router = useRouter();
-  const currentPath = pathname === "/" ? HOME_PATH : pathname;
+  const currentPath = pathname === "/" ? homePath : pathname;
+
   const [collapsed, setCollapsed] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+
+  useEffect(() => {
     const stored = window.localStorage.getItem("plm-theme-mode");
     if (stored) {
-      return stored === "dark";
+      setIsDarkMode(stored === "dark");
+    } else {
+      setIsDarkMode(window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false);
     }
-    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
-  });
+  }, []);
 
   const matchedMenuPath = useMemo(
     () => findMenuPath(menuData, currentPath) ?? [],
-    [currentPath]
+    [menuData, currentPath]
   );
 
   const breadcrumbTrail = useMemo(() => {
-    const hasHome = matchedMenuPath.some((item) => item.path === HOME_PATH);
+    const hasHome = matchedMenuPath.some((item) => item.path === homePath);
     const trail = hasHome
       ? matchedMenuPath
-      : [{ path: HOME_PATH, name: "仪表盘" }, ...matchedMenuPath];
+      : [{ path: homePath, name: homeTitle }, ...matchedMenuPath];
     const dedup: MenuItem[] = [];
     trail.forEach((item) => {
       if (!dedup.find((existing) => existing.path === item.path)) {
@@ -227,20 +111,20 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
       }
     });
     if (!dedup.length) {
-      dedup.push({ path: HOME_PATH, name: "仪表盘" });
+      dedup.push({ path: homePath, name: homeTitle });
     }
     return dedup;
-  }, [matchedMenuPath]);
+  }, [matchedMenuPath, homePath, homeTitle]);
 
   const activeLabel =
     breadcrumbTrail[breadcrumbTrail.length - 1]?.name ??
-    normalizeLabelFromPath(currentPath);
+    normalizeLabelFromPath(currentPath, homePath, homeTitle);
 
   const [tabs, setTabs] = useState<RouteTab[]>(() => {
     const initial: RouteTab[] = [
-      { key: HOME_PATH, label: "仪表盘", closable: false },
+      { key: homePath, label: homeTitle, closable: false },
     ];
-    if (currentPath !== HOME_PATH) {
+    if (currentPath !== homePath) {
       initial.push({ key: currentPath, label: activeLabel, closable: true });
     }
     return initial;
@@ -282,7 +166,7 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
 
   const handleTabRemove = useCallback(
     (targetKey: string) => {
-      if (targetKey === HOME_PATH) {
+      if (targetKey === homePath) {
         return;
       }
       setTabs((prev) => {
@@ -292,18 +176,18 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
         }
         if (currentPath === targetKey) {
           const fallback = next[next.length - 1] ?? {
-            key: HOME_PATH,
-            label: "仪表盘",
+            key: homePath,
+            label: homeTitle,
             closable: false,
           };
           setTimeout(() => router.push(fallback.key), 0);
         }
         return next.length
           ? next
-          : [{ key: HOME_PATH, label: "仪表盘", closable: false }];
+          : [{ key: homePath, label: homeTitle, closable: false }];
       });
     },
-    [currentPath, router]
+    [currentPath, router, homePath, homeTitle]
   );
 
   const tabTextRefs = useRef<Map<string, HTMLSpanElement>>(new Map());
@@ -364,7 +248,7 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
         key: tab.key,
         label: (
           <span
-            className={`layout-tab-label${tab.key === HOME_PATH ? " layout-tab-label-home" : ""}`}
+            className={`layout-tab-label${tab.key === homePath ? " layout-tab-label-home" : ""}`}
             onMouseDown={(event) => {
               if (tab.closable && event.button === 1) {
                 event.preventDefault();
@@ -377,8 +261,8 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
               className="layout-tab-text"
               ref={registerTabTextRef(tab.key)}
             >
-              {tab.key === HOME_PATH ? (
-                currentPath === HOME_PATH ? <HomeTwoTone /> : <HomeOutlined />
+              {tab.key === homePath ? (
+                currentPath === homePath ? <HomeTwoTone /> : <HomeOutlined />
               ) : (
                 tab.label
               )}
@@ -396,20 +280,20 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
         ),
         children: null,
       })),
-    [currentPath, handleTabRemove, registerTabTextRef, tabs]
+    [currentPath, handleTabRemove, registerTabTextRef, tabs, homePath]
   );
 
   useEffect(() => {
     if (pathname === "/") {
-      router.replace(HOME_PATH);
+      router.replace(homePath);
     }
-  }, [pathname, router]);
+  }, [pathname, router, homePath]);
 
   useEffect(() => {
     setTabs((prev) => {
       const next = [...prev];
-      if (!next.some((tab) => tab.key === HOME_PATH)) {
-        next.unshift({ key: HOME_PATH, label: "仪表盘", closable: false });
+      if (!next.some((tab) => tab.key === homePath)) {
+        next.unshift({ key: homePath, label: homeTitle, closable: false });
       }
       const index = next.findIndex((tab) => tab.key === currentPath);
       if (index >= 0) {
@@ -422,11 +306,11 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
       next.push({
         key: currentPath,
         label: activeLabel,
-        closable: currentPath !== HOME_PATH,
+        closable: currentPath !== homePath,
       });
       return next;
     });
-  }, [currentPath, activeLabel]);
+  }, [currentPath, activeLabel, homePath, homeTitle]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -511,6 +395,9 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
         linkHoverColor: palette.menuTextSelected,
         separatorColor: palette.textSecondary,
       },
+      Button: {
+         // Fix for collapsed button in header trying to access palette.iconColor
+      }
     };
   }, [palette]);
 
@@ -521,8 +408,6 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
   const handleToggleCollapsed = () => {
     setCollapsed((prev) => !prev);
   };
-
-  // ProLayout 根据 location 自动匹配选中菜单，无需手动 selectedKeys
 
   return (
     <ConfigProvider
@@ -541,8 +426,10 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
         components: currentComponentTokens,
       }}
     >
+      <AntdApp {...({ suppressHydrationWarning: true } as any)}>
       <ProLayout
-        title="PLM Cloud Platform"
+        suppressHydrationWarning
+        title={title}
         token={{
           header: {
             colorBgHeader: palette.headerBg,
@@ -684,8 +571,9 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
           </div>
         </div>
       </ProLayout>
+      </AntdApp>
     </ConfigProvider>
   );
 };
 
-export default BasicLayout;
+export default UnifiedLayout;
