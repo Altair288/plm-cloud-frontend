@@ -67,11 +67,13 @@ const CategoryTree: React.FC<CategoryTreeProps> = ({
           ) : (
             <span>{strTitle}</span>
           );
+        
         if (item.children) {
-          return { title, key: item.key, children: loop(item.children), icon: item.icon };
+          return { ...item, title, key: item.key, children: loop(item.children), icon: item.icon };
         }
 
         return {
+          ...item,
           title,
           key: item.key,
           icon: item.icon,

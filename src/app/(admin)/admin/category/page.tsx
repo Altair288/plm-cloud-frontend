@@ -1,26 +1,3 @@
-// "use client";
-
-// import React, { useState, useEffect, useRef } from 'react';
-// import { PageContainer } from '@ant-design/pro-components';
-// import ProCard from '@ant-design/pro-card';
-// import ProTable, { type ActionType, type ProColumns } from '@ant-design/pro-table';
-// import { Tree, message, Button, Modal, Form, Input, type TreeDataNode, Space, Tag, theme } from 'antd';
-// import { 
-//   PlusOutlined, 
-//   EditOutlined, 
-//   DeleteOutlined, 
-//   ReloadOutlined,
-//   FolderOpenOutlined,
-//   FileOutlined,
-//   AppstoreOutlined,
-//   BarsOutlined
-// } from '@ant-design/icons';
-// import { metaCategoryApi, type MetaCategoryBrowseNodeDto } from '@/services/metaCategory';
-
-// /**
-//  * Mapped Tree Node extending Antd TreeDataNode
-//  * 
-//   */
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -29,10 +6,13 @@ import type { DataNode, TreeProps } from 'antd/es/tree';
 import CategoryTree from '@/features/category/CategoryTree';
 import { metaCategoryApi, MetaCategoryBrowseNodeDto } from '@/services/metaCategory';
 import { 
-  FolderOpenOutlined,
   AppstoreOutlined,
-  BarsOutlined
+  PartitionOutlined,
+  TagsOutlined,
+  ShoppingOutlined
 } from '@ant-design/icons';
+import CategoryList from './CategoryList';
+import CategoryDetail from './CategoryDetail';
 
 interface CategoryTreeNode extends Omit<DataNode, 'children'> {
   children?: CategoryTreeNode[];
@@ -40,11 +20,12 @@ interface CategoryTreeNode extends Omit<DataNode, 'children'> {
   level?: 'segment' | 'family' | 'class' | 'commodity';
   loaded?: boolean;
   familyCode?: string;
+  classCode?: string; // For Commodity nodes to know their parent Class
 }
 
 const CategoryManagementPage: React.FC = () => {
   const [selectedKey, setSelectedKey] = useState<React.Key>('');
-  const [selectedNode, setSelectedNode] = useState<DataNode | undefined>(undefined);
+  const [selectedNode, setSelectedNode] = useState<CategoryTreeNode | undefined>(undefined);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   
   const [treeData, setTreeData] = useState<CategoryTreeNode[]>([]);
@@ -90,7 +71,7 @@ const CategoryManagementPage: React.FC = () => {
           isLeaf: false, 
           dataRef: f,
           level: 'family',
-          icon: <FolderOpenOutlined />,
+          icon: <PartitionOutlined />,
         }));
       } else if (level === 'family') {
         // Load Classes
@@ -101,9 +82,31 @@ const CategoryManagementPage: React.FC = () => {
           isLeaf: !g.commodities || g.commodities.length === 0, 
           dataRef: g.clazz,
           level: 'class',
-          icon: <BarsOutlined />,
+          icon: <TagsOutlined />,
           familyCode: dataRef!.code 
         }));
+      } else if (level === 'class') {
+         // Load Commodities
+         // Since listUnspscClassesWithCommodities is by family, we need finding the parent family code
+         // Which we passed down as node.familyCode
+         const parentFamilyCode = (node as CategoryTreeNode).familyCode;
+         if (parentFamilyCode) {
+             const groups = await metaCategoryApi.listUnspscClassesWithCommodities(parentFamilyCode);
+             // Find current class group
+             const currentClassGroup = groups.find(g => g.clazz.key === dataRef?.key);
+             if (currentClassGroup && currentClassGroup.commodities) {
+                 childNodes = currentClassGroup.commodities.map(c => ({
+                     title: `${c.code} - ${c.title}`,
+                     key: c.key,
+                     isLeaf: true, 
+                     dataRef: c,
+                     level: 'commodity',
+                     icon: <ShoppingOutlined />,
+                     familyCode: parentFamilyCode,
+                     classCode: dataRef?.code
+                 }));
+             }
+         }
       }
       
       setTreeData(origin => updateTreeData(origin, key as React.Key, childNodes));
@@ -129,7 +132,7 @@ const CategoryManagementPage: React.FC = () => {
   const onSelect: TreeProps['onSelect'] = (keys, info) => {
     if (keys.length > 0) {
       setSelectedKey(keys[0]);
-      setSelectedNode(info.node);
+      setSelectedNode(info.node as CategoryTreeNode);
     } else {
       setSelectedKey('');
       setSelectedNode(undefined);
@@ -151,12 +154,12 @@ const CategoryManagementPage: React.FC = () => {
         }}
       >
         <Splitter.Panel
-          defaultSize={400}
+          defaultSize={450}
           min={350}
           max={600}
           collapsible={{ end: true, showCollapsibleIcon: leftCollapsed ? true : 'auto' }}
         >
-          <CategoryTree 
+          <CategoryTree
             onSelect={onSelect} 
             treeData={treeData} 
             loadData={onLoadData}
@@ -165,14 +168,18 @@ const CategoryManagementPage: React.FC = () => {
           />
         </Splitter.Panel>
         <Splitter.Panel>
-          <div style={{ height: '100%', padding: '16px', color: '#999', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {selectedNode ? (
-                <div className="flex flex-col items-center">
-                    <span className="text-lg font-medium text-black">{selectedNode.title as React.ReactNode}</span>
-                    <span className="text-sm mt-2">Key: {selectedNode.key}</span>
+                <div style={{ padding: '0 16px', height: '100%', overflowY: 'auto' }}>
+                    <CategoryList 
+                        parentKey={selectedKey} 
+                        parentNode={selectedNode} 
+                    />
                 </div>
-            ) : '请选择左侧分类节点'}
-          </div>
+            ) : (
+                <div style={{ height: '100%', padding: '16px', color: '#999', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    请选择左侧分类节点
+                </div>
+            )}
         </Splitter.Panel>
       </Splitter>
     </div>

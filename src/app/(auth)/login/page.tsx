@@ -186,10 +186,10 @@ export default function LoginPage() {
       <footer className="ibm-login-footer">
         <div className="footer-content">
           <div className="footer-links">
-            <Link href="#" style={{ color: '#0f62fe' }}>联系</Link>
-            <Link href="#" style={{ color: '#0f62fe' }}>隐私条款</Link>
-            <Link href="#" style={{ color: '#0f62fe' }}>使用条款</Link>
-            <Link href="#" style={{ color: '#0f62fe' }}>辅助功能选项</Link>
+            <Link href="#">联系</Link>
+            <Link href="#">隐私条款</Link>
+            <Link href="#">使用条款</Link>
+            <Link href="#">辅助功能选项</Link>
           </div>
           <Text className="footer-copyright">
             Powered by PLM Cloud Platform © 2025 All Rights Reserved.
