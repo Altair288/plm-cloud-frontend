@@ -31,6 +31,9 @@ src/
   styles/              # Theme configuration and color palettes
   utils/               # Utility functions
   middleware.ts        # Next.js middleware (optional)
+  features/
+    category/          # Shared category tree UI (used by both main and admin)
+  app/(admin)/admin/category/ # Admin category page currently uses pure tree view; backend data wiring pending
 ```
 
 ## Getting Started

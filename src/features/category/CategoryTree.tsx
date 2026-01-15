@@ -7,10 +7,25 @@ const { Search } = Input;
 export interface CategoryTreeProps {
   onSelect: TreeProps['onSelect'];
   treeData: DataNode[];
+  loadData?: TreeProps['loadData'];
+  loadedKeys?: React.Key[];
+  onLoad?: TreeProps['onLoad'];
+  initialExpandedKeys?: React.Key[];
+  defaultSelectedKeys?: React.Key[];
+  searchPlaceholder?: string;
 }
 
-const CategoryTree: React.FC<CategoryTreeProps> = ({ onSelect, treeData }) => {
-  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>(['IND-001', 'CAT-001-01']);
+const CategoryTree: React.FC<CategoryTreeProps> = ({
+  onSelect,
+  treeData,
+  loadData,
+  loadedKeys,
+  onLoad,
+  initialExpandedKeys = [],
+  defaultSelectedKeys = [],
+  searchPlaceholder = '搜索分类',
+}) => {
+  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>(initialExpandedKeys);
   const [searchValue, setSearchValue] = useState('');
   const [autoExpandParent, setAutoExpandParent] = useState(true);
 
@@ -69,7 +84,7 @@ const CategoryTree: React.FC<CategoryTreeProps> = ({ onSelect, treeData }) => {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '16px 16px 8px' }}>
-        <Search style={{ marginBottom: 8 }} placeholder="搜索分类" onChange={onChange} />
+        <Search style={{ marginBottom: 8 }} placeholder={searchPlaceholder} onChange={onChange} />
       </div>
       <div style={{ flex: 1, overflow: 'auto', padding: '0 16px 16px' }}>
         {treeData.length > 0 ? (
@@ -79,9 +94,12 @@ const CategoryTree: React.FC<CategoryTreeProps> = ({ onSelect, treeData }) => {
             autoExpandParent={autoExpandParent}
             treeData={treeDataWithSearch}
             onSelect={onSelect}
+            loadData={loadData}
+            loadedKeys={loadedKeys}
+            onLoad={onLoad}
             showIcon
             blockNode
-            defaultSelectedKeys={['CAT-001-01-01']}
+            defaultSelectedKeys={defaultSelectedKeys}
           />
         ) : (
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无分类数据" />
