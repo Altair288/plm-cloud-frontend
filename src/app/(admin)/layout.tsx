@@ -4,7 +4,8 @@ import {
   UserOutlined, 
   SettingOutlined, 
   DashboardOutlined, 
-  SafetyCertificateOutlined
+  SafetyCertificateOutlined,
+  AppstoreOutlined
 } from '@ant-design/icons';
 import UnifiedLayout, { MenuItem } from "@/layouts/UnifiedLayout";
 
@@ -13,6 +14,11 @@ const adminMenuData: MenuItem[] = [
     path: '/admin/dashboard',
     name: '管理概览',
     icon: <DashboardOutlined />,
+  },
+  {
+    path: '/admin/category',
+    name: '分类管理',
+    icon: <AppstoreOutlined />,
   },
   {
     path: '/admin/users',
