@@ -6,8 +6,6 @@ import {
   AppstoreOutlined,
   PartitionOutlined,
   TagsOutlined,
-  ShoppingOutlined,
-  BarcodeOutlined
 } from '@ant-design/icons';
 import { Button, message, Modal, Form, Input, Tag } from 'antd';
 import type { ProColumns, ActionType } from '@ant-design/pro-table';
@@ -123,9 +121,8 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode }) => {
     switch (level) {
       case 'segment': return <AppstoreOutlined className="mr-2" />;
       case 'family': return <PartitionOutlined className="mr-2" />;
-      case 'class': return <TagsOutlined className="mr-2" />;
-      case 'commodity': return <ShoppingOutlined className="mr-2" />;
-      case 'item': return <BarcodeOutlined className="mr-2" />;
+      case 'class': return <PartitionOutlined className="mr-2" />;
+      case 'commodity': return <TagsOutlined className="mr-2" />;
       default: return null;
     }
   };

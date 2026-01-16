@@ -9,7 +9,6 @@ import {
   AppstoreOutlined,
   PartitionOutlined,
   TagsOutlined,
-  ShoppingOutlined
 } from '@ant-design/icons';
 import CategoryList from './CategoryList';
 import CategoryDetail from './CategoryDetail';
@@ -82,7 +81,7 @@ const CategoryManagementPage: React.FC = () => {
           isLeaf: !g.commodities || g.commodities.length === 0, 
           dataRef: g.clazz,
           level: 'class',
-          icon: <TagsOutlined />,
+          icon: <PartitionOutlined />,
           familyCode: dataRef!.code 
         }));
       } else if (level === 'class') {
@@ -101,7 +100,7 @@ const CategoryManagementPage: React.FC = () => {
                      isLeaf: true, 
                      dataRef: c,
                      level: 'commodity',
-                     icon: <ShoppingOutlined />,
+                     icon: <TagsOutlined />,
                      familyCode: parentFamilyCode,
                      classCode: dataRef?.code
                  }));

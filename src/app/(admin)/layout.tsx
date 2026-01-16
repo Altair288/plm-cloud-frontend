@@ -43,7 +43,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       menuData={adminMenuData} 
       title="PLM Cloud Platform - Admin Panel"
       homePath="/admin/dashboard"
-      homeTitle="后台首页"
+      homeTitle="管理概览"
     >
         {children}
     </UnifiedLayout>
