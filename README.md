@@ -93,9 +93,9 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 
 ## Tech Stack
 
-- **Framework**: [Next.js 15](https://nextjs.org/)
+- **Framework**: [Next.js 16](https://nextjs.org/)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **UI Library**: [Ant Design 5](https://ant.design/)
+- **UI Library**: [Ant Design 6](https://ant.design/)
 - **Pro Components**: [Ant Design Pro Components](https://procomponents.ant.design/)
 - **Charting**: [Apache ECharts](https://echarts.apache.org/)
 - **HTTP Client**: [Axios](https://axios-http.com/)
