@@ -6,7 +6,6 @@ const CategoryTree: React.FC<CategoryTreeProps> = (props) => (
 	<SharedCategoryTree
 		initialExpandedKeys={['IND-001', 'CAT-001-01']}
 		defaultSelectedKeys={['CAT-001-01-01']}
-        enableContextMenu={false}
 		{...props}
 	/>
 );

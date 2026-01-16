@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { Splitter, message } from 'antd';
 import type { DataNode, TreeProps } from 'antd/es/tree';
-import CategoryTree from '@/features/category/CategoryTree';
+import CategoryTree from './AdminCategoryTree';
 import { metaCategoryApi, MetaCategoryBrowseNodeDto } from '@/services/metaCategory';
-import { 
+import {
   AppstoreOutlined,
   PartitionOutlined,
   TagsOutlined,
@@ -26,7 +26,7 @@ const CategoryManagementPage: React.FC = () => {
   const [selectedKey, setSelectedKey] = useState<React.Key>('');
   const [selectedNode, setSelectedNode] = useState<CategoryTreeNode | undefined>(undefined);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
-  
+
   const [treeData, setTreeData] = useState<CategoryTreeNode[]>([]);
   const [loadedKeys, setLoadedKeys] = useState<React.Key[]>([]);
 
@@ -41,7 +41,7 @@ const CategoryManagementPage: React.FC = () => {
       const nodes: CategoryTreeNode[] = segments.map((s) => ({
         title: `${s.code} - ${s.title}`,
         key: s.key,
-        isLeaf: false, 
+        isLeaf: false,
         dataRef: s,
         level: 'segment',
         icon: <AppstoreOutlined />,
@@ -55,9 +55,9 @@ const CategoryManagementPage: React.FC = () => {
   };
 
   const onLoadData = async (node: any): Promise<void> => {
-     const { key, children, dataRef, level } = node as CategoryTreeNode;
+    const { key, children, dataRef, level } = node as CategoryTreeNode;
     if (children && children.length > 0) return;
-    
+
     try {
       let childNodes: CategoryTreeNode[] = [];
 
@@ -67,7 +67,7 @@ const CategoryManagementPage: React.FC = () => {
         childNodes = families.map(f => ({
           title: `${f.code} - ${f.title}`,
           key: f.key,
-          isLeaf: false, 
+          isLeaf: false,
           dataRef: f,
           level: 'family',
           icon: <PartitionOutlined />,
@@ -78,36 +78,36 @@ const CategoryManagementPage: React.FC = () => {
         childNodes = groups.map(g => ({
           title: `${g.clazz.code} - ${g.clazz.title}`,
           key: g.clazz.key,
-          isLeaf: !g.commodities || g.commodities.length === 0, 
+          isLeaf: !g.commodities || g.commodities.length === 0,
           dataRef: g.clazz,
           level: 'class',
           icon: <PartitionOutlined />,
-          familyCode: dataRef!.code 
+          familyCode: dataRef!.code
         }));
       } else if (level === 'class') {
-         // Load Commodities
-         // Since listUnspscClassesWithCommodities is by family, we need finding the parent family code
-         // Which we passed down as node.familyCode
-         const parentFamilyCode = (node as CategoryTreeNode).familyCode;
-         if (parentFamilyCode) {
-             const groups = await metaCategoryApi.listUnspscClassesWithCommodities(parentFamilyCode);
-             // Find current class group
-             const currentClassGroup = groups.find(g => g.clazz.key === dataRef?.key);
-             if (currentClassGroup && currentClassGroup.commodities) {
-                 childNodes = currentClassGroup.commodities.map(c => ({
-                     title: `${c.code} - ${c.title}`,
-                     key: c.key,
-                     isLeaf: true, 
-                     dataRef: c,
-                     level: 'commodity',
-                     icon: <TagsOutlined />,
-                     familyCode: parentFamilyCode,
-                     classCode: dataRef?.code
-                 }));
-             }
-         }
+        // Load Commodities
+        // Since listUnspscClassesWithCommodities is by family, we need finding the parent family code
+        // Which we passed down as node.familyCode
+        const parentFamilyCode = (node as CategoryTreeNode).familyCode;
+        if (parentFamilyCode) {
+          const groups = await metaCategoryApi.listUnspscClassesWithCommodities(parentFamilyCode);
+          // Find current class group
+          const currentClassGroup = groups.find(g => g.clazz.key === dataRef?.key);
+          if (currentClassGroup && currentClassGroup.commodities) {
+            childNodes = currentClassGroup.commodities.map(c => ({
+              title: `${c.code} - ${c.title}`,
+              key: c.key,
+              isLeaf: true,
+              dataRef: c,
+              level: 'commodity',
+              icon: <TagsOutlined />,
+              familyCode: parentFamilyCode,
+              classCode: dataRef?.code
+            }));
+          }
+        }
       }
-      
+
       setTreeData(origin => updateTreeData(origin, key as React.Key, childNodes));
       setLoadedKeys(keys => [...keys, key as React.Key]);
     } catch (error) {
@@ -127,7 +127,7 @@ const CategoryManagementPage: React.FC = () => {
       return node;
     });
   };
-  
+
   const onSelect: TreeProps['onSelect'] = (keys, info) => {
     if (keys.length > 0) {
       setSelectedKey(keys[0]);
@@ -159,26 +159,26 @@ const CategoryManagementPage: React.FC = () => {
           collapsible={{ end: true, showCollapsibleIcon: leftCollapsed ? true : 'auto' }}
         >
           <CategoryTree
-            onSelect={onSelect} 
-            treeData={treeData} 
+            onSelect={onSelect}
+            treeData={treeData}
             loadData={onLoadData}
             loadedKeys={loadedKeys}
             onLoad={(keys) => setLoadedKeys(keys as React.Key[])}
           />
         </Splitter.Panel>
         <Splitter.Panel>
-            {selectedNode ? (
-                <div style={{ padding: '0 16px', height: '100%', overflowY: 'auto' }}>
-                    <CategoryList 
-                        parentKey={selectedKey} 
-                        parentNode={selectedNode} 
-                    />
-                </div>
-            ) : (
-                <div style={{ height: '100%', padding: '16px', color: '#999', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    请选择左侧分类节点
-                </div>
-            )}
+          {selectedNode ? (
+            <div style={{ padding: '16px', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <CategoryList
+                parentKey={selectedKey}
+                parentNode={selectedNode}
+              />
+            </div>
+          ) : (
+            <div style={{ height: '100%', padding: '16px', color: '#999', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              请选择左侧分类节点
+            </div>
+          )}
         </Splitter.Panel>
       </Splitter>
     </div>
