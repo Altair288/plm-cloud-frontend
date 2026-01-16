@@ -11,7 +11,11 @@ import CategoryTree, {
   CategoryTreeProps,
 } from "@/features/category/CategoryTree";
 
-const AdminCategoryTree: React.FC<CategoryTreeProps> = (props) => {
+interface AdminCategoryTreeProps extends CategoryTreeProps {
+  onMenuClick?: (key: string, node: DataNode) => void;
+}
+
+const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({ onMenuClick, ...props }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [contextMenuState, setContextMenuState] = useState<{
@@ -89,9 +93,13 @@ const AdminCategoryTree: React.FC<CategoryTreeProps> = (props) => {
           items: renderContextMenuInfo(contextMenuState.node).items,
           onClick: ({ key, domEvent }) => {
             domEvent.stopPropagation();
-            message.info(
-              `Action: ${key} on Node: ${contextMenuState.node?.key}`
-            );
+            if (onMenuClick && contextMenuState.node) {
+              onMenuClick(key, contextMenuState.node);
+            } else {
+              message.info(
+                `Action: ${key} on Node: ${contextMenuState.node?.key}`
+              );
+            }
             setContextMenuState((prev) => ({ ...prev, visible: false }));
           },
         }}

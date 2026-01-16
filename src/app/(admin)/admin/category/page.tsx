@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Splitter, message } from 'antd';
+import { Splitter, message, Tabs, Button } from 'antd';
 import type { DataNode, TreeProps } from 'antd/es/tree';
 import CategoryTree from './AdminCategoryTree';
 import { metaCategoryApi, MetaCategoryBrowseNodeDto } from '@/services/metaCategory';
-import {
+import { 
   AppstoreOutlined,
   PartitionOutlined,
   TagsOutlined,
 } from '@ant-design/icons';
 import CategoryList from './CategoryList';
-import CategoryDetail from './CategoryDetail';
+import AttributeDesigner from './AttributeDesigner';
 
 interface CategoryTreeNode extends Omit<DataNode, 'children'> {
   children?: CategoryTreeNode[];
@@ -26,6 +26,11 @@ const CategoryManagementPage: React.FC = () => {
   const [selectedKey, setSelectedKey] = useState<React.Key>('');
   const [selectedNode, setSelectedNode] = useState<CategoryTreeNode | undefined>(undefined);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
+  
+  // Right Panel View Mode
+  const [viewMode, setViewMode] = useState<'list' | 'design'>('list');
+  // Specifically track which ITEM is being designed (different from selectedNode which is the PARENT)
+  const [designTarget, setDesignTarget] = useState<any | null>(null);
 
   const [treeData, setTreeData] = useState<CategoryTreeNode[]>([]);
   const [loadedKeys, setLoadedKeys] = useState<React.Key[]>([]);
@@ -132,10 +137,23 @@ const CategoryManagementPage: React.FC = () => {
     if (keys.length > 0) {
       setSelectedKey(keys[0]);
       setSelectedNode(info.node as CategoryTreeNode);
+      // Reset to list view when selecting a new node
+      setViewMode('list'); 
     } else {
       setSelectedKey('');
       setSelectedNode(undefined);
+      setViewMode('list');
     }
+  };
+
+  const handleEnterDesign = (item: any) => {
+      setDesignTarget(item);
+      setViewMode('design');
+  };
+
+  const handleBackToList = () => {
+      setDesignTarget(null);
+      setViewMode('list');
   };
 
   return (
@@ -168,11 +186,34 @@ const CategoryManagementPage: React.FC = () => {
         </Splitter.Panel>
         <Splitter.Panel>
           {selectedNode ? (
-            <div style={{ padding: '16px', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <CategoryList
-                parentKey={selectedKey}
-                parentNode={selectedNode}
-              />
+            <div style={{ padding: '0 16px', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                {viewMode === 'list' ? (
+                     <CategoryList 
+                        parentKey={selectedKey} 
+                        parentNode={selectedNode}
+                        onDesignAttribute={handleEnterDesign}
+                    />
+                ) : (
+                    <Tabs
+                        defaultActiveKey="attributes"
+                        tabBarExtraContent={
+                            <Button type="link" onClick={handleBackToList}>
+                                &lt; Back to Children List
+                            </Button>
+                        }
+                        items={[
+                             {
+                                key: 'attributes',
+                                label: `Attribute Schema: ${designTarget?.title}`,
+                                children: (
+                                    <AttributeDesigner 
+                                        currentNode={designTarget}
+                                    />
+                                ),
+                            },
+                        ]}
+                    />
+                )}
             </div>
           ) : (
             <div style={{ height: '100%', padding: '16px', color: '#999', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

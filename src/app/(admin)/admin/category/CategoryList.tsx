@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
-import {
-  PlusOutlined,
-  EditOutlined,
+import { 
+  PlusOutlined, 
+  EditOutlined, 
   DeleteOutlined,
   AppstoreOutlined,
   PartitionOutlined,
@@ -15,6 +15,7 @@ import { MetaCategoryBrowseNodeDto, metaCategoryApi } from '@/services/metaCateg
 interface Props {
   parentKey?: React.Key;
   parentNode?: any; // CategoryTreeNode type
+  onDesignAttribute?: (record: CategoryTableItem) => void;
 }
 
 interface CategoryTableItem extends MetaCategoryBrowseNodeDto {
@@ -23,7 +24,7 @@ interface CategoryTableItem extends MetaCategoryBrowseNodeDto {
   familyCode?: string;
 }
 
-const CategoryList: React.FC<Props> = ({ parentKey, parentNode }) => {
+const CategoryList: React.FC<Props> = ({ parentKey, parentNode, onDesignAttribute }) => {
   const actionRef = useRef<ActionType>(null);
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -33,7 +34,7 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode }) => {
   // Mock Request: Fetch children based on parentNode
   const fetchData = async () => {
     if (!parentNode) return { data: [], success: true };
-
+    
     try {
       const node = parentNode;
       let items: CategoryTableItem[] = [];
@@ -46,28 +47,28 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode }) => {
         items = groups.map(g => ({ ...g.clazz, level: 'class', parentKey: node.key as string }));
       } else if (node.level === 'class') {
         if (!node.familyCode) {
-          // Fallback for missing context
-          return { data: [], success: true };
+            // Fallback for missing context
+             return { data: [], success: true };
         }
         const groups = await metaCategoryApi.listUnspscClassesWithCommodities(node.familyCode);
         const targetGroup = groups.find(g => g.clazz.key === node.dataRef?.key || g.clazz.code === node.dataRef?.code);
         if (targetGroup && targetGroup.commodities) {
-          items = targetGroup.commodities.map(c => ({ ...c, level: 'commodity', parentKey: node.key as string }));
+            items = targetGroup.commodities.map(c => ({ ...c, level: 'commodity', parentKey: node.key as string }));
         }
       } else if (node.level === 'commodity') {
-        if (!node.classCode) {
-          return { data: [], success: true };
-        }
-        const groups = await metaCategoryApi.listUnspscClassesWithCommodities(node.classCode);
-        const targetGroup = groups.find(g => g.clazz.key === node.dataRef?.key || g.clazz.code === node.dataRef?.code);
-        if (targetGroup && targetGroup.commodities) {
-          items = targetGroup.commodities.map(c => ({ ...c, level: 'item', parentKey: node.key as string }));
-        }
+          if (!node.classCode) {
+              return { data: [], success: true };
+          }
+          const groups = await metaCategoryApi.listUnspscClassesWithCommodities(node.classCode);
+          const targetGroup = groups.find(g => g.clazz.key === node.dataRef?.key || g.clazz.code === node.dataRef?.code);
+          if (targetGroup && targetGroup.commodities) {
+              items = targetGroup.commodities.map(c => ({ ...c, level: 'item', parentKey: node.key as string }));
+          }
       }
       return { data: items, success: true };
     } catch (error) {
-      console.error(error);
-      return { data: [], success: false };
+        console.error(error);
+        return { data: [], success: false };
     }
   };
 
@@ -106,14 +107,14 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode }) => {
 
   const handleModalOk = async () => {
     try {
-      const values = await form.validateFields();
-      console.log('Submit', modalType, values);
-      // Mock API call
-      message.success(`${modalType === 'create' ? 'Created' : 'Updated'} successfully`);
-      setIsModalVisible(false);
-      actionRef.current?.reload();
+        const values = await form.validateFields();
+        console.log('Submit', modalType, values);
+        // Mock API call
+        message.success(`${modalType === 'create' ? 'Created' : 'Updated'} successfully`);
+        setIsModalVisible(false);
+        actionRef.current?.reload();
     } catch (e) {
-      // validate failed
+        // validate failed
     }
   };
 
@@ -140,65 +141,85 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode }) => {
       dataIndex: 'title',
       ellipsis: true,
       render: (_, record) => (
-        <div className="flex items-center h-full text-base">
-          {getLevelIcon(record.level)}
-          <span>{record.title}</span>
-        </div>
+          <div className="flex items-center h-full text-base">
+              {getLevelIcon(record.level)}
+              <span>{record.title}</span>
+          </div>
       )
     },
     {
-      title: 'Level',
-      dataIndex: 'level',
-      width: 120,
-      render: (_, record) => (
-        <div className="flex items-center h-full">
-          <Tag icon={getLevelIcon(record.level)}>{record.level?.toUpperCase()}</Tag>
-        </div>
-      )
+        title: 'Level',
+        dataIndex: 'level',
+        width: 120,
+        render: (_, record) => (
+            <div className="flex items-center h-full">
+                <Tag color={getLevelColor(record.level)}>{record.level?.toUpperCase()}</Tag>
+            </div>
+        )
     },
     {
       title: 'Actions',
       valueType: 'option',
-      width: 180,
+      width: 250,
       render: (_, record) => (
         <div className="flex items-center h-full gap-2">
-          <a key="edit" onClick={() => handleEdit(record)}><EditOutlined /> Edit</a>
-          <a key="delete" className="text-red-500" onClick={() => handleDelete(record)}><DeleteOutlined /> Delete</a>
+            {(record.level === 'commodity' || record.level === 'item') && (
+                <Button 
+                    type="link" 
+                    icon={<TagsOutlined />} 
+                    onClick={() => onDesignAttribute?.(record)}
+                >
+                    Attributes
+                </Button>
+            )}
+            <a key="edit" onClick={() => handleEdit(record)}><EditOutlined /></a>
+            <a key="delete" className="text-red-500" onClick={() => handleDelete(record)}><DeleteOutlined /></a>
         </div>
       ),
     },
   ];
 
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case 'segment': return 'blue';
+      case 'family': return 'cyan';
+      case 'class': return 'geekblue';
+      case 'commodity': return 'purple';
+      case 'item': return 'magenta';
+      default: return 'default';
+    }
+  };
+
   return (
     <>
       <div className="category-list-container">
-        <style>{`
+          <style>{`
             .category-list-container .ant-table-body {
                 overflow-y: auto !important;
             }
           `}</style>
-        <ProTable<CategoryTableItem>
-          headerTitle={parentNode ? <>{parentNode.title} - Children</> : 'Children List'}
-          actionRef={actionRef}
-          rowKey="key"
-          search={false}
-          options={false}
-          request={fetchData}
-          pagination={{
+          <ProTable<CategoryTableItem>
+            headerTitle={parentNode ? <>{parentNode.title}</> : 'Children List'}
+            actionRef={actionRef}
+        rowKey="key"
+        search={false}
+        options={false}
+        request={fetchData}
+        pagination={{
             defaultPageSize: 15,
             showSizeChanger: true,
-            pageSizeOptions: ['15', '30', '50', '100'],
-            showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条 / 总共 ${total} 条`,
-          }}
-          toolBarRender={() => [
+            pageSizeOptions: ['10', '15', '30', '50', '100'],
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+        }}
+        toolBarRender={() => [
             <Button key="button" icon={<PlusOutlined />} type="primary" onClick={handleCreate}>
               New Child
             </Button>,
-          ]}
-          columns={columns}
-          size="middle"
-          scroll={{ y: 'calc(100vh - 400px)' }}
-        />
+        ]}
+        columns={columns}
+        size="small"
+        scroll={{ y: 'calc(100vh - 380px)' }}
+      />
       </div>
       <Modal
         title={modalType === 'create' ? 'Create New Category' : 'Edit Category'}
@@ -208,12 +229,12 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode }) => {
         destroyOnHidden
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="code" label="Code" rules={[{ required: true }]}>
-            <Input placeholder="e.g. 10000000" />
-          </Form.Item>
-          <Form.Item name="title" label="Title" rules={[{ required: true }]}>
-            <Input placeholder="e.g. Live Plant and Animal Material" />
-          </Form.Item>
+             <Form.Item name="code" label="Code" rules={[{ required: true }]}>
+                <Input placeholder="e.g. 10000000" />
+            </Form.Item>
+            <Form.Item name="title" label="Title" rules={[{ required: true }]}>
+                <Input placeholder="e.g. Live Plant and Animal Material" />
+            </Form.Item>
         </Form>
       </Modal>
     </>
