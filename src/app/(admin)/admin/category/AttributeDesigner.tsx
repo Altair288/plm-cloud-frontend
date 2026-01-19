@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { SettingOutlined } from "@ant-design/icons";
-import { Drawer, Empty } from "antd";
-import type { ProColumns } from "@ant-design/pro-table";
+import React, { useState, useRef, useEffect } from "react";
+import { SettingOutlined, EditOutlined, DeleteOutlined, EllipsisOutlined } from "@ant-design/icons";
+import { Drawer, Empty, Tag, Dropdown, MenuProps, Button, Space } from "antd";
+import type { ActionType, ProColumns } from "@ant-design/pro-table";
 import { EditableProTable } from "@ant-design/pro-components";
 
 interface AttributeItem {
@@ -9,7 +9,9 @@ interface AttributeItem {
   code: string;
   name: string;
   type: "string" | "number" | "boolean" | "date" | "enum" | "multi-enum";
-  required: boolean;
+  unit?: string;
+  version: number;
+  isLatest: boolean;
   description?: string;
 }
 
@@ -22,34 +24,42 @@ interface EnumOptionItem {
 }
 
 interface Props {
-  currentNode: any; // CategoryTreeNode
+  currentNode?: { title?: string; [key: string]: any };
 }
 
 const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
+  const actionRef = useRef<ActionType>();
   const [editableKeys, setEditableRowKeys] = useState<React.Key[]>([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [dataSource, setDataSource] = useState<AttributeItem[]>([
     {
       id: "1",
       code: "material",
-      name: "Material",
+      name: "材料",
       type: "enum",
-      required: true,
-      description: "Main material of the item",
+      unit: "",
+      version: 1,
+      isLatest: true,
+      description: "主要材料",
     },
     {
       id: "2",
       code: "weight",
-      name: "Weight",
+      name: "重量",
       type: "number",
-      required: false,
-      description: "Item weight in kg",
+      unit: "千克",
+      version: 2,
+      isLatest: true,
+      description: "重量（kg）",
     },
     {
       id: "3",
       code: "manufacture_date",
-      name: "Manufacture Date",
+      name: "生产日期",
       type: "date",
-      required: false,
+      unit: "",
+      version: 1,
+      isLatest: true,
     },
   ]);
 
@@ -61,20 +71,38 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
     {
       id: "1",
       value: "STEEL",
-      label: "Stainless Steel",
+      label: "不锈钢",
       color: "#C0C0C0",
       order: 1,
     },
     {
       id: "2",
       value: "ALUMINUM",
-      label: "Aluminum",
+      label: "铝合金",
       color: "#A9A9A9",
       order: 2,
     },
-    { id: "3", value: "PLASTIC", label: "Plastic", color: "blue", order: 3 },
+    { id: "3", value: "PLASTIC", label: "塑料", color: "blue", order: 3 },
   ]);
   const [enumEditableKeys, setEnumEditableKeys] = useState<React.Key[]>([]);
+
+  // Context Menu State
+  const [contextMenuState, setContextMenuState] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    record: AttributeItem | null;
+  }>({ visible: false, x: 0, y: 0, record: null });
+
+  useEffect(() => {
+    const handleGlobalClick = () => {
+       if (contextMenuState.visible) {
+        setContextMenuState({ ...contextMenuState, visible: false });
+       }
+    };
+    document.addEventListener("click", handleGlobalClick);
+    return () => document.removeEventListener("click", handleGlobalClick);
+  }, [contextMenuState]);
 
   const handleConfigureEnum = (record: AttributeItem) => {
     setCurrentAttribute(record);
@@ -84,102 +112,167 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
 
   const columns: ProColumns<AttributeItem>[] = [
     {
-      title: "Display Name",
+      title: "显示名称",
       dataIndex: "name",
       formItemProps: {
-        rules: [{ required: true, message: "Name is required" }],
+        rules: [{ required: true, message: "请输入名称" }],
       },
       width: "20%",
     },
     {
-      title: "Code",
+      title: "编码",
       dataIndex: "code",
       width: "20%",
       formItemProps: {
-        rules: [{ required: true, message: "Code is required" }],
+        rules: [{ required: true, message: "请输入编码" }],
       },
     },
     {
-      title: "Data Type",
+      title: "数据类型",
       key: "type",
       dataIndex: "type",
       valueType: "select",
       valueEnum: {
-        string: { text: "String", status: "Default" },
-        number: { text: "Number", status: "Default" },
-        boolean: { text: "Boolean", status: "Default" },
-        date: { text: "Date", status: "Default" },
-        enum: { text: "Enum (Single)", status: "Processing" },
-        "multi-enum": { text: "Enum (Multi)", status: "Processing" },
+        string: { text: "字符串", status: "Default" },
+        number: { text: "数字", status: "Default" },
+        boolean: { text: "布尔值", status: "Default" },
+        date: { text: "日期", status: "Default" },
+        enum: { text: "枚举", status: "Warning" },
+        "multi-enum": { text: "多选枚举", status: "Warning" },
       },
-      width: "20%",
+      width: "15%",
     },
     {
-      title: "Required",
-      dataIndex: "required",
-      valueType: "switch",
+      title: "单位",
+      dataIndex: "unit",
       width: "10%",
     },
     {
-      title: "Actions",
+        title: "版本",
+        dataIndex: "version",
+        readonly: true,
+        width: "10%",
+        render: (dom) => <Tag color="blue">V{dom}</Tag>
+    },
+    {
+        title: "最新",
+        dataIndex: "isLatest",
+        readonly: true,
+        width: "10%",
+        valueType: "select",
+        valueEnum: {
+            true: { text: '是', status: 'Success' },
+            false: { text: '否', status: 'Default' },
+        }
+    },
+    {
+      title: "操作",
       valueType: "option",
-      width: 200,
+      width: 150,
       render: (text, record, _, action) => {
-        const actions = [
+        // High frequency action: Edit
+        const editAction = (
           <a
             key="editable"
             onClick={() => {
-              action?.startEditable?.(record.id);
+               action?.startEditable?.(record.id);
             }}
           >
-            Edit
-          </a>,
-        ];
-        
-        if (record.type === "enum" || record.type === "multi-enum") {
-          actions.push(
-            <a key="config" onClick={() => handleConfigureEnum(record)}>
-              <SettingOutlined /> Values
-            </a>
-          );
-        }
-        
-        actions.push(
-          <a
-            key="delete"
-            className="text-red-500"
-            onClick={() => {
-              setDataSource(dataSource.filter((item) => item.id !== record.id));
-            }}
-          >
-            Delete
+            编辑
           </a>
         );
+
+        // Low frequency actions in dropdown
+        const moreItems: MenuProps['items'] = [];
         
-        return actions;
+        if (record.type === 'enum' || record.type === 'multi-enum') {
+             moreItems.push({
+                 key: 'values',
+                 label: '枚举值管理',
+                 icon: <SettingOutlined />,
+                 onClick: () => handleConfigureEnum(record),
+             });
+        }
+
+        moreItems.push({
+             key: 'delete',
+             label: '删除',
+             icon: <DeleteOutlined />,
+             danger: true,
+             onClick: () => {
+                 setDataSource(dataSource.filter((item) => item.id !== record.id));
+             }
+        });
+
+        return [
+            editAction,
+            <Dropdown key="more" menu={{ items: moreItems }} placement="bottomRight">
+                <a className="ant-dropdown-link" onClick={e => e.preventDefault()}>
+                   <EllipsisOutlined style={{ fontSize: 16 }} />
+                </a>
+            </Dropdown>
+        ];
       },
     },
   ];
 
+  const menuItems: MenuProps['items'] = [
+    {
+      key: 'edit',
+      label: '编辑',
+      icon: <EditOutlined />,
+      onClick: () => {
+        if (contextMenuState.record) {
+           actionRef.current?.startEditable(contextMenuState.record.id);
+        }
+      }
+    },
+    {
+       key: 'values',
+       label: '枚举值管理',
+       icon: <SettingOutlined />,
+       disabled: !contextMenuState.record || !['enum', 'multi-enum'].includes(contextMenuState.record.type),
+       onClick: () => {
+         if (contextMenuState.record) {
+            handleConfigureEnum(contextMenuState.record);
+         }
+       }
+    },
+    {
+        type: 'divider',
+    },
+    {
+        key: 'delete',
+        label: '删除',
+        icon: <DeleteOutlined />,
+        danger: true,
+        onClick: () => {
+          if (contextMenuState.record) {
+             setDataSource(dataSource.filter(item => item.id !== contextMenuState.record?.id));
+          }
+        }
+    }
+  ];
+
   const enumColumns: ProColumns<EnumOptionItem>[] = [
     {
-      title: "Value Code",
+      title: "值编码",
       dataIndex: "value",
       width: "30%",
     },
     {
-      title: "Display Label",
+      title: "显示标签",
       dataIndex: "label",
       width: "30%",
     },
     {
-      title: "Color/Badge",
+      title: "颜色/标记",
       dataIndex: "color",
       valueType: "color",
       width: "20%",
     },
     {
-      title: "Actions",
+      title: "操作",
       valueType: "option",
       render: (text, record, _, action) => {
         return [
@@ -189,7 +282,7 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
               action?.startEditable?.(record.id);
             }}
           >
-            Edit
+            编辑
           </a>,
           <a
             key="delete"
@@ -198,7 +291,7 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
               setEnumOptions(enumOptions.filter((item) => item.id !== record.id));
             }}
           >
-            Delete
+            删除
           </a>,
         ];
       },
@@ -209,7 +302,8 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
     <div className="w-full">
       <EditableProTable<AttributeItem>
         rowKey="id"
-        headerTitle={`Attribute Schema for: ${currentNode?.title}`}
+        actionRef={actionRef}
+        headerTitle={`属性定义: ${currentNode?.title || ''}`}
         maxLength={5}
         recordCreatorProps={{
           position: "bottom",
@@ -218,9 +312,30 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
             code: "",
             name: "",
             type: "string",
-            required: false,
+            unit: "",
+            version: 1,
+            isLatest: true,
           }),
         }}
+        rowSelection={{
+            selectedRowKeys,
+            onChange: (keys) => setSelectedRowKeys(keys),
+        }}
+        toolBarRender={() => [
+            selectedRowKeys.length > 0 && (
+                <Space key="batch">
+                     <Button 
+                        danger 
+                        onClick={() => {
+                            setDataSource(dataSource.filter(item => !selectedRowKeys.includes(item.id)));
+                            setSelectedRowKeys([]);
+                        }}
+                     >
+                        批量删除 ({selectedRowKeys.length})
+                     </Button>
+                </Space>
+            )
+        ]}
         columns={columns}
         value={dataSource}
         onChange={(value) => setDataSource([...value])}
@@ -232,20 +347,41 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
           },
           onChange: setEditableRowKeys,
         }}
+        onRow={(record) => ({
+            onContextMenu: (e) => {
+                e.preventDefault();
+                setContextMenuState({
+                    visible: true,
+                    x: e.clientX,
+                    y: e.clientY,
+                    record,
+                });
+            }
+        })}
       />
+      
+      {/* Context Menu Anchor */}
+      <Dropdown
+         menu={{ items: menuItems }}
+         open={contextMenuState.visible}
+         trigger={['contextMenu']}
+         onOpenChange={(v) => { if (!v) setContextMenuState(s => ({ ...s, visible: false })) }}
+      >
+         <span style={{ position: 'fixed', left: contextMenuState.x, top: contextMenuState.y, width: 1, height: 1 }} />
+      </Dropdown>
 
       <Drawer
-        title={`Manage Values for: ${currentAttribute?.name}`}
-        size={900}
+        title={`管理枚举值: ${currentAttribute?.name}`}
+        width={900}
         open={drawerVisible}
         onClose={() => setDrawerVisible(false)}
         maskClosable={false}
-        mask={{ blur: false}}
+        mask={false}
       >
         {currentAttribute ? (
           <EditableProTable<EnumOptionItem>
             rowKey="id"
-            headerTitle="Defined Options"
+            headerTitle="已定义选项"
             recordCreatorProps={{
               position: "bottom",
               record: () => ({

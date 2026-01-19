@@ -1,34 +1,39 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Splitter, message, Tabs, Button } from 'antd';
-import type { DataNode, TreeProps } from 'antd/es/tree';
-import CategoryTree from './AdminCategoryTree';
-import { metaCategoryApi, MetaCategoryBrowseNodeDto } from '@/services/metaCategory';
-import { 
+import React, { useState, useEffect } from "react";
+import { Splitter, message, Tabs, Button } from "antd";
+import type { DataNode, TreeProps } from "antd/es/tree";
+import CategoryTree from "./AdminCategoryTree";
+import {
+  metaCategoryApi,
+  MetaCategoryBrowseNodeDto,
+} from "@/services/metaCategory";
+import {
   AppstoreOutlined,
   PartitionOutlined,
   TagsOutlined,
-} from '@ant-design/icons';
-import CategoryList from './CategoryList';
-import AttributeDesigner from './AttributeDesigner';
+} from "@ant-design/icons";
+import CategoryList from "./CategoryList";
+import AttributeDesigner from "./AttributeDesigner";
 
-interface CategoryTreeNode extends Omit<DataNode, 'children'> {
+interface CategoryTreeNode extends Omit<DataNode, "children"> {
   children?: CategoryTreeNode[];
   dataRef?: MetaCategoryBrowseNodeDto;
-  level?: 'segment' | 'family' | 'class' | 'commodity';
+  level?: "segment" | "family" | "class" | "commodity";
   loaded?: boolean;
   familyCode?: string;
   classCode?: string; // For Commodity nodes to know their parent Class
 }
 
 const CategoryManagementPage: React.FC = () => {
-  const [selectedKey, setSelectedKey] = useState<React.Key>('');
-  const [selectedNode, setSelectedNode] = useState<CategoryTreeNode | undefined>(undefined);
+  const [selectedKey, setSelectedKey] = useState<React.Key>("");
+  const [selectedNode, setSelectedNode] = useState<
+    CategoryTreeNode | undefined
+  >(undefined);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
-  
+
   // Right Panel View Mode
-  const [viewMode, setViewMode] = useState<'list' | 'design'>('list');
+  const [viewMode, setViewMode] = useState<"list" | "design">("list");
   // Specifically track which ITEM is being designed (different from selectedNode which is the PARENT)
   const [designTarget, setDesignTarget] = useState<any | null>(null);
 
@@ -48,14 +53,14 @@ const CategoryManagementPage: React.FC = () => {
         key: s.key,
         isLeaf: false,
         dataRef: s,
-        level: 'segment',
+        level: "segment",
         icon: <AppstoreOutlined />,
       }));
       setTreeData(nodes);
       setLoadedKeys([]);
     } catch (error) {
       console.error(error);
-      message.error('Failed to load segments');
+      message.error("Failed to load segments");
     }
   };
 
@@ -66,115 +71,144 @@ const CategoryManagementPage: React.FC = () => {
     try {
       let childNodes: CategoryTreeNode[] = [];
 
-      if (level === 'segment') {
+      if (level === "segment") {
         // Load Families
-        const families = await metaCategoryApi.listUnspscFamilies(dataRef!.code);
-        childNodes = families.map(f => ({
+        const families = await metaCategoryApi.listUnspscFamilies(
+          dataRef!.code,
+        );
+        childNodes = families.map((f) => ({
           title: `${f.code} - ${f.title}`,
           key: f.key,
           isLeaf: false,
           dataRef: f,
-          level: 'family',
+          level: "family",
           icon: <PartitionOutlined />,
         }));
-      } else if (level === 'family') {
+      } else if (level === "family") {
         // Load Classes
-        const groups = await metaCategoryApi.listUnspscClassesWithCommodities(dataRef!.code);
-        childNodes = groups.map(g => ({
+        const groups = await metaCategoryApi.listUnspscClassesWithCommodities(
+          dataRef!.code,
+        );
+        childNodes = groups.map((g) => ({
           title: `${g.clazz.code} - ${g.clazz.title}`,
           key: g.clazz.key,
           isLeaf: !g.commodities || g.commodities.length === 0,
           dataRef: g.clazz,
-          level: 'class',
+          level: "class",
           icon: <PartitionOutlined />,
-          familyCode: dataRef!.code
+          familyCode: dataRef!.code,
         }));
-      } else if (level === 'class') {
+      } else if (level === "class") {
         // Load Commodities
         // Since listUnspscClassesWithCommodities is by family, we need finding the parent family code
         // Which we passed down as node.familyCode
         const parentFamilyCode = (node as CategoryTreeNode).familyCode;
         if (parentFamilyCode) {
-          const groups = await metaCategoryApi.listUnspscClassesWithCommodities(parentFamilyCode);
+          const groups =
+            await metaCategoryApi.listUnspscClassesWithCommodities(
+              parentFamilyCode,
+            );
           // Find current class group
-          const currentClassGroup = groups.find(g => g.clazz.key === dataRef?.key);
+          const currentClassGroup = groups.find(
+            (g) => g.clazz.key === dataRef?.key,
+          );
           if (currentClassGroup && currentClassGroup.commodities) {
-            childNodes = currentClassGroup.commodities.map(c => ({
+            childNodes = currentClassGroup.commodities.map((c) => ({
               title: `${c.code} - ${c.title}`,
               key: c.key,
               isLeaf: true,
               dataRef: c,
-              level: 'commodity',
+              level: "commodity",
               icon: <TagsOutlined />,
               familyCode: parentFamilyCode,
-              classCode: dataRef?.code
+              classCode: dataRef?.code,
             }));
           }
         }
       }
 
-      setTreeData(origin => updateTreeData(origin, key as React.Key, childNodes));
-      setLoadedKeys(keys => [...keys, key as React.Key]);
+      setTreeData((origin) =>
+        updateTreeData(origin, key as React.Key, childNodes),
+      );
+      setLoadedKeys((keys) => [...keys, key as React.Key]);
     } catch (error) {
       console.error(error);
-      message.error('Failed to load children');
+      message.error("Failed to load children");
     }
   };
 
-  const updateTreeData = (list: CategoryTreeNode[], key: React.Key, children: CategoryTreeNode[]): CategoryTreeNode[] => {
-    return list.map(node => {
+  const updateTreeData = (
+    list: CategoryTreeNode[],
+    key: React.Key,
+    children: CategoryTreeNode[],
+  ): CategoryTreeNode[] => {
+    return list.map((node) => {
       if (node.key === key) {
         return { ...node, children };
       }
       if (node.children) {
-        return { ...node, children: updateTreeData(node.children, key, children) };
+        return {
+          ...node,
+          children: updateTreeData(node.children, key, children),
+        };
       }
       return node;
     });
   };
 
-  const onSelect: TreeProps['onSelect'] = (keys, info) => {
+  const onSelect: TreeProps["onSelect"] = (keys, info) => {
     if (keys.length > 0) {
       setSelectedKey(keys[0]);
       setSelectedNode(info.node as CategoryTreeNode);
       // Reset to list view when selecting a new node
-      setViewMode('list'); 
+      setViewMode("list");
     } else {
-      setSelectedKey('');
+      setSelectedKey("");
       setSelectedNode(undefined);
-      setViewMode('list');
+      setViewMode("list");
     }
   };
 
   const handleEnterDesign = (item: any) => {
-      setDesignTarget(item);
-      setViewMode('design');
+    setDesignTarget(item);
+    setViewMode("design");
   };
 
   const handleBackToList = () => {
-      setDesignTarget(null);
-      setViewMode('list');
+    setDesignTarget(null);
+    setViewMode("list");
   };
 
   return (
-    <div style={{ height: 'calc(100vh - 201px)', display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' }}>
+    <div
+      style={{
+        height: "calc(100vh - 201px)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+        overflow: "hidden",
+      }}
+    >
       <Splitter
         onCollapse={(collapsed) => setLeftCollapsed(collapsed[0] ?? false)}
         style={{
           flex: 1,
           minHeight: 0,
-          background: 'var(--ant-color-bg-container, #fff)',
+          background: "var(--ant-color-bg-container, #fff)",
           borderRadius: 8,
-          border: '1px solid var(--ant-color-border-secondary, #f0f0f0)',
-          boxShadow: '0 0 10px rgba(0, 0, 0, 0.05)',
-          overflow: 'hidden',
+          border: "1px solid var(--ant-color-border-secondary, #f0f0f0)",
+          boxShadow: "0 0 10px rgba(0, 0, 0, 0.05)",
+          overflow: "hidden",
         }}
       >
         <Splitter.Panel
           defaultSize={450}
           min={350}
           max={600}
-          collapsible={{ end: true, showCollapsibleIcon: leftCollapsed ? true : 'auto' }}
+          collapsible={{
+            end: true,
+            showCollapsibleIcon: leftCollapsed ? true : "auto",
+          }}
         >
           <CategoryTree
             onSelect={onSelect}
@@ -186,37 +220,52 @@ const CategoryManagementPage: React.FC = () => {
         </Splitter.Panel>
         <Splitter.Panel>
           {selectedNode ? (
-            <div style={{ padding: '0 16px', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                {viewMode === 'list' ? (
-                     <CategoryList 
-                        parentKey={selectedKey} 
-                        parentNode={selectedNode}
-                        onDesignAttribute={handleEnterDesign}
-                    />
-                ) : (
-                    <Tabs
-                        defaultActiveKey="attributes"
-                        tabBarExtraContent={
-                            <Button type="link" onClick={handleBackToList}>
-                                &lt; Back to Children List
-                            </Button>
-                        }
-                        items={[
-                             {
-                                key: 'attributes',
-                                label: `Attribute Schema: ${designTarget?.title}`,
-                                children: (
-                                    <AttributeDesigner 
-                                        currentNode={designTarget}
-                                    />
-                                ),
-                            },
-                        ]}
-                    />
-                )}
+            <div
+              style={{
+                padding: "0 16px",
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+              }}
+            >
+              {viewMode === "list" ? (
+                <CategoryList
+                  parentKey={selectedKey}
+                  parentNode={selectedNode}
+                  onDesignAttribute={handleEnterDesign}
+                />
+              ) : (
+                <Tabs
+                  defaultActiveKey="attributes"
+                  tabBarExtraContent={
+                    <Button type="link" onClick={handleBackToList}>
+                      &lt; Back to Children List
+                    </Button>
+                  }
+                  items={[
+                    {
+                      key: "attributes",
+                      label: `Attribute Schema: ${designTarget?.title}`,
+                      children: (
+                        <AttributeDesigner currentNode={designTarget} />
+                      ),
+                    },
+                  ]}
+                />
+              )}
             </div>
           ) : (
-            <div style={{ height: '100%', padding: '16px', color: '#999', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div
+              style={{
+                height: "100%",
+                padding: "16px",
+                color: "#999",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
               请选择左侧分类节点
             </div>
           )}
