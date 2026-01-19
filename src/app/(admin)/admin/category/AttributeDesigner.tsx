@@ -124,30 +124,40 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
       title: "Actions",
       valueType: "option",
       width: 200,
-      render: (text, record, _, action) => [
-        <a
-          key="editable"
-          onClick={() => {
-            action?.startEditable?.(record.id);
-          }}
-        >
-          Edit
-        </a>,
-        (record.type === "enum" || record.type === "multi-enum") && (
-          <a key="config" onClick={() => handleConfigureEnum(record)}>
-            <SettingOutlined /> Values
+      render: (text, record, _, action) => {
+        const actions = [
+          <a
+            key="editable"
+            onClick={() => {
+              action?.startEditable?.(record.id);
+            }}
+          >
+            Edit
+          </a>,
+        ];
+        
+        if (record.type === "enum" || record.type === "multi-enum") {
+          actions.push(
+            <a key="config" onClick={() => handleConfigureEnum(record)}>
+              <SettingOutlined /> Values
+            </a>
+          );
+        }
+        
+        actions.push(
+          <a
+            key="delete"
+            className="text-red-500"
+            onClick={() => {
+              setDataSource(dataSource.filter((item) => item.id !== record.id));
+            }}
+          >
+            Delete
           </a>
-        ),
-        <a
-          key="delete"
-          className="text-red-500"
-          onClick={() => {
-            setDataSource(dataSource.filter((item) => item.id !== record.id));
-          }}
-        >
-          Delete
-        </a>,
-      ],
+        );
+        
+        return actions;
+      },
     },
   ];
 
@@ -171,25 +181,27 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
     {
       title: "Actions",
       valueType: "option",
-      render: (text, record, _, action) => [
-        <a
-          key="editable"
-          onClick={() => {
-            action?.startEditable?.(record.id);
-          }}
-        >
-          Edit
-        </a>,
-        <a
-          key="delete"
-          className="text-red-500"
-          onClick={() => {
-            setEnumOptions(enumOptions.filter((item) => item.id !== record.id));
-          }}
-        >
-          Delete
-        </a>,
-      ],
+      render: (text, record, _, action) => {
+        return [
+          <a
+            key="editable"
+            onClick={() => {
+              action?.startEditable?.(record.id);
+            }}
+          >
+            Edit
+          </a>,
+          <a
+            key="delete"
+            className="text-red-500"
+            onClick={() => {
+              setEnumOptions(enumOptions.filter((item) => item.id !== record.id));
+            }}
+          >
+            Delete
+          </a>,
+        ];
+      },
     },
   ];
 
@@ -224,10 +236,11 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
 
       <Drawer
         title={`Manage Values for: ${currentAttribute?.name}`}
-        width={600}
+        size={900}
         open={drawerVisible}
         onClose={() => setDrawerVisible(false)}
         maskClosable={false}
+        mask={{ blur: false}}
       >
         {currentAttribute ? (
           <EditableProTable<EnumOptionItem>
