@@ -206,7 +206,7 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
 
         return [
             editAction,
-            <Dropdown key="more" menu={{ items: moreItems }} placement="bottomRight">
+            <Dropdown key="more" menu={{ items: moreItems }} placement="bottomLeft">
                 <a className="ant-dropdown-link" onClick={e => e.preventDefault()}>
                    <EllipsisOutlined style={{ fontSize: 16 }} />
                 </a>

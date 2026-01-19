@@ -1,13 +1,14 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { 
-  PlusOutlined, 
-  EditOutlined, 
+import {
+  PlusOutlined,
+  EditOutlined,
   DeleteOutlined,
   AppstoreOutlined,
   PartitionOutlined,
   TagsOutlined,
+  EllipsisOutlined
 } from '@ant-design/icons';
-import { Button, message, Modal, Form, Input, Tag } from 'antd';
+import { Button, message, Modal, Form, Input, Tag, Dropdown, MenuProps, Space } from 'antd';
 import type { ProColumns, ActionType } from '@ant-design/pro-table';
 import ProTable from '@ant-design/pro-table';
 import { MetaCategoryBrowseNodeDto, metaCategoryApi } from '@/services/metaCategory';
@@ -30,11 +31,30 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode, onDesignAttribut
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'create' | 'edit'>('create');
   const [currentRow, setCurrentRow] = useState<CategoryTableItem | null>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+
+  // Context Menu State
+  const [contextMenuState, setContextMenuState] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    record: CategoryTableItem | null;
+  }>({ visible: false, x: 0, y: 0, record: null });
+
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      if (contextMenuState.visible) {
+        setContextMenuState({ ...contextMenuState, visible: false });
+      }
+    };
+    document.addEventListener("click", handleGlobalClick);
+    return () => document.removeEventListener("click", handleGlobalClick);
+  }, [contextMenuState]);
 
   // Mock Request: Fetch children based on parentNode
   const fetchData = async () => {
     if (!parentNode) return { data: [], success: true };
-    
+
     try {
       const node = parentNode;
       let items: CategoryTableItem[] = [];
@@ -47,28 +67,28 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode, onDesignAttribut
         items = groups.map(g => ({ ...g.clazz, level: 'class', parentKey: node.key as string }));
       } else if (node.level === 'class') {
         if (!node.familyCode) {
-            // Fallback for missing context
-             return { data: [], success: true };
+          // Fallback for missing context
+          return { data: [], success: true };
         }
         const groups = await metaCategoryApi.listUnspscClassesWithCommodities(node.familyCode);
         const targetGroup = groups.find(g => g.clazz.key === node.dataRef?.key || g.clazz.code === node.dataRef?.code);
         if (targetGroup && targetGroup.commodities) {
-            items = targetGroup.commodities.map(c => ({ ...c, level: 'commodity', parentKey: node.key as string }));
+          items = targetGroup.commodities.map(c => ({ ...c, level: 'commodity', parentKey: node.key as string }));
         }
       } else if (node.level === 'commodity') {
-          if (!node.classCode) {
-              return { data: [], success: true };
-          }
-          const groups = await metaCategoryApi.listUnspscClassesWithCommodities(node.classCode);
-          const targetGroup = groups.find(g => g.clazz.key === node.dataRef?.key || g.clazz.code === node.dataRef?.code);
-          if (targetGroup && targetGroup.commodities) {
-              items = targetGroup.commodities.map(c => ({ ...c, level: 'item', parentKey: node.key as string }));
-          }
+        if (!node.classCode) {
+          return { data: [], success: true };
+        }
+        const groups = await metaCategoryApi.listUnspscClassesWithCommodities(node.classCode);
+        const targetGroup = groups.find(g => g.clazz.key === node.dataRef?.key || g.clazz.code === node.dataRef?.code);
+        if (targetGroup && targetGroup.commodities) {
+          items = targetGroup.commodities.map(c => ({ ...c, level: 'item', parentKey: node.key as string }));
+        }
       }
       return { data: items, success: true };
     } catch (error) {
-        console.error(error);
-        return { data: [], success: false };
+      console.error(error);
+      return { data: [], success: false };
     }
   };
 
@@ -107,14 +127,14 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode, onDesignAttribut
 
   const handleModalOk = async () => {
     try {
-        const values = await form.validateFields();
-        console.log('Submit', modalType, values);
-        // Mock API call
-        message.success(`${modalType === 'create' ? 'Created' : 'Updated'} successfully`);
-        setIsModalVisible(false);
-        actionRef.current?.reload();
+      const values = await form.validateFields();
+      console.log('Submit', modalType, values);
+      // Mock API call
+      message.success(`${modalType === 'create' ? 'Created' : 'Updated'} successfully`);
+      setIsModalVisible(false);
+      actionRef.current?.reload();
     } catch (e) {
-        // validate failed
+      // validate failed
     }
   };
 
@@ -130,53 +150,111 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode, onDesignAttribut
 
   const columns: ProColumns<CategoryTableItem>[] = [
     {
-      title: 'Code',
+      title: '编码',
       dataIndex: 'code',
       width: 150,
       copyable: true,
       render: (dom) => <div className="flex items-center h-full text-base">{dom}</div>
     },
     {
-      title: 'Title',
+      title: '标题',
       dataIndex: 'title',
       ellipsis: true,
       render: (_, record) => (
-          <div className="flex items-center h-full text-base">
-              {getLevelIcon(record.level)}
-              <span>{record.title}</span>
-          </div>
+        <div className="flex items-center h-full text-base">
+          {getLevelIcon(record.level)}
+          <span>{record.title}</span>
+        </div>
       )
     },
     {
-        title: 'Level',
-        dataIndex: 'level',
-        width: 120,
-        render: (_, record) => (
-            <div className="flex items-center h-full">
-                <Tag color={getLevelColor(record.level)}>{record.level?.toUpperCase()}</Tag>
-            </div>
-        )
+      title: '级别',
+      dataIndex: 'level',
+      width: 120,
+      render: (_, record) => (
+        <div className="flex items-center h-full">
+          <Tag color={getLevelColor(record.level)}>{record.level?.toUpperCase()}</Tag>
+        </div>
+      )
     },
     {
-      title: 'Actions',
+      title: '操作',
       valueType: 'option',
-      width: 250,
-      render: (_, record) => (
-        <div className="flex items-center h-full gap-2">
-            {(record.level === 'commodity' || record.level === 'item') && (
-                <Button 
-                    type="link" 
-                    icon={<TagsOutlined />} 
-                    onClick={() => onDesignAttribute?.(record)}
-                >
-                    Attributes
-                </Button>
-            )}
-            <a key="edit" onClick={() => handleEdit(record)}><EditOutlined /></a>
-            <a key="delete" className="text-red-500" onClick={() => handleDelete(record)}><DeleteOutlined /></a>
-        </div>
-      ),
+      width: 200,
+      render: (_, record) => {
+        // High frequency actions
+        const actions = [];
+
+        if (record.level === 'commodity' || record.level === 'item') {
+          actions.push(
+            <a
+              key="attr"
+              onClick={() => onDesignAttribute?.(record)}
+            >
+              属性设计
+            </a>
+          );
+        }
+
+        actions.push(
+          <a key="edit" onClick={() => handleEdit(record)}>编辑</a>
+        );
+
+        // Low frequency actions in dropdown
+        const moreItems: MenuProps['items'] = [
+          {
+            key: 'delete',
+            label: '删除',
+            icon: <DeleteOutlined />,
+            danger: true,
+            onClick: () => handleDelete(record)
+          }
+        ];
+
+        return [
+          <Space size="middle" key="actions">
+            {actions}
+          </Space>,
+          <Dropdown key="more" menu={{ items: moreItems }} placement="bottomLeft">
+            <a className="ant-dropdown-link" onClick={e => e.preventDefault()}>
+              <EllipsisOutlined style={{ fontSize: 16 }} />
+            </a>
+          </Dropdown>
+        ];
+      },
     },
+  ];
+
+  const menuItems: MenuProps['items'] = [
+    {
+      key: 'attr',
+      label: '属性设计',
+      icon: <TagsOutlined />,
+      disabled: !(contextMenuState.record?.level === 'commodity' || contextMenuState.record?.level === 'item'),
+      onClick: () => {
+        if (contextMenuState.record) onDesignAttribute?.(contextMenuState.record);
+      }
+    },
+    {
+      key: 'edit',
+      label: '编辑',
+      icon: <EditOutlined />,
+      onClick: () => {
+        if (contextMenuState.record) handleEdit(contextMenuState.record);
+      }
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'delete',
+      label: '删除',
+      icon: <DeleteOutlined />,
+      danger: true,
+      onClick: () => {
+        if (contextMenuState.record) handleDelete(contextMenuState.record);
+      }
+    }
   ];
 
   const getLevelColor = (level: string) => {
@@ -193,34 +271,80 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode, onDesignAttribut
   return (
     <>
       <div className="category-list-container">
-          <style>{`
+        <style>{`
             .category-list-container .ant-table-body {
                 overflow-y: auto !important;
             }
           `}</style>
-          <ProTable<CategoryTableItem>
-            headerTitle={parentNode ? <>{parentNode.title}</> : 'Children List'}
-            actionRef={actionRef}
-        rowKey="key"
-        search={false}
-        options={false}
-        request={fetchData}
-        pagination={{
+        <ProTable<CategoryTableItem>
+          headerTitle={parentNode ? <>{parentNode.title}</> : 'Children List'}
+          actionRef={actionRef}
+          rowKey="key"
+          search={false}
+          options={false}
+          request={fetchData}
+          pagination={{
             defaultPageSize: 15,
             showSizeChanger: true,
             pageSizeOptions: ['10', '15', '30', '50', '100'],
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-        }}
-        toolBarRender={() => [
+          }}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (keys) => setSelectedRowKeys(keys),
+          }}
+          onRow={(record) => ({
+            onContextMenu: (e) => {
+              e.preventDefault();
+              setContextMenuState({
+                visible: true,
+                x: e.clientX,
+                y: e.clientY,
+                record,
+              });
+            }
+          })}
+          toolBarRender={() => [
+            selectedRowKeys.length > 0 && (
+              <Space key="batch">
+                <Button
+                  danger
+                  onClick={() => {
+                    Modal.confirm({
+                      title: 'Batch Delete',
+                      content: `Are you sure to delete ${selectedRowKeys.length} items?`,
+                      onOk: () => {
+                        message.success('Batch Delete Success');
+                        setSelectedRowKeys([]);
+                        actionRef.current?.reload();
+                      }
+                    })
+                  }}
+                >
+                  Batch Delete ({selectedRowKeys.length})
+                </Button>
+              </Space>
+            ),
             <Button key="button" icon={<PlusOutlined />} type="primary" onClick={handleCreate}>
-              New Child
+              新建子项
             </Button>,
-        ]}
-        columns={columns}
-        size="small"
-        scroll={{ y: 'calc(100vh - 380px)' }}
-      />
+          ]}
+          columns={columns}
+          size="small"
+          scroll={{ y: 'calc(100vh - 380px)' }}
+        />
       </div>
+
+      {/* Context Menu Anchor */}
+      <Dropdown
+        menu={{ items: menuItems }}
+        open={contextMenuState.visible}
+        trigger={['contextMenu']}
+        onOpenChange={(v) => { if (!v) setContextMenuState(s => ({ ...s, visible: false })) }}
+      >
+        <span style={{ position: 'fixed', left: contextMenuState.x, top: contextMenuState.y, width: 1, height: 1 }} />
+      </Dropdown>
+
       <Modal
         title={modalType === 'create' ? 'Create New Category' : 'Edit Category'}
         open={isModalVisible}
@@ -229,12 +353,12 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode, onDesignAttribut
         destroyOnHidden
       >
         <Form form={form} layout="vertical">
-             <Form.Item name="code" label="Code" rules={[{ required: true }]}>
-                <Input placeholder="e.g. 10000000" />
-            </Form.Item>
-            <Form.Item name="title" label="Title" rules={[{ required: true }]}>
-                <Input placeholder="e.g. Live Plant and Animal Material" />
-            </Form.Item>
+          <Form.Item name="code" label="Code" rules={[{ required: true }]}>
+            <Input placeholder="e.g. 10000000" />
+          </Form.Item>
+          <Form.Item name="title" label="Title" rules={[{ required: true }]}>
+            <Input placeholder="e.g. Live Plant and Animal Material" />
+          </Form.Item>
         </Form>
       </Modal>
     </>
