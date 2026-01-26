@@ -517,7 +517,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
             gap: 16,
           }}
         >
-          <Breadcrumb
+          {/* <Breadcrumb
             items={breadcrumbItems}
             style={{
               fontSize: 13,
@@ -526,7 +526,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
               display: "flex",
               alignItems: "center",
             }}
-          />
+          /> */}
           <div
             style={{
               background: palette.bgContainer,

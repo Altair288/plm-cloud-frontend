@@ -293,6 +293,7 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode, onDesignAttribut
             selectedRowKeys,
             onChange: (keys) => setSelectedRowKeys(keys),
           }}
+          tableAlertRender={false}
           onRow={(record) => ({
             onContextMenu: (e) => {
               e.preventDefault();
@@ -311,17 +312,17 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode, onDesignAttribut
                   danger
                   onClick={() => {
                     Modal.confirm({
-                      title: 'Batch Delete',
-                      content: `Are you sure to delete ${selectedRowKeys.length} items?`,
+                      title: '批量删除',
+                      content: `确定要删除这 ${selectedRowKeys.length} 个项目吗？`,
                       onOk: () => {
-                        message.success('Batch Delete Success');
+                        message.success('批量删除成功');
                         setSelectedRowKeys([]);
                         actionRef.current?.reload();
                       }
                     })
                   }}
                 >
-                  Batch Delete ({selectedRowKeys.length})
+                  批量删除 ({selectedRowKeys.length})
                 </Button>
               </Space>
             ),
@@ -331,7 +332,7 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode, onDesignAttribut
           ]}
           columns={columns}
           size="small"
-          scroll={{ y: 'calc(100vh - 380px)' }}
+          scroll={{ y: 'calc(100vh - 325px)' }}
         />
       </div>
 

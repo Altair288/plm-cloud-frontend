@@ -182,7 +182,7 @@ const CategoryManagementPage: React.FC = () => {
   return (
     <div
       style={{
-        height: "calc(100vh - 201px)",
+        height: "calc(100vh - 163px)",
         display: "flex",
         flexDirection: "column",
         gap: 16,

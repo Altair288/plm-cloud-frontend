@@ -114,7 +114,7 @@ const CategoryPage: React.FC = () => {
   };
 
   return (
-    <div style={{ height: 'calc(100vh - 201px)', display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' }}>
+    <div style={{ height: 'calc(100vh - 163px)', display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Space>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenCreateModal(null)}>新建分类</Button>

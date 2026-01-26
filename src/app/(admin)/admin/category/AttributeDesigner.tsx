@@ -1,5 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import { SettingOutlined, EditOutlined, DeleteOutlined, EllipsisOutlined } from "@ant-design/icons";
+import {
+  SettingOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EllipsisOutlined,
+} from "@ant-design/icons";
 import { Drawer, Empty, Tag, Dropdown, MenuProps, Button, Space } from "antd";
 import type { ActionType, ProColumns } from "@ant-design/pro-table";
 import { EditableProTable } from "@ant-design/pro-components";
@@ -24,7 +29,7 @@ interface EnumOptionItem {
 }
 
 interface Props {
-  currentNode?: { title?: string;[key: string]: any };
+  currentNode?: { title?: string; [key: string]: any };
 }
 
 const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
@@ -61,6 +66,16 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
       version: 1,
       isLatest: true,
     },
+    ...Array.from({ length: 17 }).map((_, i) => ({
+      id: `${i + 4}`,
+      code: `attribute_${i + 4}`,
+      name: `测试属性 ${i + 4}`,
+      type: ["string", "number", "boolean", "date", "enum"][i % 5] as any,
+      unit: i % 5 === 1 ? "mm" : "",
+      version: 1,
+      isLatest: true,
+      description: `测试属性描述 ${i + 4}`,
+    })),
   ]);
 
   // Drawer State
@@ -152,7 +167,7 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
       dataIndex: "version",
       readonly: true,
       width: "10%",
-      render: (dom) => <Tag color="blue">V{dom}</Tag>
+      render: (dom) => <Tag color="blue">V{dom}</Tag>,
     },
     {
       title: "最新",
@@ -161,9 +176,9 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
       width: "10%",
       valueType: "select",
       valueEnum: {
-        true: { text: '是', status: 'Success' },
-        false: { text: '否', status: 'Default' },
-      }
+        true: { text: "是", status: "Success" },
+        false: { text: "否", status: "Default" },
+      },
     },
     {
       title: "操作",
@@ -183,75 +198,88 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
         );
 
         // Low frequency actions in dropdown
-        const moreItems: MenuProps['items'] = [];
+        const moreItems: MenuProps["items"] = [];
 
-        if (record.type === 'enum' || record.type === 'multi-enum') {
+        if (record.type === "enum" || record.type === "multi-enum") {
           moreItems.push({
-            key: 'values',
-            label: '枚举值管理',
+            key: "values",
+            label: "枚举值管理",
             icon: <SettingOutlined />,
             onClick: () => handleConfigureEnum(record),
           });
         }
 
         moreItems.push({
-          key: 'delete',
-          label: '删除',
+          key: "delete",
+          label: "删除",
           icon: <DeleteOutlined />,
           danger: true,
           onClick: () => {
             setDataSource(dataSource.filter((item) => item.id !== record.id));
-          }
+          },
         });
 
         return [
           editAction,
-          <Dropdown key="more" menu={{ items: moreItems }} placement="bottomLeft">
-            <a className="ant-dropdown-link" onClick={e => e.preventDefault()}>
+          <Dropdown
+            key="more"
+            menu={{ items: moreItems }}
+            placement="bottomLeft"
+          >
+            <a
+              className="ant-dropdown-link"
+              onClick={(e) => e.preventDefault()}
+            >
               <EllipsisOutlined style={{ fontSize: 16 }} />
             </a>
-          </Dropdown>
+          </Dropdown>,
         ];
       },
     },
   ];
 
-  const menuItems: MenuProps['items'] = [
+  const menuItems: MenuProps["items"] = [
     {
-      key: 'edit',
-      label: '编辑',
+      key: "edit",
+      label: "编辑",
       icon: <EditOutlined />,
       onClick: () => {
         if (contextMenuState.record) {
           actionRef.current?.startEditable(contextMenuState.record.id);
         }
-      }
+      },
     },
     {
-      key: 'values',
-      label: '枚举值管理',
+      key: "values",
+      label: "枚举值管理",
       icon: <SettingOutlined />,
-      disabled: !contextMenuState.record || !['enum', 'multi-enum'].includes(contextMenuState.record.type),
+      disabled:
+        !contextMenuState.record ||
+        !["enum", "multi-enum"].includes(contextMenuState.record.type),
       onClick: () => {
         if (contextMenuState.record) {
           handleConfigureEnum(contextMenuState.record);
         }
-      }
+      },
     },
     {
-      type: 'divider',
+      type: "divider",
     },
     {
-      key: 'delete',
-      label: '删除',
+      key: "delete",
+      label: "删除",
       icon: <DeleteOutlined />,
       danger: true,
       onClick: () => {
         if (contextMenuState.record) {
-          setDataSource(dataSource.filter(item => item.id !== contextMenuState.record?.id));
+          setDataSource(
+            dataSource.filter(
+              (item) => item.id !== contextMenuState.record?.id,
+            ),
+          );
         }
-      }
-    }
+      },
+    },
   ];
 
   const enumColumns: ProColumns<EnumOptionItem>[] = [
@@ -288,7 +316,9 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
             key="delete"
             className="text-red-500"
             onClick={() => {
-              setEnumOptions(enumOptions.filter((item) => item.id !== record.id));
+              setEnumOptions(
+                enumOptions.filter((item) => item.id !== record.id),
+              );
             }}
           >
             删除
@@ -299,12 +329,17 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
   ];
 
   return (
-    <div className="w-full">
+    <div className="w-full attribute-designer-container">
+      <style>{`
+        .attribute-designer-container .ant-table-body {
+            overflow-y: auto !important;
+        }
+      `}</style>
       <EditableProTable<AttributeItem>
         rowKey="id"
         actionRef={actionRef}
-        headerTitle={`属性定义: ${currentNode?.title || ''}`}
-        maxLength={5}
+        headerTitle={`属性定义: ${currentNode?.title || ""}`}
+        maxLength={50}
         recordCreatorProps={{
           position: "bottom",
           record: () => ({
@@ -321,20 +356,26 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
           selectedRowKeys,
           onChange: (keys) => setSelectedRowKeys(keys),
         }}
+        tableAlertRender={false}
+        scroll={{ y: "calc(100vh - 440px)" }}
         toolBarRender={() => [
           selectedRowKeys.length > 0 && (
             <Space key="batch">
               <Button
                 danger
                 onClick={() => {
-                  setDataSource(dataSource.filter(item => !selectedRowKeys.includes(item.id)));
+                  setDataSource(
+                    dataSource.filter(
+                      (item) => !selectedRowKeys.includes(item.id),
+                    ),
+                  );
                   setSelectedRowKeys([]);
                 }}
               >
                 批量删除 ({selectedRowKeys.length})
               </Button>
             </Space>
-          )
+          ),
         ]}
         columns={columns}
         value={dataSource}
@@ -356,7 +397,7 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
               y: e.clientY,
               record,
             });
-          }
+          },
         })}
       />
 
@@ -364,10 +405,20 @@ const AttributeDesigner: React.FC<Props> = ({ currentNode }) => {
       <Dropdown
         menu={{ items: menuItems }}
         open={contextMenuState.visible}
-        trigger={['contextMenu']}
-        onOpenChange={(v) => { if (!v) setContextMenuState(s => ({ ...s, visible: false })) }}
+        trigger={["contextMenu"]}
+        onOpenChange={(v) => {
+          if (!v) setContextMenuState((s) => ({ ...s, visible: false }));
+        }}
       >
-        <span style={{ position: 'fixed', left: contextMenuState.x, top: contextMenuState.y, width: 1, height: 1 }} />
+        <span
+          style={{
+            position: "fixed",
+            left: contextMenuState.x,
+            top: contextMenuState.y,
+            width: 1,
+            height: 1,
+          }}
+        />
       </Dropdown>
 
       <Drawer
