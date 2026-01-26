@@ -460,13 +460,6 @@ const CategoryMarketplace: React.FC<CategoryMarketplaceProps> = ({ open, onCance
     
     let newSelectedKeys = [...selectedPendingKeys];
     if (newSelectedKeys.includes(key)) {
-      // 如果已选中，则取消选中（Windows 行为：Checkbox 总是 Toggle）
-      // 但用户要求 "点击复选框选中的项目应该保持选择" -> 这通常意味着 Checkbox 应该只是 Toggle，或者如果是已选中的，就不做任何事？
-      // 通常 Windows Explorer 的 Checkbox 行为是 Toggle。
-      // 如果用户意思是 "Don't clear others", 那么 Toggle 就是对的。
-      // 如果用户意思是 "Ensure it is selected", 那么如果已选中就不动？
-      // 结合上下文 "就像windows那样"，Windows 的 Checkbox 是 Toggle。
-      // 让我们实现 Toggle，因为这是 Checkbox 的标准行为。
       newSelectedKeys = newSelectedKeys.filter(k => k !== key);
     } else {
       newSelectedKeys.push(key);

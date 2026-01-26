@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Splitter, message, Tabs, Button } from "antd";
+import { Splitter, message } from "antd";
 import type { DataNode, TreeProps } from "antd/es/tree";
 import CategoryTree from "./AdminCategoryTree";
 import {
@@ -32,9 +32,8 @@ const CategoryManagementPage: React.FC = () => {
   >(undefined);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
 
-  // Right Panel View Mode
-  const [viewMode, setViewMode] = useState<"list" | "design">("list");
-  // Specifically track which ITEM is being designed (different from selectedNode which is the PARENT)
+  // Modal State
+  const [designModalOpen, setDesignModalOpen] = useState(false);
   const [designTarget, setDesignTarget] = useState<any | null>(null);
 
   const [treeData, setTreeData] = useState<CategoryTreeNode[]>([]);
@@ -160,23 +159,15 @@ const CategoryManagementPage: React.FC = () => {
     if (keys.length > 0) {
       setSelectedKey(keys[0]);
       setSelectedNode(info.node as CategoryTreeNode);
-      // Reset to list view when selecting a new node
-      setViewMode("list");
     } else {
       setSelectedKey("");
       setSelectedNode(undefined);
-      setViewMode("list");
     }
   };
 
   const handleEnterDesign = (item: any) => {
     setDesignTarget(item);
-    setViewMode("design");
-  };
-
-  const handleBackToList = () => {
-    setDesignTarget(null);
-    setViewMode("list");
+    setDesignModalOpen(true);
   };
 
   return (
@@ -229,31 +220,11 @@ const CategoryManagementPage: React.FC = () => {
                 overflow: "hidden",
               }}
             >
-              {viewMode === "list" ? (
-                <CategoryList
-                  parentKey={selectedKey}
-                  parentNode={selectedNode}
-                  onDesignAttribute={handleEnterDesign}
-                />
-              ) : (
-                <Tabs
-                  defaultActiveKey="attributes"
-                  tabBarExtraContent={
-                    <Button type="link" onClick={handleBackToList}>
-                      &lt; Back to Children List
-                    </Button>
-                  }
-                  items={[
-                    {
-                      key: "attributes",
-                      label: `Attribute Schema: ${designTarget?.title}`,
-                      children: (
-                        <AttributeDesigner currentNode={designTarget} />
-                      ),
-                    },
-                  ]}
-                />
-              )}
+              <CategoryList
+                parentKey={selectedKey}
+                parentNode={selectedNode}
+                onDesignAttribute={handleEnterDesign}
+              />
             </div>
           ) : (
             <div
@@ -271,6 +242,15 @@ const CategoryManagementPage: React.FC = () => {
           )}
         </Splitter.Panel>
       </Splitter>
+
+       {/* Attribute Designer Modal */}
+       {designModalOpen && (
+          <AttributeDesigner 
+            open={designModalOpen}
+            onCancel={() => setDesignModalOpen(false)}
+            currentNode={designTarget}
+          />
+       )}
     </div>
   );
 };
