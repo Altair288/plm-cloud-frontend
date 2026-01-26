@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from "react";
 import DraggableModal from "@/components/DraggableModal";
 import {
+  SaveOutlined,
+  HistoryOutlined,
+  EyeOutlined,
+  AppstoreOutlined,
+  RightOutlined,
+  SearchOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
+import {
   Button,
   Space,
   Breadcrumb,
@@ -11,14 +20,8 @@ import {
   theme,
   Flex,
   Card,
+  Input,
 } from "antd";
-import {
-  SaveOutlined,
-  HistoryOutlined,
-  EyeOutlined,
-  AppstoreOutlined,
-  RightOutlined,
-} from "@ant-design/icons";
 import AttributeList from "./components/AttributeList";
 import AttributeWorkspace from "./components/AttributeWorkspace";
 import { AttributeItem, EnumOptionItem } from "./components/types";
@@ -41,6 +44,7 @@ const AttributeDesigner: React.FC<Props> = ({
     null,
   );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [searchText, setSearchText] = useState("");
 
   // Mock Data
   const [dataSource, setDataSource] = useState<AttributeItem[]>([
@@ -276,7 +280,7 @@ const AttributeDesigner: React.FC<Props> = ({
   // Toolbar Actions
   const renderToolbar = () => (
     <Flex
-      justify="flex-end"
+      justify="space-between"
       align="center"
       style={{
         height: 48,
@@ -285,6 +289,24 @@ const AttributeDesigner: React.FC<Props> = ({
         background: token.colorBgLayout,
       }}
     >
+      <Space>
+        
+        <Input
+          placeholder="筛选属性 . . ."
+          prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          allowClear
+          style={{ width: 300 }}
+        />
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={handleAddAttribute}
+        >
+          新建属性
+        </Button>
+      </Space>
       <Space>
         <Button icon={<EyeOutlined />}>预览 (Preview)</Button>
         <Button icon={<HistoryOutlined />}>日志 (Log)</Button>
@@ -323,7 +345,7 @@ const AttributeDesigner: React.FC<Props> = ({
               setDataSource={setDataSource}
               selectedAttributeId={selectedAttributeId}
               onSelectAttribute={(id) => setSelectedAttributeId(id)}
-              onAddAttribute={handleAddAttribute}
+              searchText={searchText}
             />
           </Splitter.Panel>
           <Splitter.Panel>

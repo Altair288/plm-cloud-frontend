@@ -284,9 +284,9 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode, onDesignAttribut
           options={false}
           request={fetchData}
           pagination={{
-            defaultPageSize: 15,
+            defaultPageSize: 20,
             showSizeChanger: true,
-            pageSizeOptions: ['10', '15', '30', '50', '100'],
+            pageSizeOptions: ['10', '20', '30', '50', '100'],
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
           }}
           rowSelection={{

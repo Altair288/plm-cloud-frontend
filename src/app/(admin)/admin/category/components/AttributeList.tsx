@@ -28,7 +28,7 @@ interface AttributeListProps {
   setDataSource: (data: AttributeItem[]) => void;
   selectedAttributeId: string | null;
   onSelectAttribute: (id: string, item: AttributeItem) => void;
-  onAddAttribute: () => void;
+  searchText: string;
 }
 
 const { Text } = Typography;
@@ -57,10 +57,9 @@ const AttributeList: React.FC<AttributeListProps> = ({
   setDataSource,
   selectedAttributeId,
   onSelectAttribute,
-  onAddAttribute,
+  searchText,
 }) => {
   const { token } = theme.useToken();
-  const [searchText, setSearchText] = useState("");
 
   const filteredData = dataSource.filter(
     (item) =>
@@ -101,34 +100,6 @@ const AttributeList: React.FC<AttributeListProps> = ({
         background: token.colorBgContainer,
       }}
     >
-      {/* Search Header */}
-      <div
-        style={{
-          padding: 12,
-          borderBottom: `1px solid ${token.colorBorderSecondary}`,
-        }}
-      >
-        <Flex gap="small">
-          <Input
-            placeholder="筛选属性... (Filter attributes...)"
-            prefix={
-              <SearchOutlined style={{ color: token.colorTextQuaternary }} />
-            }
-            size="small"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            allowClear
-            style={{ borderRadius: token.borderRadiusSM }}
-          />
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            size="small"
-            onClick={onAddAttribute}
-          />
-        </Flex>
-      </div>
-
       {/* List Content */}
       <div style={{ flex: 1, overflowY: "auto" }}>
         <List
@@ -241,7 +212,7 @@ const AttributeList: React.FC<AttributeListProps> = ({
           color: token.colorTextQuaternary,
         }}
       >
-        {dataSource.length} 个已定义属性 (attributes defined)
+        {dataSource.length} attributes defined
       </div>
     </div>
   );

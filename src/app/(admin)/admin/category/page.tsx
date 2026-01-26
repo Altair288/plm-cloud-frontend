@@ -244,13 +244,11 @@ const CategoryManagementPage: React.FC = () => {
       </Splitter>
 
        {/* Attribute Designer Modal */}
-       {designModalOpen && (
-          <AttributeDesigner 
-            open={designModalOpen}
-            onCancel={() => setDesignModalOpen(false)}
-            currentNode={designTarget}
-          />
-       )}
+       <AttributeDesigner 
+         open={designModalOpen}
+         onCancel={() => setDesignModalOpen(false)}
+         currentNode={designTarget}
+       />
     </div>
   );
 };
