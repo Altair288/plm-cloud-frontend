@@ -1,74 +1,80 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import {
-  SettingOutlined,
-  EditOutlined,
+  SearchOutlined,
+  PlusOutlined,
+  MoreOutlined,
+  NumberOutlined,
+  FontColorsOutlined,
+  CalendarOutlined,
+  UnorderedListOutlined,
+  CheckSquareOutlined,
   DeleteOutlined,
-  EllipsisOutlined,
+  CopyOutlined,
 } from "@ant-design/icons";
-import { Tag, Dropdown, MenuProps, Button, Space } from "antd";
-import type { ActionType, ProColumns } from "@ant-design/pro-table";
-import { EditableProTable } from "@ant-design/pro-components";
-import { AttributeItem } from "./types";
+import {
+  List,
+  Input,
+  Button,
+  Dropdown,
+  MenuProps,
+  Typography,
+  theme,
+  Flex,
+} from "antd";
+import { AttributeItem, AttributeType } from "./types";
 
 interface AttributeListProps {
-    currentNode?: { title?: string; [key: string]: any };
-    dataSource: AttributeItem[];
-    setDataSource: (data: AttributeItem[]) => void;
-    selectedAttributeId: string | null;
-    onSelectAttribute: (id: string) => void;
+  dataSource: AttributeItem[];
+  setDataSource: (data: AttributeItem[]) => void;
+  selectedAttributeId: string | null;
+  onSelectAttribute: (id: string, item: AttributeItem) => void;
+  onAddAttribute: () => void;
 }
 
+const { Text } = Typography;
+
+const getTypeIcon = (type: AttributeType) => {
+  switch (type) {
+    case "string":
+      return <FontColorsOutlined style={{ color: "#1890ff" }} />;
+    case "number":
+      return <NumberOutlined style={{ color: "#52c41a" }} />;
+    case "date":
+      return <CalendarOutlined style={{ color: "#fa8c16" }} />;
+    case "boolean":
+      return <CheckSquareOutlined style={{ color: "#722ed1" }} />;
+    case "enum":
+      return <UnorderedListOutlined style={{ color: "#13c2c2" }} />;
+    case "multi-enum":
+      return <UnorderedListOutlined style={{ color: "#13c2c2" }} />;
+    default:
+      return <FontColorsOutlined />;
+  }
+};
+
 const AttributeList: React.FC<AttributeListProps> = ({
-    currentNode,
-    dataSource,
-    setDataSource,
-    selectedAttributeId,
-    onSelectAttribute
+  dataSource,
+  setDataSource,
+  selectedAttributeId,
+  onSelectAttribute,
+  onAddAttribute,
 }) => {
-  const actionRef = useRef<ActionType>();
-  const [editableKeys, setEditableRowKeys] = useState<React.Key[]>([]);
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  
-  // Context Menu State
-  const [contextMenuState, setContextMenuState] = useState<{
-    visible: boolean;
-    x: number;
-    y: number;
-    record: AttributeItem | null;
-  }>({ visible: false, x: 0, y: 0, record: null });
+  const { token } = theme.useToken();
+  const [searchText, setSearchText] = useState("");
 
-  useEffect(() => {
-    const handleGlobalClick = () => {
-      if (contextMenuState.visible) {
-        setContextMenuState({ ...contextMenuState, visible: false });
-      }
-    };
-    document.addEventListener("click", handleGlobalClick);
-    return () => document.removeEventListener("click", handleGlobalClick);
-  }, [contextMenuState]);
+  const filteredData = dataSource.filter(
+    (item) =>
+      item.name.toLowerCase().includes(searchText.toLowerCase()) ||
+      item.code.toLowerCase().includes(searchText.toLowerCase()),
+  );
 
-  const menuItems: MenuProps["items"] = [
+  const getMenuItems = (item: AttributeItem): MenuProps["items"] => [
     {
-      key: "edit",
-      label: "编辑",
-      icon: <EditOutlined />,
-      onClick: () => {
-        if (contextMenuState.record) {
-          actionRef.current?.startEditable(contextMenuState.record.id);
-        }
-      },
-    },
-    {
-      key: "values",
-      label: "枚举值管理",
-      icon: <SettingOutlined />,
-      disabled:
-        !contextMenuState.record ||
-        !["enum", "multi-enum"].includes(contextMenuState.record.type),
-      onClick: () => {
-        if (contextMenuState.record) {
-          onSelectAttribute(contextMenuState.record.id);
-        }
+      key: "duplicate",
+      label: "复制 (Duplicate)",
+      icon: <CopyOutlined />,
+      onClick: (e) => {
+        e.domEvent.stopPropagation();
       },
     },
     {
@@ -76,220 +82,168 @@ const AttributeList: React.FC<AttributeListProps> = ({
     },
     {
       key: "delete",
-      label: "删除",
+      label: "删除 (Delete)",
       icon: <DeleteOutlined />,
       danger: true,
-      onClick: () => {
-        if (contextMenuState.record) {
-          setDataSource(
-            dataSource.filter(
-              (item) => item.id !== contextMenuState.record?.id,
-            ),
-          );
-        }
-      },
-    },
-  ];
-
-  const columns: ProColumns<AttributeItem>[] = [
-    {
-      title: "显示名称",
-      dataIndex: "name",
-      formItemProps: {
-        rules: [{ required: true, message: "请输入名称" }],
-      },
-      width: "25%",
-    },
-    {
-      title: "编码",
-      dataIndex: "code",
-      width: "20%",
-      formItemProps: {
-        rules: [{ required: true, message: "请输入编码" }],
-      },
-    },
-    {
-      title: "数据类型",
-      key: "type",
-      dataIndex: "type",
-      valueType: "select",
-      valueEnum: {
-        string: { text: "字符串", status: "Default" },
-        number: { text: "数字", status: "Default" },
-        boolean: { text: "布尔值", status: "Default" },
-        date: { text: "日期", status: "Default" },
-        enum: { text: "枚举", status: "Warning" },
-        "multi-enum": { text: "多选枚举", status: "Warning" },
-      },
-      width: "20%",
-    },
-    {
-      title: "单位",
-      dataIndex: "unit",
-      width: "10%",
-    },
-    {
-      title: "版本",
-      dataIndex: "version",
-      readonly: true,
-      width: "10%",
-      render: (dom) => <Tag color="blue">V{dom}</Tag>,
-    },
-    {
-      title: "操作",
-      valueType: "option",
-      width: 120,
-      render: (text, record, _, action) => {
-        const moreItems: MenuProps["items"] = [];
-
-        if (record.type === "enum" || record.type === "multi-enum") {
-          moreItems.push({
-            key: "values",
-            label: "枚举值管理",
-            icon: <SettingOutlined />,
-            onClick: () => onSelectAttribute(record.id),
-          });
-        }
-
-        moreItems.push({
-          key: "delete",
-          label: "删除",
-          icon: <DeleteOutlined />,
-          danger: true,
-          onClick: () => {
-            setDataSource(dataSource.filter((item) => item.id !== record.id));
-          },
-        });
-
-        return [
-          <a
-            key="editable"
-            onClick={() => {
-              action?.startEditable?.(record.id);
-            }}
-          >
-            编辑
-          </a>,
-          <Dropdown
-            key="more"
-            menu={{ items: moreItems }}
-            placement="bottomLeft"
-          >
-            <a
-              className="ant-dropdown-link"
-              onClick={(e) => e.preventDefault()}
-            >
-              <EllipsisOutlined style={{ fontSize: 16 }} />
-            </a>
-          </Dropdown>,
-        ];
+      onClick: (e) => {
+        e.domEvent.stopPropagation();
+        setDataSource(dataSource.filter((d) => d.id !== item.id));
       },
     },
   ];
 
   return (
-    <>
-      <style>{`
-        .attribute-list-container .ant-table-body {
-            overflow-y: auto !important;
-        }
-      `}</style>
-      <div className="attribute-list-container h-full flex flex-col">
-        <EditableProTable<AttributeItem>
-            rowKey="id"
-            actionRef={actionRef}
-            headerTitle={`属性列表`}
-            maxLength={50}
-            recordCreatorProps={{
-            position: "bottom",
-            record: () => ({
-                id: (Math.random() * 1000000).toFixed(0),
-                code: "",
-                name: "",
-                type: "string",
-                unit: "",
-                version: 1,
-                isLatest: true,
-            }),
-            }}
-            rowSelection={{
-            selectedRowKeys,
-            onChange: (keys) => setSelectedRowKeys(keys),
-            }}
-            tableAlertRender={false}
-            scroll={{ y: "calc(80vh - 180px)" }} // Adjusted for modal height
-            toolBarRender={() => [
-            selectedRowKeys.length > 0 && (
-                <Space key="batch">
-                <Button
-                    danger
-                    onClick={() => {
-                        setDataSource(
-                            dataSource.filter((item) => !selectedRowKeys.includes(item.id))
-                        );
-                        setSelectedRowKeys([]);
-                        // Clear selection if deleted
-                        if (selectedAttributeId && selectedRowKeys.includes(selectedAttributeId)) {
-                             onSelectAttribute('');
-                        }
-                    }}
-                >
-                    批量删除 ({selectedRowKeys.length})
-                </Button>
-                </Space>
-            ),
-            ]}
-            columns={columns}
-            value={dataSource}
-            onChange={(value) => setDataSource([...value])}
-            editable={{
-                type: "multiple",
-                editableKeys,
-                onSave: async (rowKey, data, row) => {
-                    console.log(rowKey, data, row);
-                },
-                onChange: setEditableRowKeys,
-            }}
-            onRow={(record) => ({
-                onClick: () => {
-                    onSelectAttribute(record.id);
-                },
-                style: {
-                    cursor: 'pointer',
-                    backgroundColor: record.id === selectedAttributeId ? '#e6f7ff' : undefined
-                },
-                onContextMenu: (e) => {
-                    e.preventDefault();
-                    setContextMenuState({
-                        visible: true,
-                        x: e.clientX,
-                        y: e.clientY,
-                        record,
-                    });
-                },
-            })}
-        />
-
-        <Dropdown
-            menu={{ items: menuItems }}
-            open={contextMenuState.visible}
-            trigger={["contextMenu"]}
-            onOpenChange={(v) => {
-            if (!v) setContextMenuState((s) => ({ ...s, visible: false }));
-            }}
-        >
-            <span
-            style={{
-                position: "fixed",
-                left: contextMenuState.x,
-                top: contextMenuState.y,
-                width: 1,
-                height: 1,
-            }}
-            />
-        </Dropdown>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        background: token.colorBgContainer,
+      }}
+    >
+      {/* Search Header */}
+      <div
+        style={{
+          padding: 12,
+          borderBottom: `1px solid ${token.colorBorderSecondary}`,
+        }}
+      >
+        <Flex gap="small">
+          <Input
+            placeholder="筛选属性... (Filter attributes...)"
+            prefix={
+              <SearchOutlined style={{ color: token.colorTextQuaternary }} />
+            }
+            size="small"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            allowClear
+            style={{ borderRadius: token.borderRadiusSM }}
+          />
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            size="small"
+            onClick={onAddAttribute}
+          />
+        </Flex>
       </div>
-    </>
+
+      {/* List Content */}
+      <div style={{ flex: 1, overflowY: "auto" }}>
+        <List
+          itemLayout="horizontal"
+          dataSource={filteredData}
+          split={false}
+          renderItem={(item) => {
+            const isSelected = selectedAttributeId === item.id;
+            return (
+              <List.Item
+                style={{
+                  padding: "12px 16px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  borderLeft: `4px solid ${isSelected ? token.colorPrimary : "transparent"}`,
+                  background: isSelected
+                    ? token.controlItemBgActive
+                    : "transparent",
+                }}
+                className={!isSelected ? "hover:bg-gray-50" : ""} // Keep minimal tailwind for hover if not strict
+                onClick={() => onSelectAttribute(item.id, item)}
+                actions={[
+                  <Dropdown
+                    key="more"
+                    menu={{ items: getMenuItems(item) }}
+                    trigger={["click"]}
+                  >
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={
+                        <MoreOutlined
+                          style={{ color: token.colorTextQuaternary }}
+                        />
+                      }
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </Dropdown>,
+                ]}
+              >
+                <div style={{ width: "100%" }}>
+                  <Flex
+                    justify="space-between"
+                    align="center"
+                    style={{ marginBottom: 4 }}
+                  >
+                    <Text
+                      strong
+                      style={{ fontSize: 14, maxWidth: 180 }}
+                      ellipsis
+                    >
+                      {item.name || (
+                        <span
+                          style={{
+                            color: token.colorTextQuaternary,
+                            fontStyle: "italic",
+                          }}
+                        >
+                          未命名属性 (Unnamed Attribute)
+                        </span>
+                      )}
+                    </Text>
+                    {item.required && (
+                      <div
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background: token.colorError,
+                        }}
+                        title="Required"
+                      ></div>
+                    )}
+                  </Flex>
+
+                  <Flex align="center">
+                    <span
+                      style={{
+                        marginRight: 8,
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                      title={item.type}
+                    >
+                      {getTypeIcon(item.type)}
+                    </span>
+                    <Text
+                      type="secondary"
+                      style={{ fontSize: 12, fontFamily: "monospace" }}
+                      ellipsis
+                    >
+                      {item.code}
+                    </Text>
+                  </Flex>
+                </div>
+              </List.Item>
+            );
+          }}
+        />
+      </div>
+
+      {/* Footer Info */}
+      <div
+        style={{
+          padding: 8,
+          borderTop: `1px solid ${token.colorBorderSecondary}`,
+          background: token.colorBgLayout,
+          textAlign: "center",
+          fontSize: 12,
+          color: token.colorTextQuaternary,
+        }}
+      >
+        {dataSource.length} 个已定义属性 (attributes defined)
+      </div>
+    </div>
   );
 };
 

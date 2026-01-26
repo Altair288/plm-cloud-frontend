@@ -104,6 +104,7 @@ const DraggableModal: React.FC<DraggableModalProps> = ({ title, children, destro
       {...props}
       closable={false}
       title={renderTitle()}
+      mask={{ blur: false }}
       width={isFullScreen ? '100%' : props.width}
       style={isFullScreen ? { ...props.style, top: 0, margin: 0, padding: 0, maxWidth: '100vw', height: '100vh' } : props.style}
       styles={{

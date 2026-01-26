@@ -1,127 +1,228 @@
 import React, { useState, useEffect } from "react";
 import DraggableModal from "@/components/DraggableModal";
+import {
+  Button,
+  Space,
+  Breadcrumb,
+  Typography,
+  Tag,
+  Splitter,
+  Layout,
+  theme,
+  Flex,
+  Card,
+} from "antd";
+import {
+  SaveOutlined,
+  HistoryOutlined,
+  EyeOutlined,
+  AppstoreOutlined,
+  RightOutlined,
+} from "@ant-design/icons";
 import AttributeList from "./components/AttributeList";
-import EnumConfig from "./components/EnumConfig";
+import AttributeWorkspace from "./components/AttributeWorkspace";
 import { AttributeItem, EnumOptionItem } from "./components/types";
+
+const { Header, Sider, Content } = Layout;
 
 interface Props {
   open: boolean;
   onCancel: () => void;
-  currentNode?: { title?: string; [key: string]: any };
+  currentNode?: { title?: string; code?: string; [key: string]: any };
 }
 
-const AttributeDesigner: React.FC<Props> = ({ open, onCancel, currentNode }) => {
-  
-  // Selection State for Split View
-  const [selectedAttributeId, setSelectedAttributeId] = useState<string | null>(null);
+const AttributeDesigner: React.FC<Props> = ({
+  open,
+  onCancel,
+  currentNode,
+}) => {
+  const { token } = theme.useToken();
+  const [selectedAttributeId, setSelectedAttributeId] = useState<string | null>(
+    null,
+  );
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  // Mock Data
   const [dataSource, setDataSource] = useState<AttributeItem[]>([
     {
       id: "1",
       code: "material",
-      name: "材料",
+      name: "Material",
       type: "enum",
       unit: "",
+      required: true,
+      searchable: true,
       version: 1,
       isLatest: true,
-      description: "主要材料",
+      description: "Primary material composition",
     },
     {
       id: "2",
       code: "weight",
-      name: "重量",
+      name: "Weight",
       type: "number",
-      unit: "千克",
+      unit: "kg",
+      min: 0,
+      precision: 2,
       version: 2,
       isLatest: true,
-      description: "重量（kg）",
+      description: "Net weight in KG",
     },
     {
       id: "3",
-      code: "manufacture_date",
-      name: "生产日期",
+      code: "mfg_date",
+      name: "Manufacture Date",
       type: "date",
-      unit: "",
+      hidden: true,
       version: 1,
       isLatest: true,
     },
-    ...Array.from({ length: 17 }).map((_, i) => ({
-      id: `${i + 4}`,
-      code: `attribute_${i + 4}`,
-      name: `测试属性 ${i + 4}`,
-      type: ["string", "number", "boolean", "date", "enum"][i % 5] as any,
-      unit: i % 5 === 1 ? "mm" : "",
-      version: 1,
-      isLatest: true,
-      description: `测试属性描述 ${i + 4}`,
-    })),
   ]);
 
-  const [currentAttribute, setCurrentAttribute] = useState<AttributeItem | null>(null);
+  const [currentAttribute, setCurrentAttribute] =
+    useState<AttributeItem | null>(null);
 
-  // Update currentAttribute when selection changes
+  // Sync currentAttribute from dataSource when selection changes
   useEffect(() => {
-     if (selectedAttributeId) {
-         const found = dataSource.find(item => item.id === selectedAttributeId);
-         setCurrentAttribute(found || null);
-     } else {
-         setCurrentAttribute(null);
-     }
-  }, [selectedAttributeId, dataSource]);
+    if (selectedAttributeId) {
+      const found = dataSource.find((item) => item.id === selectedAttributeId);
+      if (found)
+        setCurrentAttribute({ ...found }); // Clone to avoid direct mutation
+      else setCurrentAttribute(null);
+    } else {
+      setCurrentAttribute(null);
+    }
+  }, [selectedAttributeId]);
+
+  const handleAttributeUpdate = (key: string, value: any) => {
+    if (!currentAttribute) return;
+
+    setHasUnsavedChanges(true);
+    const updated = { ...currentAttribute, [key]: value };
+    setCurrentAttribute(updated);
+
+    setDataSource((prev) =>
+      prev.map((item) => (item.id === currentAttribute.id ? updated : item)),
+    );
+  };
 
   const [enumOptions, setEnumOptions] = useState<EnumOptionItem[]>([
     {
       id: "1",
       value: "STEEL",
-      label: "不锈钢",
+      label: "Stainless Steel",
       color: "#C0C0C0",
       order: 1,
     },
     {
       id: "2",
       value: "ALUMINUM",
-      label: "铝合金",
+      label: "Aluminum Alloy",
       color: "#A9A9A9",
       order: 2,
     },
-    { id: "3", value: "PLASTIC", label: "塑料", color: "blue", order: 3 },
   ]);
+
+  const handleAddAttribute = () => {
+    const newAttr: AttributeItem = {
+      id: Date.now().toString(),
+      code: `new_attr_${dataSource.length + 1}`,
+      name: "New Attribute",
+      type: "string",
+      version: 1,
+      isLatest: true,
+    };
+    setDataSource([...dataSource, newAttr]);
+    setSelectedAttributeId(newAttr.id);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleSave = () => {
+    // API Call Simulation
+    console.log("Saving Schema...", dataSource);
+    // After success:
+    setHasUnsavedChanges(false);
+  };
+
+  // Modal Title
+  const modalTitle = (
+    <Space align="center">
+      <Typography.Title level={5} style={{ margin: 0 }}>
+        &gt; {currentNode?.title || "未知对象 (Unknown Item)"}
+      </Typography.Title>
+      <Tag
+        color={hasUnsavedChanges ? "warning" : "success"}
+        variant="filled"
+        style={{ marginLeft: 8 }}
+      >
+        {hasUnsavedChanges ? "未保存 (Unsaved Changes)" : "已保存 (Up To Date)"}
+      </Tag>
+    </Space>
+  );
+
+  // Toolbar Actions
+  const renderToolbar = () => (
+    <Flex
+      justify="flex-end"
+      align="center"
+      style={{
+        height: 48,
+        padding: "0 16px",
+        borderBottom: `1px solid ${token.colorBorderSecondary}`,
+        background: token.colorBgLayout,
+      }}
+    >
+      <Space>
+        <Button icon={<EyeOutlined />}>预览 (Preview)</Button>
+        <Button icon={<HistoryOutlined />}>日志 (Log)</Button>
+        <Button
+          type="primary"
+          icon={<SaveOutlined />}
+          onClick={handleSave}
+          disabled={!hasUnsavedChanges}
+        >
+          保存模型 (Save Schema)
+        </Button>
+      </Space>
+    </Flex>
+  );
 
   return (
     <DraggableModal
-        title={`属性设计: ${currentNode?.title || "未选择分类"}`}
-        open={open}
-        onCancel={onCancel}
-        width="90%"
-        styles={{ body: { height: '80vh', padding: 0, overflow: 'hidden' } }}
-        footer={null}
-        destroyOnClose={false}
-        maskClosable={false}
+      title={modalTitle}
+      open={open}
+      onCancel={onCancel}
+      width="95%"
+      styles={{
+        body: { height: "85vh", padding: 0, overflow: "hidden" },
+      }}
+      footer={null}
+      destroyOnClose={false}
+      maskClosable={false}
     >
-        <div className="w-full h-full flex attribute-designer-container bg-white rounded-lg overflow-hidden">
-        
-        {/* Left Pane: Attribute List */}
-        <div className="w-1/2 h-full flex flex-col border-r border-gray-200">
-            <AttributeList 
-                currentNode={currentNode}
-                dataSource={dataSource}
-                setDataSource={setDataSource}
-                selectedAttributeId={selectedAttributeId}
-                onSelectAttribute={(id) => {
-                     setSelectedAttributeId(id);
-                }}
-            />
-        </div>
+      <Layout style={{ height: "100%", flexDirection: "column" }}>
+        {renderToolbar()}
 
-        {/* Right Pane: Configuration */}
-        <div className="w-1/2 h-full flex flex-col bg-gray-50/30">
-            <EnumConfig 
-                currentAttribute={currentAttribute}
-                enumOptions={enumOptions}
-                setEnumOptions={setEnumOptions}
+        <Splitter style={{ flex: 1 }}>
+          <Splitter.Panel defaultSize={300} min={250} max={400} collapsible>
+            <AttributeList
+              dataSource={dataSource}
+              setDataSource={setDataSource}
+              selectedAttributeId={selectedAttributeId}
+              onSelectAttribute={(id) => setSelectedAttributeId(id)}
+              onAddAttribute={handleAddAttribute}
             />
-        </div>
-        </div>
+          </Splitter.Panel>
+          <Splitter.Panel>
+            <AttributeWorkspace
+              attribute={currentAttribute}
+              onUpdate={handleAttributeUpdate}
+              enumOptions={enumOptions}
+              setEnumOptions={setEnumOptions}
+            />
+          </Splitter.Panel>
+        </Splitter>
+      </Layout>
     </DraggableModal>
   );
 };

@@ -15,7 +15,10 @@ interface AdminCategoryTreeProps extends CategoryTreeProps {
   onMenuClick?: (key: string, node: DataNode) => void;
 }
 
-const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({ onMenuClick, ...props }) => {
+const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
+  onMenuClick,
+  ...props
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [contextMenuState, setContextMenuState] = useState<{
@@ -97,7 +100,7 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({ onMenuClick, ...p
               onMenuClick(key, contextMenuState.node);
             } else {
               message.info(
-                `Action: ${key} on Node: ${contextMenuState.node?.key}`
+                `Action: ${key} on Node: ${contextMenuState.node?.key}`,
               );
             }
             setContextMenuState((prev) => ({ ...prev, visible: false }));
