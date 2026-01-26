@@ -81,7 +81,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
 
   // --- Sub-components ---
 
-  const GeneralSettings = () => (
+  const renderGeneralSettings = () => (
     <Form
       form={form}
       layout="vertical"
@@ -124,7 +124,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
     </Form>
   );
 
-  const ConstraintsSettings = () => {
+  const renderConstraintsSettings = () => {
     if (attribute.type === "enum" || attribute.type === "multi-enum") {
       const enumColumns: ProColumns<EnumOptionItem>[] = [
         {
@@ -249,7 +249,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
     );
   };
 
-  const AdvancedSettings = () => (
+  const renderAdvancedSettings = () => (
     <Form
       form={form}
       layout="horizontal"
@@ -312,7 +312,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
           <InfoCircleOutlined /> 常规 (General)
         </span>
       ),
-      children: <GeneralSettings />,
+      children: renderGeneralSettings(),
     },
     {
       key: "constraints",
@@ -321,7 +321,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
           <ControlOutlined /> 规则 (Rules)
         </span>
       ),
-      children: <ConstraintsSettings />,
+      children: renderConstraintsSettings(),
     },
     {
       key: "advanced",
@@ -330,7 +330,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
           <SettingOutlined /> 高级 (Advanced)
         </span>
       ),
-      children: <AdvancedSettings />,
+      children: renderAdvancedSettings(),
     },
   ];
 
