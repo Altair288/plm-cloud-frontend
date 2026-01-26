@@ -259,7 +259,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
       wrapperCol={{ span: 8 }}
       labelAlign="left"
     >
-      <Divider orientation={"left" as any} plain>
+      <Divider titlePlacement="start" plain>
         验证 (Validation)
       </Divider>
       <Form.Item
@@ -277,7 +277,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
         <Switch />
       </Form.Item>
 
-      <Divider orientation={"left" as any} plain>
+      <Divider titlePlacement="start" plain>
         显示与搜索 (Display & Search)
       </Divider>
       <Form.Item

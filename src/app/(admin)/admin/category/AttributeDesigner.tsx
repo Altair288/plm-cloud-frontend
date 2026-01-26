@@ -46,34 +46,147 @@ const AttributeDesigner: React.FC<Props> = ({
   const [dataSource, setDataSource] = useState<AttributeItem[]>([
     {
       id: "1",
-      code: "material",
-      name: "Material",
-      type: "enum",
-      unit: "",
-      required: true,
-      searchable: true,
+      code: "FN",
+      name: "连续力",
+      type: "number",
+      unit: "kN",
       version: 1,
       isLatest: true,
-      description: "Primary material composition",
     },
     {
       id: "2",
-      code: "weight",
-      name: "Weight",
+      code: "FMAXD",
+      name: "最大力",
       type: "number",
-      unit: "kg",
-      min: 0,
-      precision: 2,
-      version: 2,
+      unit: "kN",
+      version: 1,
       isLatest: true,
-      description: "Net weight in KG",
     },
     {
       id: "3",
-      code: "mfg_date",
-      name: "Manufacture Date",
-      type: "date",
-      hidden: true,
+      code: "VDRUCK",
+      name: "速度",
+      type: "number",
+      unit: "m/s",
+      version: 1,
+      isLatest: true,
+    },
+    {
+      id: "4",
+      code: "ADRUCK",
+      name: "加速度",
+      type: "number",
+      unit: "m/s²",
+      version: 1,
+      isLatest: true,
+    },
+    {
+      id: "5",
+      code: "HUB",
+      name: "行程",
+      type: "number",
+      unit: "mm",
+      version: 1,
+      isLatest: true,
+    },
+    {
+      id: "6",
+      code: "DH",
+      name: "显示液压缸顶出行程",
+      type: "number",
+      unit: "mm",
+      version: 1,
+      isLatest: true,
+    },
+    {
+      id: "7",
+      code: "BF",
+      name: "结构类型",
+      type: "enum",
+      version: 1,
+      isLatest: true,
+    },
+    {
+      id: "8",
+      code: "BFZ",
+      name: "液压缸结构类型",
+      type: "string",
+      version: 1,
+      isLatest: true,
+    },
+    {
+      id: "9",
+      code: "WMO",
+      name: "位移测量系统选项",
+      type: "string",
+      version: 1,
+      isLatest: true,
+    },
+    {
+      id: "10",
+      code: "DRUCKSENSOR",
+      name: "压力传感器",
+      type: "boolean",
+      version: 1,
+      isLatest: true,
+    },
+    {
+      id: "11",
+      code: "SYSDRUCKSENS",
+      name: "系统压力传感器",
+      type: "string",
+      version: 1,
+      isLatest: true,
+    },
+    {
+      id: "12",
+      code: "DD",
+      name: "活塞直径",
+      type: "number",
+      unit: "mm",
+      version: 1,
+      isLatest: true,
+    },
+    {
+      id: "13",
+      code: "DD1",
+      name: "活塞杆直径",
+      type: "number",
+      unit: "mm",
+      version: 1,
+      isLatest: true,
+    },
+    {
+      id: "14",
+      code: "KW",
+      name: "电机额定功率",
+      type: "number",
+      unit: "kW",
+      version: 1,
+      isLatest: true,
+    },
+    {
+      id: "15",
+      code: "FOERDER",
+      name: "泵流量",
+      type: "number",
+      unit: "l/min",
+      version: 1,
+      isLatest: true,
+    },
+    {
+      id: "16",
+      code: "PDF",
+      name: "参数表",
+      type: "string",
+      version: 1,
+      isLatest: true,
+    },
+    {
+      id: "17",
+      code: "CNSMNTINTV",
+      name: "操作和维护说明",
+      type: "string",
       version: 1,
       isLatest: true,
     },
@@ -197,14 +310,14 @@ const AttributeDesigner: React.FC<Props> = ({
         body: { height: "85vh", padding: 0, overflow: "hidden" },
       }}
       footer={null}
-      destroyOnClose={false}
+      destroyOnHidden={false}
       maskClosable={false}
     >
-      <Layout style={{ height: "100%", flexDirection: "column" }}>
+      <Layout style={{ height: "100%", flexDirection: "column", overflow: "hidden" }}>
         {renderToolbar()}
 
-        <Splitter style={{ flex: 1 }}>
-          <Splitter.Panel defaultSize={300} min={250} max={400} collapsible>
+        <Splitter style={{ flex: 1, minHeight: 0 }}>
+          <Splitter.Panel defaultSize={450} min={300} max={600} collapsible>
             <AttributeList
               dataSource={dataSource}
               setDataSource={setDataSource}
