@@ -23,7 +23,7 @@ import {
   Input,
 } from "antd";
 import AttributeList from "./components/AttributeList";
-import AttributeWorkspace from "./components/AttributeWorkspace";
+import AttributeWorkspace from "./components/AttributeWorkspaceV2";
 import { AttributeItem, EnumOptionItem } from "./components/types";
 
 const { Header, Sider, Content } = Layout;
@@ -339,7 +339,7 @@ const AttributeDesigner: React.FC<Props> = ({
         {renderToolbar()}
 
         <Splitter style={{ flex: 1, minHeight: 0 }}>
-          <Splitter.Panel defaultSize={450} min={300} max={600} collapsible>
+          <Splitter.Panel defaultSize={600} min={300} max={600} collapsible>
             <AttributeList
               dataSource={dataSource}
               setDataSource={setDataSource}
@@ -354,6 +354,12 @@ const AttributeDesigner: React.FC<Props> = ({
               onUpdate={handleAttributeUpdate}
               enumOptions={enumOptions}
               setEnumOptions={setEnumOptions}
+              onDiscard={(id) => {
+                setDataSource((prev) => prev.filter((item) => item.id !== id));
+                if (selectedAttributeId === id) {
+                  setSelectedAttributeId(null);
+                }
+              }}
             />
           </Splitter.Panel>
         </Splitter>

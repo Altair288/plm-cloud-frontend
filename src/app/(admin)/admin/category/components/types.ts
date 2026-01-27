@@ -25,6 +25,15 @@ export interface AttributeItem {
   max?: number;
   precision?: number;
   
+  // New: Advanced Constraints
+  constraintMode?: 'none' | 'list' | 'range';
+  renderType?: 'text' | 'color' | 'image'; // For Enums
+  rangeConfig?: {
+    min: number;
+    max: number;
+    step?: number;
+  };
+
   // Versioning (Keep existing)
   version: number;
   isLatest: boolean;
@@ -36,4 +45,6 @@ export interface EnumOptionItem {
   label: string;
   color?: string;
   order: number;
+  image?: string;
+  description?: string;
 }

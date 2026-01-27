@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   SearchOutlined,
   PlusOutlined,
@@ -32,7 +32,7 @@ interface AttributeListProps {
 }
 
 const { Text } = Typography;
-
+// ... existing getTypeIcon code ...
 const getTypeIcon = (type: AttributeType) => {
   switch (type) {
     case "string":
@@ -60,6 +60,16 @@ const AttributeList: React.FC<AttributeListProps> = ({
   searchText,
 }) => {
   const { token } = theme.useToken();
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selectedAttributeId && listRef.current) {
+      const element = document.getElementById(`attr-list-item-${selectedAttributeId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }
+  }, [selectedAttributeId, dataSource.length]);
 
   const filteredData = dataSource.filter(
     (item) =>
@@ -109,7 +119,8 @@ const AttributeList: React.FC<AttributeListProps> = ({
           renderItem={(item) => {
             const isSelected = selectedAttributeId === item.id;
             return (
-              <List.Item
+              <div id={`attr-list-item-${item.id}`}>
+                <List.Item
                 style={{
                   padding: "12px 16px",
                   cursor: "pointer",
@@ -195,7 +206,8 @@ const AttributeList: React.FC<AttributeListProps> = ({
                     </Text>
                   </Flex>
                 </div>
-              </List.Item>
+                </List.Item>
+              </div>
             );
           }}
         />
