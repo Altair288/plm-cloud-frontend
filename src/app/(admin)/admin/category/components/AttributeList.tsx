@@ -111,7 +111,7 @@ const AttributeList: React.FC<AttributeListProps> = ({
       }}
     >
       {/* List Content */}
-      <div style={{ flex: 1, overflowY: "auto" }}>
+      <div style={{ flex: 1, overflowY: "auto" }} ref={listRef}>
         <List
           itemLayout="horizontal"
           dataSource={filteredData}

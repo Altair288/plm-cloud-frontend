@@ -8,6 +8,7 @@ export interface AttributeItem {
   unit?: string;
   required?: boolean;
   description?: string;
+  defaultValue?: string | number | boolean;
   
   // Frontend/Display properties
   hidden?: boolean;
@@ -23,9 +24,12 @@ export interface AttributeItem {
   pattern?: string; // Regex
   min?: number;
   max?: number;
+  step?: number;
   precision?: number;
   
   // New: Advanced Constraints
+  trueLabel?: string;
+  falseLabel?: string;
   constraintMode?: 'none' | 'list' | 'range';
   renderType?: 'text' | 'color' | 'image'; // For Enums
   rangeConfig?: {
@@ -37,10 +41,17 @@ export interface AttributeItem {
   // Versioning (Keep existing)
   version: number;
   isLatest: boolean;
+
+  // System info
+  createdBy?: string;
+  createdAt?: string;
+  modifiedBy?: string;
+  modifiedAt?: string;
 }
 
 export interface EnumOptionItem {
   id: string;
+  code: string;
   value: string;
   label: string;
   color?: string;

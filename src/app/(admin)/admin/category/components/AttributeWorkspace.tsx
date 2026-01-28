@@ -265,6 +265,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
                 position: "bottom",
                 record: () => ({
                   id: Math.random().toString(36).substr(2, 9),
+                  code: "",
                   value: "",
                   label: "",
                   order: 0,

@@ -28,6 +28,7 @@ import {
 import {
   InfoCircleOutlined,
   EditOutlined,
+  AppstoreOutlined,
   SaveOutlined,
   CloseOutlined,
   DatabaseOutlined,
@@ -47,7 +48,7 @@ import {
 } from "@ant-design/icons";
 import { EditableProTable } from "@ant-design/pro-components";
 import type { ProColumns } from "@ant-design/pro-table";
-import { AttributeItem, EnumOptionItem } from "./types";
+import { AttributeItem, EnumOptionItem, AttributeType } from "./types";
 
 interface AttributeWorkspaceProps {
   attribute: AttributeItem | null;
@@ -183,6 +184,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
         <Title level={5} style={{ margin: 0 }}>
           {attribute.name}
         </Title>
+        <Tag color="cyan">V{attribute.version}.0</Tag>
         <Text type="secondary" copyable style={{ fontSize: 12 }}>
           {attribute.code}
         </Text>
@@ -226,7 +228,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
         column={2}
         bordered
         size="small"
-        labelStyle={{ width: "120px" }}
+        labelStyle={{ width: "180px" }}
       >
         <Descriptions.Item label="名称 (Display Name)">
           {attribute.name}
@@ -250,8 +252,20 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
         <Descriptions.Item label="必填 (Required)">
           {attribute.required ? "Yes" : "No"}
         </Descriptions.Item>
-        <Descriptions.Item label="帮助文本 (Help Text)">
+        <Descriptions.Item label="描述 (Description)">
           {attribute.description || "-"}
+        </Descriptions.Item>
+        <Descriptions.Item label="创建人 (Created By)">
+            {attribute.createdBy || "Admin"}
+        </Descriptions.Item>
+        <Descriptions.Item label="创建时间 (Created At)">
+            {attribute.createdAt || "2023-01-01 12:00"}
+        </Descriptions.Item>
+        <Descriptions.Item label="修改人 (Modified By)">
+            {attribute.modifiedBy || "Admin"}
+        </Descriptions.Item>
+        <Descriptions.Item label="修改时间 (Modified At)">
+            {attribute.modifiedAt || "2023-10-24 14:30"}
         </Descriptions.Item>
       </Descriptions>
 
@@ -318,72 +332,55 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
             ),
             children: (
               <div style={{ padding: 12 }}>
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <div
-                      style={{
-                        background: token.colorFillQuaternary,
-                        borderRadius: 8,
-                        padding: 8,
-                        height: "100%",
-                      }}
-                    >
-                      <Title
-                        level={5}
-                        style={{
-                          marginTop: 0,
-                          marginBottom: 16,
-                          fontSize: 13,
-                          color: token.colorTextSecondary,
-                        }}
-                      >
-                        基本信息 (Basic Information)
-                      </Title>
+                <div
+                  style={{
+                    background: token.colorFillQuaternary,
+                    borderRadius: 8,
+                    padding: 8,
+                  }}
+                >
+                  <Title
+                    level={5}
+                    style={{
+                      marginTop: 0,
+                      marginBottom: 15,
+                      fontSize: 16,
+                      color: token.colorTextSecondary,
+                    }}
+                  >
+                    属性详情 (Attribute Details)
+                  </Title>
+                  <Row gutter={24}>
+                    <Col span={4}>
                       <Form.Item
                         label="名称 (Display Name)"
                         name="name"
                         rules={[{ required: true }]}
                       >
-                        <Input />
+                        <Input size="middle" />
                       </Form.Item>
+                    </Col>
+                    <Col span={4}>
                       <Form.Item
                         label="编码 (Code)"
                         name="code"
                         rules={[{ required: true }]}
                       >
-                        <Input disabled={!attribute.isLatest} />
+                        <Input disabled={!attribute.isLatest} size="middle" />
                       </Form.Item>
+                    </Col>
+                    <Col span={4}>
                       <Form.Item
                         label="描述 (Description)"
                         name="description"
                         style={{ marginBottom: 0 }}
                       >
-                        <Input />
+                        <Input size="middle" />
                       </Form.Item>
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div
-                      style={{
-                        background: token.colorFillQuaternary,
-                        borderRadius: 8,
-                        padding: 8,
-                        height: "100%",
-                      }}
-                    >
-                      <Title
-                        level={5}
-                        style={{
-                          marginTop: 0,
-                          marginBottom: 16,
-                          fontSize: 13,
-                          color: token.colorTextSecondary,
-                        }}
-                      >
-                        数据定义 (Data Definition)
-                      </Title>
+                    </Col>
+                    <Col span={4}>
                       <Form.Item label="数据类型 (Data Type)" name="type">
-                        <Select disabled>
+                        <Select size="middle">
                           <Option value="string">String</Option>
                           <Option value="number">Number</Option>
                           <Option value="boolean">Boolean</Option>
@@ -391,18 +388,44 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
                           <Option value="multi-enum">Multi Enum</Option>
                         </Select>
                       </Form.Item>
+                    </Col>
+                    <Col span={4}>
                       <Form.Item label="单位 (Unit)" name="unit">
-                        <Input />
+                        <Input size="middle" />
                       </Form.Item>
-                      <Form.Item
-                        label="默认值 (Default Value)"
-                        style={{ marginBottom: 0 }}
-                      >
-                        <Input disabled placeholder="-" />
+                    </Col>
+                    <Col span={4}>
+                      <Form.Item label="默认值 (Default Value)" name="defaultValue">
+                        <Input placeholder="-" size="middle" />
                       </Form.Item>
-                    </div>
-                  </Col>
-                </Row>
+                    </Col>
+                  </Row>
+                  
+                  <Divider />
+                  
+                  <Row gutter={24}>
+                    <Col span={6}>
+                       <Form.Item label="创建人 (Created By)">
+                         <Input disabled value={attribute.createdBy || "Admin"} variant="borderless" size="middle" />
+                       </Form.Item>
+                    </Col>
+                     <Col span={6}>
+                       <Form.Item label="创建时间 (Created At)">
+                         <Input disabled value={attribute.createdAt || "2023-01-01 12:00"} variant="borderless" size="middle" />
+                       </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                       <Form.Item label="修改人 (Modified By)">
+                         <Input disabled value={attribute.modifiedBy || "Admin"} variant="borderless" size="middle" />
+                       </Form.Item>
+                    </Col>
+                     <Col span={6}>
+                       <Form.Item label="修改时间 (Modified At)">
+                         <Input disabled value={attribute.modifiedAt || "2023-10-24 14:30"} variant="borderless" size="middle" />
+                       </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
               </div>
             ),
           },
@@ -515,141 +538,6 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
                     </div>
                   </Col>
                 </Row>
-
-                <div
-                  style={{
-                    marginTop: 16,
-                    border: `1px solid ${token.colorBorderSecondary}`,
-                    borderRadius: 8,
-                    padding: 8,
-                  }}
-                >
-                  <Title
-                    level={5}
-                    style={{
-                      marginTop: 0,
-                      marginBottom: 16,
-                      fontSize: 13,
-                      color: token.colorTextSecondary,
-                    }}
-                  >
-                    高级规则与验证 (Advanced Rules & Validation)
-                  </Title>
-
-                  {/* Number Constraints */}
-                  {attribute.type === "number" && (
-                    <>
-                      <Form.Item
-                        label="约束模式 (Constraint Mode)"
-                        name="constraintMode"
-                        style={{ marginBottom: 16 }}
-                      >
-                        <Radio.Group buttonStyle="solid" size="small">
-                          <Radio.Button value="none">自由 (Free)</Radio.Button>
-                          <Radio.Button value="range">
-                            范围 (Range)
-                          </Radio.Button>
-                          <Radio.Button value="list">列表 (List)</Radio.Button>
-                        </Radio.Group>
-                      </Form.Item>
-                      {attribute.constraintMode === "range" && (
-                        <Flex gap="small">
-                          <Form.Item
-                            label="最小值 (Min)"
-                            name={["rangeConfig", "min"]}
-                            style={{ marginBottom: 0, flex: 1 }}
-                          >
-                            <InputNumber
-                              size="small"
-                              style={{ width: "100%" }}
-                            />
-                          </Form.Item>
-                          <Form.Item
-                            label="最大值 (Max)"
-                            name={["rangeConfig", "max"]}
-                            style={{ marginBottom: 0, flex: 1 }}
-                          >
-                            <InputNumber
-                              size="small"
-                              style={{ width: "100%" }}
-                            />
-                          </Form.Item>
-                          <Form.Item
-                            label="步长 (Step)"
-                            name={["rangeConfig", "step"]}
-                            style={{ marginBottom: 0, flex: 1 }}
-                          >
-                            <InputNumber
-                              size="small"
-                              style={{ width: "100%" }}
-                            />
-                          </Form.Item>
-                        </Flex>
-                      )}
-                      {attribute.constraintMode === "none" && (
-                        <Form.Item
-                          label="精度 (Precision)"
-                          name="precision"
-                          style={{ marginBottom: 0, width: 200 }}
-                        >
-                          <InputNumber size="small" style={{ width: "100%" }} />
-                        </Form.Item>
-                      )}
-                    </>
-                  )}
-
-                  {/* String Constraints */}
-                  {attribute.type === "string" && (
-                    <Row gutter={16}>
-                      <Col span={8}>
-                        <Form.Item
-                          label="最大长度 (Max Length)"
-                          name="maxLength"
-                          style={{ marginBottom: 0 }}
-                        >
-                          <InputNumber style={{ width: "100%" }} />
-                        </Form.Item>
-                      </Col>
-                      <Col span={16}>
-                        <Form.Item
-                          label="正则表达式 (Regex Pattern)"
-                          name="pattern"
-                          style={{ marginBottom: 0 }}
-                        >
-                          <Input prefix="/" />
-                        </Form.Item>
-                      </Col>
-                    </Row>
-                  )}
-
-                  {/* Enum Render Type */}
-                  {(attribute.type === "enum" ||
-                    attribute.type === "multi-enum") && (
-                    <Form.Item
-                      label="渲染样式 (Render Style)"
-                      name="renderType"
-                      help="Selection affects Value Domain columns"
-                      style={{ marginBottom: 0 }}
-                    >
-                      <Radio.Group buttonStyle="solid" size="small">
-                        <Radio.Button value="text">文本 (Text)</Radio.Button>
-                        <Radio.Button value="color">颜色 (Color)</Radio.Button>
-                        <Radio.Button value="image">图片 (Image)</Radio.Button>
-                      </Radio.Group>
-                    </Form.Item>
-                  )}
-
-                  {/* Default fallback for other types */}
-                  {attribute.type !== "number" &&
-                    attribute.type !== "string" &&
-                    attribute.type !== "enum" &&
-                    attribute.type !== "multi-enum" && (
-                      <Empty
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description="当前类型无高级配置 (No advanced settings for this type)"
-                      />
-                    )}
-                </div>
               </div>
             ),
           },
@@ -659,80 +547,255 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
   );
 
   const renderValueDomain = () => {
+    // Helper to update attribute type
+    const handleTypeChange = (newType: AttributeType) => {
+      onUpdate("type", newType);
+      form.setFieldValue("type", newType);
+    };
+
+    // Helper to update specific fields
+    const updateAttribute = (updates: Partial<AttributeItem>) => {
+      Object.entries(updates).forEach(([key, value]) => {
+        onUpdate(key, value);
+      });
+      form.setFieldsValue(updates);
+    };
+
+    const CommonHelper = ({
+      title,
+      extra,
+      children,
+    }: {
+      title: string;
+      extra?: React.ReactNode;
+      children: React.ReactNode;
+    }) => (
+      <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+        <Flex
+          justify="space-between"
+          align="center"
+          style={{
+            padding: "8px 12px",
+            borderBottom: `1px solid ${token.colorBorderSecondary}`,
+            background: token.colorPrimaryBg,
+          }}
+        >
+          <Space size="small">
+            <AppstoreOutlined />
+            <span style={{ fontWeight: 600, fontSize: 13 }}>{title}</span>
+          </Space>
+          {extra}
+        </Flex>
+        <div style={{ flex: 1, padding: 12, overflowY: "auto" }}>
+          {children}
+        </div>
+      </div>
+    );
+
+    // 1. String: Text Rules
+    if (attribute.type === "string") {
+      return (
+        <CommonHelper
+          title="文本规则 (Text Rules)"
+          extra={
+            <Button
+              size="small"
+              type="link"
+              onClick={() => handleTypeChange("enum")}
+            >
+              转为枚举 (Convert to Enum)
+            </Button>
+          }
+        >
+          <Form layout="vertical" size="small">
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item label="最小长度 (Min Length)">
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    min={0}
+                    value={attribute.minLength}
+                    onChange={(v) =>
+                      updateAttribute({ minLength: v || undefined })
+                    }
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="最大长度 (Max Length)">
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    min={0}
+                    value={attribute.maxLength}
+                    onChange={(v) =>
+                      updateAttribute({ maxLength: v || undefined })
+                    }
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item label="正则表达式 (Regex Pattern)">
+              <Input
+                prefix="/"
+                placeholder="e.g. ^[a-z]+$"
+                value={attribute.pattern}
+                onChange={(e) => updateAttribute({ pattern: e.target.value })}
+              />
+            </Form.Item>
+          </Form>
+        </CommonHelper>
+      );
+    }
+
+    // 2. Number: Numeric Rules
+    if (attribute.type === "number") {
+      return (
+        <CommonHelper
+          title="数值规则 (Numeric Rules)"
+          extra={
+            <Button
+              size="small"
+              type="link"
+              onClick={() => handleTypeChange("enum")}
+            >
+              转为枚举 (Convert to Enum)
+            </Button>
+          }
+        >
+          <Form layout="vertical" size="small">
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item label="最小值 (Min Value)">
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    value={attribute.min}
+                    onChange={(v) => updateAttribute({ min: v || undefined })}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="最大值 (Max Value)">
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    value={attribute.max}
+                    onChange={(v) => updateAttribute({ max: v || undefined })}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item label="步长 (Step)">
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    min={0}
+                    value={attribute.step}
+                    onChange={(v) => updateAttribute({ step: v || undefined })}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="精度 (Precision)">
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    min={0}
+                    max={10}
+                    value={attribute.precision}
+                    onChange={(v) =>
+                      updateAttribute({ precision: v || undefined })
+                    }
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Form>
+        </CommonHelper>
+      );
+    }
+
+    // 3. Boolean: Display Config
+    if (attribute.type === "boolean") {
+      return (
+        <CommonHelper title="布尔配置 (Boolean Configuration)">
+          <Form layout="vertical" size="small">
+            <Form.Item label="True 显示文本 (Display for True)">
+              <Input
+                placeholder="e.g. Yes, Open, Active"
+                value={attribute.trueLabel}
+                onChange={(e) => updateAttribute({ trueLabel: e.target.value })}
+              />
+            </Form.Item>
+            <Form.Item label="False 显示文本 (Display for False)">
+              <Input
+                placeholder="e.g. No, Closed, Inactive"
+                value={attribute.falseLabel}
+                onChange={(e) =>
+                  updateAttribute({ falseLabel: e.target.value })
+                }
+              />
+            </Form.Item>
+          </Form>
+        </CommonHelper>
+      );
+    }
+
     const currentRenderType = attribute.renderType || "text";
 
     const enumColumns: ProColumns<EnumOptionItem>[] = [
       {
-        title: "排序 (Sort)",
-        dataIndex: "order",
-        width: 48,
-        editable: false,
-        render: () => (
-          <UnorderedListOutlined
-            style={{ cursor: "move", color: token.colorTextTertiary }}
-          />
-        ),
+        title: "序号",
+        valueType: "index",
+        width: 80,
+        render: (_, __, index) => <span style={{ color: token.colorTextTertiary }}>{index + 1}</span>,
       },
       {
-        title: currentRenderType === "color" ? "十六进制颜色" : "代码/值",
+        title: "编码 (Code)",
+        dataIndex: "code",
+        width: 120,
+        formItemProps: { rules: [{ required: true }] },
+      },
+      {
+        title: currentRenderType === "color" ? "颜色 (Color)" : "枚举值 (Value)",
         dataIndex: "value",
         valueType: currentRenderType === "color" ? "color" : "text",
-        width: currentRenderType === "color" ? 100 : 120,
+        width: currentRenderType === "color" ? 120 : 120,
         formItemProps: { rules: [{ required: true }] },
       },
       {
-        title: "显示标签 (Display Label)",
+        title: "显示标签 (Label)",
         dataIndex: "label",
-        width: 150,
         formItemProps: { rules: [{ required: true }] },
       },
       {
-        title: "状态 (State)",
-        dataIndex: "state", // Assuming state/status field
-        valueType: "select",
-        valueEnum: {
-          active: { text: "激活", status: "Success" },
-          disabled: { text: "禁用", status: "Error" },
-        },
-        width: 80,
-      },
-      {
-        title: "描述 (Description)",
-        dataIndex: "description",
-        valueType: "text",
-        ellipsis: true,
+        title: "操作",
+        valueType: "option",
+        width: 160,
+        render: (text, record, _, action) => [
+          <a key="edit" onClick={() => action?.startEditable?.(record.id)}>
+            编辑 (Edit)
+          </a>,
+          <a
+            key="del"
+            onClick={() =>
+              setEnumOptions(enumOptions.filter((i) => i.id !== record.id))
+            }
+            style={{ color: token.colorError }}
+          >
+            删除 (Delete)
+          </a>,
+        ],
       },
     ];
 
     if (currentRenderType === "image") {
-      enumColumns.splice(3, 0, {
-        title: "图片 (Image)",
+      enumColumns.splice(2, 0, {
+        title: "图片",
         dataIndex: "image",
-        width: 60,
+        width: 80,
         render: (_, r) => (r.image ? <PictureOutlined /> : "-"),
         renderFormItem: () => <Input prefix={<UploadOutlined />} />,
       });
     }
-
-    enumColumns.push({
-      title: "操作 (Actions)",
-      valueType: "option",
-      width: 200,
-      render: (text, record, _, action) => [
-        <a key="edit" onClick={() => action?.startEditable?.(record.id)}>
-          编辑 (Edit)
-        </a>,
-        <a
-          key="del"
-          onClick={() =>
-            setEnumOptions(enumOptions.filter((i) => i.id !== record.id))
-          }
-          style={{ color: token.colorError }}
-        >
-          删除 (Delete)
-        </a>,
-      ],
-    });
 
     return (
       <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -741,41 +804,28 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
           justify="space-between"
           align="center"
           style={{
-            padding: "4px 8px",
+            padding: "8px 12px",
             borderBottom: `1px solid ${token.colorBorderSecondary}`,
-            background: token.colorBgContainer,
+            background: token.colorPrimaryBg,
           }}
         >
           <Space size="small">
-            <Button
-              type="text"
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                /* Add New */
-              }}
-            >
-              新增值 (New Value)
-            </Button>
-            <Divider type="vertical" />
-            <Button type="text" size="small" icon={<ImportOutlined />}>
-              导入 (Import)
-            </Button>
-            <Button type="text" size="small" icon={<ExportOutlined />}>
-              导出 (Export)
-            </Button>
-            <Button type="text" size="small" icon={<EditOutlined />}>
-              批量 (Batch)
-            </Button>
+            <AppstoreOutlined />
+            <span style={{ fontWeight: 600, fontSize: 13 }}>枚举值定义</span>
           </Space>
-          <Space size="small">
-            <Input
-              prefix={<SearchOutlined />}
-              placeholder="搜索值 (Search values)"
+          <Space>
+            <Radio.Group
+              value={currentRenderType}
+              onChange={(e) =>
+                updateAttribute({ renderType: e.target.value as any })
+              }
               size="small"
-              style={{ width: 120 }}
-              variant="borderless"
-            />
+              buttonStyle="solid"
+            >
+              <Radio.Button value="text">文本</Radio.Button>
+              <Radio.Button value="color">颜色</Radio.Button>
+              <Radio.Button value="image">图片</Radio.Button>
+            </Radio.Group>
             <Button
               type="text"
               size="small"
@@ -799,6 +849,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
               position: "bottom",
               record: () => ({
                 id: Math.random().toString(36).substr(2, 9),
+                code: "",
                 value: "",
                 label: "",
                 order: 0,
@@ -839,12 +890,12 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
           : "none",
   });
 
-  if (!isListMode || !isEditing) {
+  if (!isEditing) {
     return (
       <Flex vertical style={getContainerStyle()}>
         {renderHeader()}
         <div style={{ flex: 1, overflow: "hidden" }}>
-          {isEditing ? renderEditForm() : renderReadOnlyMeta()}
+          {renderReadOnlyMeta()}
         </div>
       </Flex>
     );
@@ -855,8 +906,8 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
       {renderHeader()}
       <div style={{ flex: 1, overflow: "hidden" }}>
         <Splitter orientation="vertical">
-          <Splitter.Panel defaultSize="50%" min="30%" max="70%">
-            {isEditing ? renderEditForm() : renderReadOnlyMeta()}
+          <Splitter.Panel defaultSize="40%" min="30%" max="80%">
+            {renderEditForm()}
           </Splitter.Panel>
           <Splitter.Panel>{renderValueDomain()}</Splitter.Panel>
         </Splitter>

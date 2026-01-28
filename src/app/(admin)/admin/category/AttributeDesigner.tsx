@@ -226,6 +226,7 @@ const AttributeDesigner: React.FC<Props> = ({
   const [enumOptions, setEnumOptions] = useState<EnumOptionItem[]>([
     {
       id: "1",
+      code: "ATTR-STEEL-000001",
       value: "STEEL",
       label: "Stainless Steel",
       color: "#C0C0C0",
@@ -233,6 +234,7 @@ const AttributeDesigner: React.FC<Props> = ({
     },
     {
       id: "2",
+      code: "ATTR-ALUMINUM-000002",
       value: "ALUMINUM",
       label: "Aluminum Alloy",
       color: "#A9A9A9",
