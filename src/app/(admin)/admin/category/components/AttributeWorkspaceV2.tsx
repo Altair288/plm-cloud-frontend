@@ -252,7 +252,19 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
         <Descriptions.Item label="编码 (Code)">
           {attribute.code}
         </Descriptions.Item>
-        <Descriptions.Item label="默认值 (Default)">-</Descriptions.Item>
+        <Descriptions.Item label="默认值 (Default)">
+          {isListMode && attribute.defaultValue
+            ? (Array.isArray(attribute.defaultValue)
+                ? attribute.defaultValue
+                : [attribute.defaultValue]
+              )
+                .map(
+                  (val: any) =>
+                    enumOptions.find((o) => o.value === val)?.label || val,
+                )
+                .join(", ")
+            : attribute.defaultValue || "-"}
+        </Descriptions.Item>
         <Descriptions.Item label="单位 (Unit)">
           {attribute.unit || "-"}
         </Descriptions.Item>
@@ -421,6 +433,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
                                 ? "multiple"
                                 : undefined
                             }
+                            size="middle"
                             optionLabelProp="label"
                           >
                             {enumOptions.map((opt) => (
