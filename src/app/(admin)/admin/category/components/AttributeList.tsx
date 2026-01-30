@@ -10,6 +10,9 @@ import {
   CheckSquareOutlined,
   DeleteOutlined,
   CopyOutlined,
+  EyeInvisibleOutlined,
+  LockOutlined,
+  KeyOutlined,
 } from "@ant-design/icons";
 import {
   List,
@@ -20,6 +23,8 @@ import {
   Typography,
   theme,
   Flex,
+  Tooltip,
+  Tag,
 } from "antd";
 import { AttributeItem, AttributeType } from "./types";
 
@@ -49,6 +54,25 @@ const getTypeIcon = (type: AttributeType) => {
       return <UnorderedListOutlined style={{ color: "#13c2c2" }} />;
     default:
       return <FontColorsOutlined />;
+  }
+};
+
+const getTypeLabel = (type: AttributeType) => {
+  switch (type) {
+    case "string":
+      return "文本型";
+    case "number":
+      return "数字型";
+    case "date":
+      return "日期型";
+    case "boolean":
+      return "布尔型";
+    case "enum":
+      return "枚举型（单选）";
+    case "multi-enum":
+      return "枚举型（多选）";
+    default:
+      return type;
   }
 };
 
@@ -186,24 +210,62 @@ const AttributeList: React.FC<AttributeListProps> = ({
                     )}
                   </Flex>
 
-                  <Flex align="center">
-                    <span
-                      style={{
-                        marginRight: 8,
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                      title={item.type}
-                    >
-                      {getTypeIcon(item.type)}
-                    </span>
-                    <Text
-                      type="secondary"
-                      style={{ fontSize: 12, fontFamily: "monospace" }}
-                      ellipsis
-                    >
-                      {item.code}
-                    </Text>
+                  <Flex align="center" style={{ gap: 8 }}>
+                    <Flex align="center" style={{ flex: 1, minWidth: 0 }}>
+                      <span
+                        style={{
+                          marginRight: 8,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                        title={item.type}
+                      >
+                        {getTypeIcon(item.type)}
+                        <span style={{ fontSize: 12 }}>
+                          {getTypeLabel(item.type)}
+                        </span>
+                      </span>
+                      <Text
+                        type="secondary"
+                        style={{ fontSize: 12, fontFamily: "monospace" }}
+                        ellipsis
+                      >
+                        编码: {item.code}
+                      </Text>
+                    </Flex>
+
+                    <Flex gap={2} style={{ flexShrink: 0 }}>
+                      {item.hidden && (
+                        <Tag
+                          icon={<EyeInvisibleOutlined />}
+                          variant="filled"
+                          style={{ margin: 0, fontSize: 10, padding: "0 4px" }}
+                        >
+                          隐藏
+                        </Tag>
+                      )}
+                      {item.readonly && (
+                        <Tag
+                          icon={<LockOutlined />}
+                          variant="filled"
+                          color="warning"
+                          style={{ margin: 0, fontSize: 10, padding: "0 4px" }}
+                        >
+                          只读
+                        </Tag>
+                      )}
+                      {item.unique && (
+                        <Tag
+                          icon={<KeyOutlined />}
+                          variant="filled"
+                          color="success"
+                          style={{ margin: 0, fontSize: 10, padding: "0 4px" }}
+                        >
+                          唯一
+                        </Tag>
+                      )}
+                    </Flex>
                   </Flex>
                 </div>
                 </List.Item>

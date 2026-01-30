@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import {
   Empty,
   Typography,
@@ -85,6 +85,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
   const [form] = Form.useForm();
   const [isEditing, setIsEditing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "success">("idle");
+  const gridRef = useRef<AgGridReact>(null);
 
   // Sync form with attribute
   useEffect(() => {
@@ -411,7 +412,49 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
                         label="默认值 (Default Value)"
                         name="defaultValue"
                       >
-                        <Input placeholder="-" size="middle" />
+                        {isListMode ? (
+                          <Select
+                            placeholder="选择默认值 (Select default)"
+                            allowClear
+                            mode={
+                              attribute.type === "multi-enum"
+                                ? "multiple"
+                                : undefined
+                            }
+                            optionLabelProp="label"
+                          >
+                            {enumOptions.map((opt) => (
+                              <Option
+                                key={opt.id}
+                                value={opt.value}
+                                label={opt.label || opt.value}
+                              >
+                                <Space>
+                                  {opt.image && (
+                                    <img
+                                      src={opt.image}
+                                      alt={opt.label}
+                                      style={{
+                                        width: 16,
+                                        height: 16,
+                                        objectFit: "cover",
+                                        borderRadius: 2,
+                                        verticalAlign: "middle",
+                                      }}
+                                    />
+                                  )}
+                                  <span>
+                                    {opt.label
+                                      ? `${opt.value} - ${opt.label}`
+                                      : opt.value}
+                                  </span>
+                                </Space>
+                              </Option>
+                            ))}
+                          </Select>
+                        ) : (
+                          <Input placeholder="-" size="middle" />
+                        )}
                       </Form.Item>
                     </Col>
                   </Row>
@@ -1019,7 +1062,17 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
         label: "",
         order: enumOptions.length + 1,
       };
-      setEnumOptions([...enumOptions, newItem]);
+      const newOptions = [...enumOptions, newItem];
+      setEnumOptions(newOptions);
+
+      // Automatically scroll to the newly added row
+      setTimeout(() => {
+        if (gridRef.current && gridRef.current.api) {
+          const lastIndex = newOptions.length - 1;
+          gridRef.current.api.ensureIndexVisible(lastIndex, "bottom");
+          gridRef.current.api.setFocusedCell(lastIndex, "code");
+        }
+      }, 100);
     };
 
     return (
@@ -1089,9 +1142,11 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
 
         <div style={{ flex: 1, overflow: "hidden" }}>
           <AgGridReact
+            ref={gridRef}
             theme={themeQuartz}
             rowData={enumOptions}
             columnDefs={colDefs}
+            getRowId={(params) => params.data.id}
             rowSelection="multiple"
             defaultColDef={{
               flex: 1,
