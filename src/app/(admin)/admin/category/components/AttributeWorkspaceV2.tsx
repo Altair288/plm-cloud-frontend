@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Empty,
   Typography,
@@ -24,6 +24,8 @@ import {
   Collapse,
   Tabs,
   Modal,
+  Upload,
+  Image,
 } from "antd";
 import {
   InfoCircleOutlined,
@@ -46,9 +48,19 @@ import {
   BarsOutlined,
   SettingOutlined,
 } from "@ant-design/icons";
-import { EditableProTable } from "@ant-design/pro-components";
-import type { ProColumns } from "@ant-design/pro-table";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ColDef,
+  ModuleRegistry,
+  AllCommunityModule,
+  themeQuartz,
+  ICellRendererParams,
+  Theme,
+} from "ag-grid-community";
 import { AttributeItem, EnumOptionItem, AttributeType } from "./types";
+
+// Register AG Grid modules
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface AttributeWorkspaceProps {
   attribute: AttributeItem | null;
@@ -256,16 +268,16 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
           {attribute.description || "-"}
         </Descriptions.Item>
         <Descriptions.Item label="创建人 (Created By)">
-            {attribute.createdBy || "Admin"}
+          {attribute.createdBy || "Admin"}
         </Descriptions.Item>
         <Descriptions.Item label="创建时间 (Created At)">
-            {attribute.createdAt || "2023-01-01 12:00"}
+          {attribute.createdAt || "2023-01-01 12:00"}
         </Descriptions.Item>
         <Descriptions.Item label="修改人 (Modified By)">
-            {attribute.modifiedBy || "Admin"}
+          {attribute.modifiedBy || "Admin"}
         </Descriptions.Item>
         <Descriptions.Item label="修改时间 (Modified At)">
-            {attribute.modifiedAt || "2023-10-24 14:30"}
+          {attribute.modifiedAt || "2023-10-24 14:30"}
         </Descriptions.Item>
       </Descriptions>
 
@@ -395,34 +407,57 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
                       </Form.Item>
                     </Col>
                     <Col span={4}>
-                      <Form.Item label="默认值 (Default Value)" name="defaultValue">
+                      <Form.Item
+                        label="默认值 (Default Value)"
+                        name="defaultValue"
+                      >
                         <Input placeholder="-" size="middle" />
                       </Form.Item>
                     </Col>
                   </Row>
-                  
+
                   <Divider />
-                  
+
                   <Row gutter={24}>
                     <Col span={6}>
-                       <Form.Item label="创建人 (Created By)">
-                         <Input disabled value={attribute.createdBy || "Admin"} variant="borderless" size="middle" />
-                       </Form.Item>
-                    </Col>
-                     <Col span={6}>
-                       <Form.Item label="创建时间 (Created At)">
-                         <Input disabled value={attribute.createdAt || "2023-01-01 12:00"} variant="borderless" size="middle" />
-                       </Form.Item>
+                      <Form.Item label="创建人 (Created By)">
+                        <Input
+                          disabled
+                          value={attribute.createdBy || "Admin"}
+                          variant="borderless"
+                          size="middle"
+                        />
+                      </Form.Item>
                     </Col>
                     <Col span={6}>
-                       <Form.Item label="修改人 (Modified By)">
-                         <Input disabled value={attribute.modifiedBy || "Admin"} variant="borderless" size="middle" />
-                       </Form.Item>
+                      <Form.Item label="创建时间 (Created At)">
+                        <Input
+                          disabled
+                          value={attribute.createdAt || "2023-01-01 12:00"}
+                          variant="borderless"
+                          size="middle"
+                        />
+                      </Form.Item>
                     </Col>
-                     <Col span={6}>
-                       <Form.Item label="修改时间 (Modified At)">
-                         <Input disabled value={attribute.modifiedAt || "2023-10-24 14:30"} variant="borderless" size="middle" />
-                       </Form.Item>
+                    <Col span={6}>
+                      <Form.Item label="修改人 (Modified By)">
+                        <Input
+                          disabled
+                          value={attribute.modifiedBy || "Admin"}
+                          variant="borderless"
+                          size="middle"
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item label="修改时间 (Modified At)">
+                        <Input
+                          disabled
+                          value={attribute.modifiedAt || "2023-10-24 14:30"}
+                          variant="borderless"
+                          size="middle"
+                        />
+                      </Form.Item>
                     </Col>
                   </Row>
                 </div>
@@ -453,7 +488,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
                         style={{
                           marginTop: 0,
                           marginBottom: 16,
-                          fontSize: 13,
+                          fontSize: 16,
                           color: token.colorTextSecondary,
                         }}
                       >
@@ -497,7 +532,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
                         style={{
                           marginTop: 0,
                           marginBottom: 16,
-                          fontSize: 13,
+                          fontSize: 16,
                           color: token.colorTextSecondary,
                         }}
                       >
@@ -739,63 +774,253 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
       );
     }
 
-    const currentRenderType = attribute.renderType || "text";
+    const showImage = attribute.renderType === "image";
 
-    const enumColumns: ProColumns<EnumOptionItem>[] = [
-      {
-        title: "序号",
-        valueType: "index",
-        width: 80,
-        render: (_, __, index) => <span style={{ color: token.colorTextTertiary }}>{index + 1}</span>,
-      },
-      {
-        title: "编码 (Code)",
-        dataIndex: "code",
-        width: 120,
-        formItemProps: { rules: [{ required: true }] },
-      },
-      {
-        title: currentRenderType === "color" ? "颜色 (Color)" : "枚举值 (Value)",
-        dataIndex: "value",
-        valueType: currentRenderType === "color" ? "color" : "text",
-        width: currentRenderType === "color" ? 120 : 120,
-        formItemProps: { rules: [{ required: true }] },
-      },
-      {
-        title: "显示标签 (Label)",
-        dataIndex: "label",
-        formItemProps: { rules: [{ required: true }] },
-      },
-      {
-        title: "操作",
-        valueType: "option",
-        width: 160,
-        render: (text, record, _, action) => [
-          <a key="edit" onClick={() => action?.startEditable?.(record.id)}>
-            编辑 (Edit)
-          </a>,
-          <a
-            key="del"
-            onClick={() =>
-              setEnumOptions(enumOptions.filter((i) => i.id !== record.id))
-            }
-            style={{ color: token.colorError }}
+    const ImageCellRenderer = (params: ICellRendererParams) => {
+      const beforeUpload = (file: File) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          params.node.setDataValue("image", reader.result as string);
+        };
+        return false;
+      };
+
+      const handleRemove = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        params.node.setDataValue("image", undefined);
+      };
+
+      return (
+        <Flex align="center" gap="small" style={{ width: "100%" }}>
+          {params.value ? (
+            <Image
+              src={params.value}
+              width={24}
+              height={24}
+              wrapperStyle={{ display: "flex", alignItems: "center" }}
+              style={{
+                borderRadius: 2,
+                objectFit: "cover",
+                display: "block",
+                border: `1px solid ${token.colorBorder}`,
+              }}
+              preview={{
+                src: params.value,
+                mask: { blur: false },
+              }}
+              onClick={(e) => e.stopPropagation()} // Prevent row click
+            />
+          ) : (
+            <div
+              style={{
+                width: 24,
+                height: 24,
+                background: token.colorFillSecondary,
+                borderRadius: 2,
+                border: `1px solid ${token.colorBorder}`,
+                flexShrink: 0,
+              }}
+            />
+          )}
+          {params.value && (
+            <Button
+              type="text"
+              danger
+              size="small"
+              icon={<CloseOutlined />}
+              onClick={handleRemove}
+              title="删除图片 (Delete Image)"
+              style={{
+                marginLeft: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            />
+          )}
+          <Upload
+            showUploadList={false}
+            beforeUpload={beforeUpload}
+            accept="image/*"
           >
-            删除 (Delete)
-          </a>,
-        ],
+            <Button
+              type="text"
+              size="small"
+              icon={<UploadOutlined />}
+              title={params.value ? "更换图片 (Replace)" : "上传图片 (Upload)"}
+              style={{
+                color: token.colorTextSecondary,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            />
+          </Upload>
+        </Flex>
+      );
+    };
+
+    const handleExport = () => {
+      const header = ["Code", "Value", "Label", "Image"];
+      const csvContent = [
+        header.join(","),
+        ...enumOptions.map((item) =>
+          [item.code, item.value, item.label, item.image || ""]
+            .map((field) => `"${String(field || "").replace(/"/g, '""')}"`)
+            .join(",")
+        ),
+      ].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `enum_options_${new Date().getTime()}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    };
+
+    const handleImport = (file: File) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        const lines = content.split(/\r\n|\n/);
+        const newItems: EnumOptionItem[] = [];
+        lines.forEach((line, index) => {
+          if (!line.trim()) return;
+          const parts = line
+            .split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
+            .map((s) => s.replace(/^"|"$/g, "").trim());
+          if (
+            index === 0 &&
+            (parts[0].toLowerCase() === "code" ||
+              parts[0].toLowerCase() === '"code"')
+          )
+            return;
+
+          if (parts.length >= 3) {
+            newItems.push({
+              id: Math.random().toString(36).substr(2, 9),
+              code: parts[0],
+              value: parts[1],
+              label: parts[2],
+              image: parts[3] ? parts[3] : undefined,
+              order: enumOptions.length + newItems.length + 1,
+            });
+          }
+        });
+        setEnumOptions([...enumOptions, ...newItems]);
+      };
+      reader.readAsText(file);
+      return false;
+    };
+
+    const colDefs: ColDef<EnumOptionItem>[] = [
+      {
+        headerName: "",
+        valueGetter: "node.rowIndex + 1",
+        width: 50,
+        flex: 0,
+        editable: false,
+        pinned: "left",
+        lockPosition: true,
+        suppressMovable: true,
+        resizable: false,
+        cellStyle: {
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: token.colorFillAlter,
+          color: token.colorTextSecondary,
+          fontWeight: 600,
+        },
+      },
+      {
+        headerName: "",
+        width: 50,
+        pinned: "left",
+        lockPosition: true,
+        suppressMovable: true,
+        checkboxSelection: true,
+        headerCheckboxSelection: true,
+        flex: 0,
+        resizable: false,
+        cellStyle: {
+          justifyContent: "center",
+          alignItems: "center",
+        },
+      },
+      {
+        headerName: "编码 (Code)",
+        field: "code",
+        editable: true,
+        flex: 1,
+        rowDrag: true,
+      },
+      {
+        headerName: "枚举值 (Value)",
+        field: "value",
+        editable: true,
+        flex: 1,
+        cellEditor: "agTextCellEditor",
+      },
+      {
+        headerName: "显示标签 (Label)",
+        field: "label",
+        editable: true,
+        flex: 1,
+      },
+      {
+        headerName: "操作",
+        width: 70,
+        flex: 0,
+        editable: false,
+        sortable: false,
+        pinned: "right",
+        lockPosition: true,
+        cellStyle: {
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        cellRenderer: (params: ICellRendererParams) => (
+          <Button
+            type="text"
+            danger
+            size="small"
+            icon={<DeleteOutlined />}
+            onClick={() =>
+              setEnumOptions(
+                enumOptions.filter((item) => item.id !== params.data.id),
+              )
+            }
+          />
+        ),
       },
     ];
 
-    if (currentRenderType === "image") {
-      enumColumns.splice(2, 0, {
-        title: "图片",
-        dataIndex: "image",
-        width: 80,
-        render: (_, r) => (r.image ? <PictureOutlined /> : "-"),
-        renderFormItem: () => <Input prefix={<UploadOutlined />} />,
+    if (showImage) {
+      colDefs.splice(4, 0, {
+        headerName: "图片 (Image)",
+        field: "image",
+        width: 120,
+        flex: 0,
+        editable: false,
+        cellRenderer: ImageCellRenderer,
+        cellStyle: { display: "flex", alignItems: "center" },
       });
     }
+
+    const handleAddRow = () => {
+      const newItem: EnumOptionItem = {
+        id: Math.random().toString(36).substr(2, 9),
+        code: "",
+        value: "",
+        label: "",
+        order: enumOptions.length + 1,
+      };
+      setEnumOptions([...enumOptions, newItem]);
+    };
 
     return (
       <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -814,57 +1039,87 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
             <span style={{ fontWeight: 600, fontSize: 13 }}>枚举值定义</span>
           </Space>
           <Space>
-            <Radio.Group
-              value={currentRenderType}
-              onChange={(e) =>
-                updateAttribute({ renderType: e.target.value as any })
-              }
+            <Button
+              type="text"
               size="small"
-              buttonStyle="solid"
+              icon={<PlusOutlined />}
+              onClick={handleAddRow}
+              title="新增 (Add)"
             >
-              <Radio.Button value="text">文本</Radio.Button>
-              <Radio.Button value="color">颜色</Radio.Button>
-              <Radio.Button value="image">图片</Radio.Button>
-            </Radio.Group>
+              新增
+            </Button>
+            <Divider orientation="vertical" />
+            <Upload
+              beforeUpload={handleImport}
+              showUploadList={false}
+              accept=".csv"
+            >
+              <Button
+                type="text"
+                size="small"
+                icon={<ImportOutlined />}
+                title="导入 (Import)"
+              >
+                导入
+              </Button>
+            </Upload>
             <Button
               type="text"
               size="small"
-              icon={<SortAscendingOutlined />}
-              title="排序 (Sort)"
-            />
-            <Button
-              type="text"
+              icon={<ExportOutlined />}
+              onClick={handleExport}
+              title="导出 (Export)"
+            >
+              导出
+            </Button>
+            <Divider orientation="vertical" />
+            <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
+              图片描述 (Image Description)
+            </span>
+            <Switch
               size="small"
-              icon={<HistoryOutlined />}
-              title="审计日志 (Audit Log)"
+              checked={showImage}
+              onChange={(checked) =>
+                updateAttribute({ renderType: checked ? "image" : "text" })
+              }
             />
+            <Divider orientation="vertical" />
           </Space>
         </Flex>
 
         <div style={{ flex: 1, overflow: "hidden" }}>
-          <EditableProTable<EnumOptionItem>
-            rowKey="id"
-            size="small"
-            recordCreatorProps={{
-              position: "bottom",
-              record: () => ({
-                id: Math.random().toString(36).substr(2, 9),
-                code: "",
-                value: "",
-                label: "",
-                order: 0,
-              }),
-              creatorButtonText: "Add Item",
+          <AgGridReact
+            theme={themeQuartz}
+            rowData={enumOptions}
+            columnDefs={colDefs}
+            rowSelection="multiple"
+            defaultColDef={{
+              flex: 1,
+              editable: true,
+              resizable: true,
             }}
-            columns={enumColumns}
-            value={enumOptions}
-            onChange={(values) => setEnumOptions([...values])}
-            scroll={{ y: 300 }}
-            editable={{ type: "multiple" }}
-            ghost
-            search={false}
-            options={false}
-            pagination={false}
+            onCellValueChanged={(event) => {
+              const newOptions = [...enumOptions];
+              const index = newOptions.findIndex((i) => i.id === event.data.id);
+              if (index > -1) {
+                newOptions[index] = event.data;
+                setEnumOptions(newOptions);
+              }
+            }}
+            rowDragManaged={true}
+            animateRows={true}
+            onRowDragEnd={(event) => {
+              const newOrder: EnumOptionItem[] = [];
+              event.api.forEachNode((node) => {
+                if (node.data)
+                  newOrder.push({
+                    ...node.data,
+                    order: (node.rowIndex || 0) + 1,
+                  });
+              });
+              setEnumOptions(newOrder);
+            }}
+            stopEditingWhenCellsLoseFocus={true}
           />
         </div>
       </div>
