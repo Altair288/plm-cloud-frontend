@@ -23,7 +23,7 @@ import {
   Input,
 } from "antd";
 import AttributeList from "./components/AttributeList";
-import AttributeWorkspace from "./components/AttributeWorkspaceV2";
+import AttributeWorkspace from "./components/AttributeWorkspace";
 import { AttributeItem, EnumOptionItem } from "./components/types";
 
 const { Header, Sider, Content } = Layout;
