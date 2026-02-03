@@ -338,6 +338,7 @@ const CategoryList: React.FC<Props> = ({ parentKey, parentNode, onDesignAttribut
 
       {/* Context Menu Anchor */}
       <Dropdown
+        key={`${contextMenuState.x}-${contextMenuState.y}`}
         menu={{ items: menuItems }}
         open={contextMenuState.visible}
         trigger={['contextMenu']}

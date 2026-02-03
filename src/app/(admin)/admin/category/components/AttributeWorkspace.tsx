@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Empty,
   Typography,
@@ -26,7 +27,9 @@ import {
   Modal,
   Upload,
   Image,
+  Dropdown,
 } from "antd";
+import type { MenuProps } from "antd";
 import {
   InfoCircleOutlined,
   EditOutlined,
@@ -86,6 +89,204 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "success">("idle");
   const gridRef = useRef<AgGridReact>(null);
+
+  const [contextMenu, setContextMenu] = useState<{
+    open: boolean;
+    x: number;
+    y: number;
+    record: EnumOptionItem | null;
+  }>({
+    open: false,
+    x: 0,
+    y: 0,
+    record: null,
+  });
+
+  const enumOptionsRef = useRef(enumOptions);
+  useEffect(() => {
+    enumOptionsRef.current = enumOptions;
+  }, [enumOptions]);
+
+  const showGridImage = attribute?.renderType === "image";
+
+  const colDefs = useMemo<ColDef<EnumOptionItem>[]>(() => {
+    const ImageCellRenderer = (params: ICellRendererParams) => {
+      const beforeUpload = (file: File) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          params.node.setDataValue("image", reader.result);
+        };
+        return false;
+      };
+
+      const handleRemove = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        params.node.setDataValue("image", undefined);
+      };
+
+      return (
+        <Flex align="center" justify="space-between" style={{ width: "100%" }}>
+          {params.value ? (
+            <Image
+              src={params.value}
+              alt="preview"
+              width={24}
+              height={24}
+              style={{ objectFit: "cover", borderRadius: 4 }}
+              preview={{
+                mask: null,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <div
+              style={{
+                width: 24,
+                height: 24,
+                background: token.colorFillAlter,
+                borderRadius: 4,
+              }}
+            />
+          )}
+          {params.value && (
+            <Button
+              type="text"
+              danger
+              size="small"
+              icon={<CloseOutlined />}
+              onClick={handleRemove}
+              title="删除图片 (Delete Image)"
+              style={{
+                marginLeft: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            />
+          )}
+          <Upload
+            showUploadList={false}
+            beforeUpload={beforeUpload}
+            accept="image/*"
+          >
+            <Button
+              type="text"
+              size="small"
+              icon={<UploadOutlined />}
+              title={params.value ? "更换图片 (Replace)" : "上传图片 (Upload)"}
+              style={{
+                color: token.colorTextSecondary,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            />
+          </Upload>
+        </Flex>
+      );
+    };
+
+    const baseDefs: ColDef<EnumOptionItem>[] = [
+      {
+        headerName: "",
+        valueGetter: "node.rowIndex + 1",
+        width: 50,
+        flex: 0,
+        editable: false,
+        pinned: "left",
+        lockPosition: true,
+        suppressMovable: true,
+        resizable: false,
+        cellStyle: {
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: token.colorFillAlter,
+          color: token.colorTextSecondary,
+          fontWeight: 600,
+        },
+      },
+      {
+        headerName: "",
+        width: 50,
+        pinned: "left",
+        lockPosition: true,
+        suppressMovable: true,
+        checkboxSelection: true,
+        headerCheckboxSelection: true,
+        flex: 0,
+        resizable: false,
+        cellStyle: {
+          justifyContent: "center",
+          alignItems: "center",
+        },
+      },
+      {
+        headerName: "编码 (Code)",
+        field: "code",
+        editable: true,
+        flex: 1,
+        rowDrag: true,
+      },
+      {
+        headerName: "枚举值 (Value)",
+        field: "value",
+        editable: true,
+        flex: 1,
+        cellEditor: "agTextCellEditor",
+      },
+      {
+        headerName: "显示标签 (Label)",
+        field: "label",
+        editable: true,
+        flex: 1,
+      },
+      {
+        headerName: "操作",
+        width: 70,
+        flex: 0,
+        editable: false,
+        sortable: false,
+        pinned: "right",
+        lockPosition: true,
+        cellStyle: {
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        cellRenderer: (params: ICellRendererParams) => (
+          <Button
+            type="text"
+            danger
+            size="small"
+            icon={<DeleteOutlined />}
+            onClick={() =>
+              setEnumOptions(
+                enumOptionsRef.current.filter(
+                  (item) => item.id !== params.data.id,
+                ),
+              )
+            }
+          />
+        ),
+      },
+    ];
+
+    if (showGridImage) {
+      baseDefs.splice(4, 0, {
+        headerName: "图片 (Image)",
+        field: "image",
+        width: 120,
+        flex: 0,
+        editable: false,
+        cellRenderer: ImageCellRenderer,
+        cellStyle: { display: "flex", alignItems: "center" },
+      });
+    }
+
+    return baseDefs;
+  }, [showGridImage, token, setEnumOptions]);
 
   // Sync form with attribute
   useEffect(() => {
@@ -832,90 +1033,66 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
 
     const showImage = attribute.renderType === "image";
 
-    const ImageCellRenderer = (params: ICellRendererParams) => {
-      const beforeUpload = (file: File) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-          params.node.setDataValue("image", reader.result as string);
-        };
-        return false;
+    const handleAddRow = () => {
+      const newItem: EnumOptionItem = {
+        id: Math.random().toString(36).substr(2, 9),
+        code: "",
+        value: "",
+        label: "",
+        order: enumOptions.length + 1,
       };
+      const newOptions = [...enumOptions, newItem];
+      setEnumOptions(newOptions);
 
-      const handleRemove = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        params.node.setDataValue("image", undefined);
-      };
-
-      return (
-        <Flex align="center" gap="small" style={{ width: "100%" }}>
-          {params.value ? (
-            <Image
-              src={params.value}
-              width={24}
-              height={24}
-              wrapperStyle={{ display: "flex", alignItems: "center" }}
-              style={{
-                borderRadius: 2,
-                objectFit: "cover",
-                display: "block",
-                border: `1px solid ${token.colorBorder}`,
-              }}
-              preview={{
-                src: params.value,
-                mask: { blur: false },
-              }}
-              onClick={(e) => e.stopPropagation()} // Prevent row click
-            />
-          ) : (
-            <div
-              style={{
-                width: 24,
-                height: 24,
-                background: token.colorFillSecondary,
-                borderRadius: 2,
-                border: `1px solid ${token.colorBorder}`,
-                flexShrink: 0,
-              }}
-            />
-          )}
-          {params.value && (
-            <Button
-              type="text"
-              danger
-              size="small"
-              icon={<CloseOutlined />}
-              onClick={handleRemove}
-              title="删除图片 (Delete Image)"
-              style={{
-                marginLeft: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            />
-          )}
-          <Upload
-            showUploadList={false}
-            beforeUpload={beforeUpload}
-            accept="image/*"
-          >
-            <Button
-              type="text"
-              size="small"
-              icon={<UploadOutlined />}
-              title={params.value ? "更换图片 (Replace)" : "上传图片 (Upload)"}
-              style={{
-                color: token.colorTextSecondary,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            />
-          </Upload>
-        </Flex>
-      );
+      // Automatically scroll to the newly added row
+      setTimeout(() => {
+        if (gridRef.current && gridRef.current.api) {
+          const lastIndex = newOptions.length - 1;
+          gridRef.current.api.ensureIndexVisible(lastIndex, "bottom");
+          gridRef.current.api.setFocusedCell(lastIndex, "code");
+        }
+      }, 100);
     };
+
+    const handleContextMenu = (params: any) => {
+      params.event.preventDefault();
+      setContextMenu({
+        open: true,
+        x: params.event.clientX,
+        y: params.event.clientY,
+        record: params.data,
+      });
+    };
+
+    const contextMenuItems: MenuProps["items"] = [
+      {
+        key: "add",
+        label: "新增行 (Add Row)",
+        icon: <PlusOutlined />,
+        onClick: () => {
+          handleAddRow();
+          setContextMenu((prev) => ({ ...prev, open: false }));
+        },
+      },
+      {
+        type: "divider",
+      },
+      {
+        key: "delete",
+        label: "删除此行 (Delete Row)",
+        icon: <DeleteOutlined />,
+        danger: true,
+        disabled: !contextMenu.record,
+        onClick: () => {
+          if (contextMenu.record) {
+            setEnumOptions(
+              enumOptions.filter((item) => item.id !== contextMenu.record?.id),
+            );
+          }
+          setContextMenu((prev) => ({ ...prev, open: false }));
+        },
+      },
+    ];
 
     const handleExport = () => {
       const header = ["Code", "Value", "Label", "Image"];
@@ -971,125 +1148,32 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
       return false;
     };
 
-    const colDefs: ColDef<EnumOptionItem>[] = [
-      {
-        headerName: "",
-        valueGetter: "node.rowIndex + 1",
-        width: 50,
-        flex: 0,
-        editable: false,
-        pinned: "left",
-        lockPosition: true,
-        suppressMovable: true,
-        resizable: false,
-        cellStyle: {
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: token.colorFillAlter,
-          color: token.colorTextSecondary,
-          fontWeight: 600,
-        },
-      },
-      {
-        headerName: "",
-        width: 50,
-        pinned: "left",
-        lockPosition: true,
-        suppressMovable: true,
-        checkboxSelection: true,
-        headerCheckboxSelection: true,
-        flex: 0,
-        resizable: false,
-        cellStyle: {
-          justifyContent: "center",
-          alignItems: "center",
-        },
-      },
-      {
-        headerName: "编码 (Code)",
-        field: "code",
-        editable: true,
-        flex: 1,
-        rowDrag: true,
-      },
-      {
-        headerName: "枚举值 (Value)",
-        field: "value",
-        editable: true,
-        flex: 1,
-        cellEditor: "agTextCellEditor",
-      },
-      {
-        headerName: "显示标签 (Label)",
-        field: "label",
-        editable: true,
-        flex: 1,
-      },
-      {
-        headerName: "操作",
-        width: 70,
-        flex: 0,
-        editable: false,
-        sortable: false,
-        pinned: "right",
-        lockPosition: true,
-        cellStyle: {
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        },
-        cellRenderer: (params: ICellRendererParams) => (
-          <Button
-            type="text"
-            danger
-            size="small"
-            icon={<DeleteOutlined />}
-            onClick={() =>
-              setEnumOptions(
-                enumOptions.filter((item) => item.id !== params.data.id),
-              )
-            }
-          />
-        ),
-      },
-    ];
-
-    if (showImage) {
-      colDefs.splice(4, 0, {
-        headerName: "图片 (Image)",
-        field: "image",
-        width: 120,
-        flex: 0,
-        editable: false,
-        cellRenderer: ImageCellRenderer,
-        cellStyle: { display: "flex", alignItems: "center" },
-      });
-    }
-
-    const handleAddRow = () => {
-      const newItem: EnumOptionItem = {
-        id: Math.random().toString(36).substr(2, 9),
-        code: "",
-        value: "",
-        label: "",
-        order: enumOptions.length + 1,
-      };
-      const newOptions = [...enumOptions, newItem];
-      setEnumOptions(newOptions);
-
-      // Automatically scroll to the newly added row
-      setTimeout(() => {
-        if (gridRef.current && gridRef.current.api) {
-          const lastIndex = newOptions.length - 1;
-          gridRef.current.api.ensureIndexVisible(lastIndex, "bottom");
-          gridRef.current.api.setFocusedCell(lastIndex, "code");
-        }
-      }, 100);
-    };
-
     return (
       <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+        {createPortal(
+          <Dropdown
+            key={`${contextMenu.x}-${contextMenu.y}`}
+            menu={{ items: contextMenuItems }}
+            open={contextMenu.open}
+            onOpenChange={(open) => {
+              if (!open) setContextMenu((prev) => ({ ...prev, open: false }));
+            }}
+            trigger={["click"]}
+            destroyOnHidden
+          >
+            <div
+              style={{
+                position: "fixed",
+                left: contextMenu.x,
+                top: contextMenu.y,
+                width: 1,
+                height: 1,
+                pointerEvents: "none",
+              }}
+            />
+          </Dropdown>,
+          document.body,
+        )}
         {/* Toolbar */}
         <Flex
           justify="space-between"
@@ -1156,6 +1240,13 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
         <div style={{ flex: 1, overflow: "hidden" }}>
           <AgGridReact
             ref={gridRef}
+            preventDefaultOnContextMenu={true}
+            onCellContextMenu={handleContextMenu}
+            onBodyScroll={() => {
+              if (contextMenu.open) {
+                setContextMenu((prev) => ({ ...prev, open: false }));
+              }
+            }}
             theme={themeQuartz}
             rowData={enumOptions}
             columnDefs={colDefs}
