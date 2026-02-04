@@ -297,14 +297,20 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
     } else {
       form.resetFields();
     }
-  }, [attribute, form]);
+  }, [attribute, form]); // Reset form when attribute prop changes
 
   // Handle selection change
   useEffect(() => {
     if (attribute) {
-      const isNew =
-        attribute.name === "New Attribute" &&
-        attribute.code.startsWith("new_attr_");
+      const isNew = attribute.id.startsWith("new_attr_");
+      
+      // If it's a new attribute, we might want to ensure clean state
+      if (isNew) {
+         // Reset form to default values for new attribute to avoid leftover state
+         form.resetFields();
+         form.setFieldsValue(attribute);
+      }
+      
       setIsEditing(isNew);
       setSaveStatus("idle"); // Reset status on switch
     } else {

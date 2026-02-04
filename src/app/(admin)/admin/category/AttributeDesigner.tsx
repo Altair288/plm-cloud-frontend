@@ -112,20 +112,25 @@ const AttributeDesigner: React.FC<Props> = ({
   useEffect(() => {
     const fetchDetail = async () => {
       if (selectedAttributeId) {
-        // First check if it's a new unsaved item (local only)
-        const localItem = dataSource.find(i => i.id === selectedAttributeId);
-        if (localItem && localItem.code.startsWith('ATTR_')) {
-             setCurrentAttribute({ ...localItem });
+        // First check if it's a new unsaved item (local only) using ID
+        if (selectedAttributeId.startsWith('new_attr_')) {
+             const localItem = dataSource.find(i => i.id === selectedAttributeId);
+             if (localItem) {
+                setCurrentAttribute({ ...localItem });
+             }
              return;
         }
 
         try {
+           console.log(`Fetching detail for ${selectedAttributeId}`);
            const detail = await metaAttributeApi.getAttributeDetail(selectedAttributeId);
+           console.log('Detail fetched:', detail);
            const mapped = mapDetailToAttributeItem(detail);
            setCurrentAttribute(mapped);
            // Also update the list item with latest details just in case
            setDataSource(prev => prev.map(p => p.id === selectedAttributeId ? mapped : p));
         } catch(e) {
+           console.error('Fetch detail failed', e);
            message.error("Failed to load attribute details");
         }
       } else {
@@ -151,9 +156,10 @@ const AttributeDesigner: React.FC<Props> = ({
   const [enumOptions, setEnumOptions] = useState<EnumOptionItem[]>([]);
 
   const handleAddAttribute = () => {
+    const timestamp = Date.now();
     const newAttr: AttributeItem = {
-      id: `new_attr_${Date.now()}`,
-      code: `ATTR_${Date.now()}`, // Placeholder
+      id: `new_attr_${timestamp}`,
+      code: `ATTR_${timestamp}`, 
       name: "New Attribute",
       type: "string",
       version: 1,
