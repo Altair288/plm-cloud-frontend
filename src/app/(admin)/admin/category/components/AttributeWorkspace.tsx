@@ -71,6 +71,7 @@ interface AttributeWorkspaceProps {
   enumOptions: EnumOptionItem[];
   setEnumOptions: (data: EnumOptionItem[]) => void;
   onDiscard?: (id: string) => void;
+  onSave?: (attribute: AttributeItem) => Promise<void>;
 }
 
 const { Option } = Select;
@@ -83,11 +84,12 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
   enumOptions,
   setEnumOptions,
   onDiscard,
+  onSave,
 }) => {
   const { token } = theme.useToken();
   const [form] = Form.useForm();
   const [isEditing, setIsEditing] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "success">("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "loading" | "success">("idle");
   const gridRef = useRef<AgGridReact>(null);
 
   const [contextMenu, setContextMenu] = useState<{
@@ -339,10 +341,23 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
   const handleSave = () => {
     form
       .validateFields()
-      .then(() => {
-        setIsEditing(false);
-        setSaveStatus("success");
-        setTimeout(() => setSaveStatus("idle"), 2000);
+      .then(async () => {
+        if (onSave && attribute) {
+          setSaveStatus("loading");
+          try {
+             await onSave(attribute);
+             setIsEditing(false);
+             setSaveStatus("success");
+             setTimeout(() => setSaveStatus("idle"), 2000);
+          } catch (e) {
+             setSaveStatus("idle");
+             // Error handling should be done by onSave or global message
+          }
+        } else {
+             setIsEditing(false);
+             setSaveStatus("success");
+             setTimeout(() => setSaveStatus("idle"), 2000);
+        }
       })
       .catch((info) => {
         console.log("Validate Failed:", info);

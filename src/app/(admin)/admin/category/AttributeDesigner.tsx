@@ -4,27 +4,26 @@ import {
   SaveOutlined,
   HistoryOutlined,
   EyeOutlined,
-  AppstoreOutlined,
-  RightOutlined,
-  SearchOutlined,
   PlusOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 import {
   Button,
   Space,
-  Breadcrumb,
   Typography,
   Tag,
   Splitter,
   Layout,
   theme,
   Flex,
-  Card,
   Input,
+  message,
 } from "antd";
 import AttributeList from "./components/AttributeList";
 import AttributeWorkspace from "./components/AttributeWorkspace";
 import { AttributeItem, EnumOptionItem } from "./components/types";
+import { metaAttributeApi } from "@/services/metaAttribute";
+import { MetaAttributeUpsertRequestDto, MetaAttributeDefListItemDto, MetaAttributeDefDetailDto } from "@/models/metaAttribute";
 
 const { Header, Sider, Content } = Layout;
 
@@ -45,207 +44,116 @@ const AttributeDesigner: React.FC<Props> = ({
   );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [searchText, setSearchText] = useState("");
-
-  // Mock Data
-  const [dataSource, setDataSource] = useState<AttributeItem[]>([
-    {
-      id: "1",
-      code: "FN",
-      name: "连续力",
-      type: "number",
-      unit: "kN",
-      version: 1,
-      isLatest: true,
-    },
-    {
-      id: "2",
-      code: "FMAXD",
-      name: "最大力",
-      type: "number",
-      unit: "kN",
-      version: 1,
-      isLatest: true,
-    },
-    {
-      id: "3",
-      code: "VDRUCK",
-      name: "速度",
-      type: "number",
-      unit: "m/s",
-      version: 1,
-      isLatest: true,
-    },
-    {
-      id: "4",
-      code: "ADRUCK",
-      name: "加速度",
-      type: "number",
-      unit: "m/s²",
-      version: 1,
-      isLatest: true,
-    },
-    {
-      id: "5",
-      code: "HUB",
-      name: "行程",
-      type: "number",
-      unit: "mm",
-      version: 1,
-      isLatest: true,
-    },
-    {
-      id: "6",
-      code: "DH",
-      name: "显示液压缸顶出行程",
-      type: "number",
-      unit: "mm",
-      version: 1,
-      isLatest: true,
-    },
-    {
-      id: "7",
-      code: "BF",
-      name: "结构类型",
-      type: "enum",
-      version: 1,
-      isLatest: true,
-    },
-    {
-      id: "8",
-      code: "BFZ",
-      name: "液压缸结构类型",
-      type: "string",
-      version: 1,
-      isLatest: true,
-    },
-    {
-      id: "9",
-      code: "WMO",
-      name: "位移测量系统选项",
-      type: "string",
-      version: 1,
-      isLatest: true,
-    },
-    {
-      id: "10",
-      code: "DRUCKSENSOR",
-      name: "压力传感器",
-      type: "boolean",
-      version: 1,
-      isLatest: true,
-    },
-    {
-      id: "11",
-      code: "SYSDRUCKSENS",
-      name: "系统压力传感器",
-      type: "string",
-      version: 1,
-      isLatest: true,
-    },
-    {
-      id: "12",
-      code: "DD",
-      name: "活塞直径",
-      type: "number",
-      unit: "mm",
-      version: 1,
-      isLatest: true,
-    },
-    {
-      id: "13",
-      code: "DD1",
-      name: "活塞杆直径",
-      type: "number",
-      unit: "mm",
-      version: 1,
-      isLatest: true,
-    },
-    {
-      id: "14",
-      code: "KW",
-      name: "电机额定功率",
-      type: "number",
-      unit: "kW",
-      version: 1,
-      isLatest: true,
-    },
-    {
-      id: "15",
-      code: "FOERDER",
-      name: "泵流量",
-      type: "number",
-      unit: "l/min",
-      version: 1,
-      isLatest: true,
-    },
-    {
-      id: "16",
-      code: "PDF",
-      name: "参数表",
-      type: "string",
-      version: 1,
-      isLatest: true,
-    },
-    {
-      id: "17",
-      code: "CNSMNTINTV",
-      name: "操作和维护说明",
-      type: "string",
-      version: 1,
-      isLatest: true,
-    },
-  ]);
+  const [dataSource, setDataSource] = useState<AttributeItem[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const [currentAttribute, setCurrentAttribute] =
     useState<AttributeItem | null>(null);
 
-  // Sync currentAttribute from dataSource when selection changes
+  // Helper: Map Backend DTO List Item to Frontend AttributeItem
+  const mapListItemToAttributeItem = (dto: MetaAttributeDefListItemDto): AttributeItem => ({
+    id: dto.key,
+    code: dto.key,
+    name: dto.displayName,
+    type: (dto.dataType === 'bool' ? 'boolean' : dto.dataType) as any,
+    unit: dto.unit || undefined,
+    version: dto.latestVersionNo,
+    isLatest: true,
+    required: false, // Default for list
+    // Add other defaults
+  });
+
+   // Helper: Map Backend Detail DTO to Frontend AttributeItem
+   const mapDetailToAttributeItem = (dto: MetaAttributeDefDetailDto): AttributeItem => ({
+    id: dto.key,
+    code: dto.key,
+    name: dto.latestVersion.displayName,
+    type: (dto.latestVersion.dataType === 'bool' ? 'boolean' : dto.latestVersion.dataType) as any,
+    unit: dto.latestVersion.unit || undefined,
+    defaultValue: dto.latestVersion.defaultValue || undefined,
+    required: dto.latestVersion.required,
+    unique: dto.latestVersion.unique,
+    hidden: dto.latestVersion.hidden,
+    readonly: dto.latestVersion.readOnly,
+    searchable: dto.latestVersion.searchable,
+    version: dto.latestVersion.versionNo,
+    isLatest: true, 
+    createdBy: dto.createdBy,
+    createdAt: dto.createdAt,
+    modifiedBy: dto.modifiedBy,
+    modifiedAt: dto.modifiedAt,
+    description: dto.latestVersion.description || undefined,
+  });
+
+  const loadAttributes = async (categoryCode: string) => {
+    setLoading(true);
+    try {
+      const res = await metaAttributeApi.listAttributes({ 
+        categoryCode, page: 0, size: 100 
+      });
+      setDataSource(res.content.map(mapListItemToAttributeItem));
+    } catch (e) {
+      console.error(e);
+      message.error("加载属性列表失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (selectedAttributeId) {
-      const found = dataSource.find((item) => item.id === selectedAttributeId);
-      if (found)
-        setCurrentAttribute({ ...found }); // Clone to avoid direct mutation
-      else setCurrentAttribute(null);
-    } else {
+    if (open && currentNode?.code) {
+      loadAttributes(currentNode.code);
+      setSelectedAttributeId(null);
       setCurrentAttribute(null);
     }
+  }, [open, currentNode]);
+
+  // Sync currentAttribute from dataSource when selection changes
+  useEffect(() => {
+    const fetchDetail = async () => {
+      if (selectedAttributeId) {
+        // First check if it's a new unsaved item (local only)
+        const localItem = dataSource.find(i => i.id === selectedAttributeId);
+        if (localItem && localItem.code.startsWith('ATTR_')) {
+             setCurrentAttribute({ ...localItem });
+             return;
+        }
+
+        try {
+           const detail = await metaAttributeApi.getAttributeDetail(selectedAttributeId);
+           const mapped = mapDetailToAttributeItem(detail);
+           setCurrentAttribute(mapped);
+           // Also update the list item with latest details just in case
+           setDataSource(prev => prev.map(p => p.id === selectedAttributeId ? mapped : p));
+        } catch(e) {
+           message.error("Failed to load attribute details");
+        }
+      } else {
+        setCurrentAttribute(null);
+      }
+    };
+    fetchDetail();
   }, [selectedAttributeId]);
 
   const handleAttributeUpdate = (key: string, value: any) => {
     if (!currentAttribute) return;
 
-    setHasUnsavedChanges(true);
+    setHasUnsavedChanges(true); // Can also be local dirty state
     const updated = { ...currentAttribute, [key]: value };
     setCurrentAttribute(updated);
 
+    // Update list view optimistically
     setDataSource((prev) =>
       prev.map((item) => (item.id === currentAttribute.id ? updated : item)),
     );
   };
 
-  const [enumOptions, setEnumOptions] = useState<EnumOptionItem[]>([
-    {
-      id: "1",
-      code: "ATTR-STEEL-000001",
-      value: "STEEL",
-      label: "Stainless Steel",
-      color: "#C0C0C0",
-      order: 1,
-    },
-    {
-      id: "2",
-      code: "ATTR-ALUMINUM-000002",
-      value: "ALUMINUM",
-      label: "Aluminum Alloy",
-      color: "#A9A9A9",
-      order: 2,
-    },
-  ]);
+  const [enumOptions, setEnumOptions] = useState<EnumOptionItem[]>([]);
 
   const handleAddAttribute = () => {
     const newAttr: AttributeItem = {
-      id: Date.now().toString(),
-      code: `new_attr_${dataSource.length + 1}`,
+      id: `new_attr_${Date.now()}`,
+      code: `ATTR_${Date.now()}`, // Placeholder
       name: "New Attribute",
       type: "string",
       version: 1,
@@ -256,11 +164,46 @@ const AttributeDesigner: React.FC<Props> = ({
     setHasUnsavedChanges(true);
   };
 
-  const handleSave = () => {
-    // API Call Simulation
-    console.log("Saving Schema...", dataSource);
-    // After success:
-    setHasUnsavedChanges(false);
+  const handleSingleSave = async (attribute: AttributeItem) => {
+      if (!currentNode?.code) return;
+      
+      const isNew = attribute.id.startsWith("new_attr_");
+      // Use the modified code if not new, or the new code
+      const dto: MetaAttributeUpsertRequestDto = {
+          key: attribute.code,
+          displayName: attribute.name,
+          dataType: (attribute.type === 'boolean' ? 'bool' : attribute.type) as any,
+          unit: attribute.unit,
+          defaultValue: attribute.defaultValue ? String(attribute.defaultValue) : undefined,
+          required: attribute.required,
+          unique: attribute.unique,
+          hidden: attribute.hidden,
+          readOnly: attribute.readonly,
+          searchable: attribute.searchable,
+          description: attribute.description,
+      };
+
+      try {
+          if (isNew) {
+              await metaAttributeApi.createAttribute(currentNode.code, dto);
+              message.success("Created successfully");
+          } else {
+              await metaAttributeApi.updateAttribute(attribute.code, currentNode.code, dto);
+              message.success("Updated successfully");
+          }
+          // Reload to get latest state/version
+          loadAttributes(currentNode.code);
+          setHasUnsavedChanges(false);
+      } catch (e) {
+          console.error(e);
+          message.error("Operation failed");
+          throw e; // Throw to let Workspace know it failed
+      }
+  };
+
+  const handleSaveAll = () => {
+    // Optional: Bulk save implementation if backend supports it, otherwise warn user
+    message.info("Please save each attribute individually in the workspace.");
   };
 
   // Modal Title
@@ -269,13 +212,11 @@ const AttributeDesigner: React.FC<Props> = ({
       <Typography.Title level={5} style={{ margin: 0 }}>
         &gt; {currentNode?.title || "未知对象 (Unknown Item)"}
       </Typography.Title>
-      <Tag
-        color={hasUnsavedChanges ? "warning" : "success"}
-        variant="filled"
-        style={{ marginLeft: 8 }}
-      >
-        {hasUnsavedChanges ? "未保存 (Unsaved Changes)" : "已保存 (Up To Date)"}
-      </Tag>
+      {hasUnsavedChanges && (
+         <Tag color="warning" variant="filled" style={{ marginLeft: 8 }}>
+            未保存 (Unsaved Changes)
+         </Tag>
+      )}
     </Space>
   );
 
@@ -312,14 +253,8 @@ const AttributeDesigner: React.FC<Props> = ({
       <Space>
         <Button icon={<EyeOutlined />}>预览 (Preview)</Button>
         <Button icon={<HistoryOutlined />}>日志 (Log)</Button>
-        <Button
-          type="primary"
-          icon={<SaveOutlined />}
-          onClick={handleSave}
-          disabled={!hasUnsavedChanges}
-        >
-          保存模型 (Save Schema)
-        </Button>
+        {/* Bulk Save is disabled or hidden as we move to single save */}
+        {/* <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAll}>保存模型</Button> */}
       </Space>
     </Flex>
   );
@@ -356,6 +291,7 @@ const AttributeDesigner: React.FC<Props> = ({
               onUpdate={handleAttributeUpdate}
               enumOptions={enumOptions}
               setEnumOptions={setEnumOptions}
+              onSave={handleSingleSave}
               onDiscard={(id) => {
                 setDataSource((prev) => prev.filter((item) => item.id !== id));
                 if (selectedAttributeId === id) {
@@ -369,5 +305,6 @@ const AttributeDesigner: React.FC<Props> = ({
     </DraggableModal>
   );
 };
+
 
 export default AttributeDesigner;

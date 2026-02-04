@@ -25,7 +25,7 @@ src/
   components/          # Shared UI components
   config/              # Global configurations and constants
   hooks/               # Custom React Hooks
-  layouts/             # Layout components (e.g., BasicLayout)
+  layouts/             # Layout components (e.g., UnifiedLayout)
   models/              # TypeScript interfaces and domain models
   services/            # API services and Axios setup
   styles/              # Theme configuration and color palettes
