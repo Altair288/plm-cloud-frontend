@@ -24,6 +24,7 @@ import AttributeWorkspace from "./components/AttributeWorkspace";
 import { AttributeItem, EnumOptionItem } from "./components/types";
 import { metaAttributeApi } from "@/services/metaAttribute";
 import { MetaAttributeUpsertRequestDto, MetaAttributeDefListItemDto, MetaAttributeDefDetailDto } from "@/models/metaAttribute";
+import dayjs from "dayjs";
 
 const { Header, Sider, Content } = Layout;
 
@@ -83,9 +84,9 @@ const AttributeDesigner: React.FC<Props> = ({
     version: dto.latestVersion.versionNo,
     isLatest: true, 
     createdBy: dto.createdBy,
-    createdAt: dto.createdAt,
+    createdAt: dto.createdAt ? dayjs(dto.createdAt).format("YYYY-MM-DD HH:mm:ss") : undefined,
     modifiedBy: dto.modifiedBy,
-    modifiedAt: dto.modifiedAt,
+    modifiedAt: dto.modifiedAt ? dayjs(dto.modifiedAt).format("YYYY-MM-DD HH:mm:ss") : undefined,
     description: dto.latestVersion.description || undefined,
   });
 
@@ -143,6 +144,13 @@ const AttributeDesigner: React.FC<Props> = ({
     };
     fetchDetail();
   }, [selectedAttributeId]);
+
+  // Sync selection state when dataSource changes (e.g. deletion)
+  useEffect(() => {
+    if (selectedAttributeId && !dataSource.some(item => item.id === selectedAttributeId)) {
+      setSelectedAttributeId(null);
+    }
+  }, [dataSource, selectedAttributeId]);
 
   const handleAttributeUpdate = (key: string, value: any) => {
     if (!currentAttribute) return;
