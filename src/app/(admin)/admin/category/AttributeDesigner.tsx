@@ -59,8 +59,12 @@ const AttributeDesigner: React.FC<Props> = ({
     unit: dto.unit || undefined,
     version: dto.latestVersionNo,
     isLatest: true,
-    required: false, // Default for list
-    // Add other defaults
+    // Map the new extended fields from list API
+    required: dto.required,
+    unique: dto.unique,
+    hidden: dto.hidden,
+    readonly: dto.readOnly,
+    searchable: dto.searchable,
   });
 
    // Helper: Map Backend Detail DTO to Frontend AttributeItem

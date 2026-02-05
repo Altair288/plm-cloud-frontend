@@ -290,34 +290,35 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
     return baseDefs;
   }, [showGridImage, token, setEnumOptions]);
 
-  // Sync form with attribute
-  useEffect(() => {
-    if (attribute) {
-      form.setFieldsValue(attribute);
-    } else {
-      form.resetFields();
-    }
-  }, [attribute, form]); // Reset form when attribute prop changes
+  // Consolidated effect to handle attribute changes
+  const prevAttributeIdRef = useRef<string | undefined>(undefined);
 
-  // Handle selection change
   useEffect(() => {
-    if (attribute) {
-      const isNew = attribute.id.startsWith("new_attr_");
-      
-      // If it's a new attribute, we might want to ensure clean state
-      if (isNew) {
-         // Reset form to default values for new attribute to avoid leftover state
-         form.resetFields();
-         form.setFieldsValue(attribute);
-      }
-      
-      setIsEditing(isNew);
-      setSaveStatus("idle"); // Reset status on switch
-    } else {
+    if (!attribute) {
+      form.resetFields();
+      prevAttributeIdRef.current = undefined;
       setIsEditing(false);
-      setSaveStatus("idle");
+      return;
     }
-  }, [attribute?.id]);
+
+    if (attribute.id !== prevAttributeIdRef.current) {
+      // Attribute selection changed: Clean reset
+      form.resetFields();
+      form.setFieldsValue(attribute);
+      
+      const isNew = attribute.id.startsWith("new_attr_");
+      setIsEditing(isNew);
+      setSaveStatus("idle");
+      
+      prevAttributeIdRef.current = attribute.id;
+    } else {
+      // Same attribute updated (e.g. typing): Sync values
+      // Only set fields that are different to avoid cursor issues usually handled by Antd
+      form.setFieldsValue(attribute);
+    }
+  }, [attribute, form]); // Dependency on attribute includes all updates
+
+  /* Removed conflicting useEffects */
 
   if (!attribute) {
     return (
@@ -562,7 +563,6 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
       layout="vertical"
       onValuesChange={handleFormChange}
       style={{ height: "100%", overflowY: "auto" }}
-      initialValues={attribute}
       size="small"
     >
       <Tabs

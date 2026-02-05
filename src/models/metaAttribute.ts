@@ -9,6 +9,12 @@ export interface MetaAttributeDefListItemDto {
   unit: string | null;
   hasLov: boolean;
   createdAt: string;
+  // Extended fields for richer list view
+  required?: boolean;
+  unique?: boolean;
+  hidden?: boolean;
+  readOnly?: boolean;
+  searchable?: boolean;
 }
 
 export interface MetaAttributeVersionSummaryDto {
