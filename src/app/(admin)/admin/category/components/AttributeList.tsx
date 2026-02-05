@@ -34,6 +34,7 @@ interface AttributeListProps {
   selectedAttributeId: string | null;
   onSelectAttribute: (id: string, item: AttributeItem) => void;
   searchText: string;
+  onDeleteAttribute?: (item: AttributeItem) => void;
 }
 
 const { Text } = Typography;
@@ -82,6 +83,7 @@ const AttributeList: React.FC<AttributeListProps> = ({
   selectedAttributeId,
   onSelectAttribute,
   searchText,
+  onDeleteAttribute,
 }) => {
   const { token } = theme.useToken();
   const listRef = useRef<HTMLDivElement>(null);
@@ -120,7 +122,11 @@ const AttributeList: React.FC<AttributeListProps> = ({
       danger: true,
       onClick: (e) => {
         e.domEvent.stopPropagation();
-        setDataSource(dataSource.filter((d) => d.id !== item.id));
+        if (onDeleteAttribute) {
+          onDeleteAttribute(item);
+        } else {
+          setDataSource(dataSource.filter((d) => d.id !== item.id));
+        }
       },
     },
   ];

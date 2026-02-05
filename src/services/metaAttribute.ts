@@ -96,5 +96,15 @@ export const metaAttributeApi = {
         'Content-Type': 'multipart/form-data',
       },
     });
+  },
+
+  /**
+   * 删除元数据属性（软删）
+   * DELETE /api/meta/attribute-defs/{attrKey}
+   */
+  deleteAttribute: (attrKey: string, categoryCode: string, createdBy?: string): Promise<void> => {
+    return request.delete(`/api/meta/attribute-defs/${attrKey}`, {
+      params: { categoryCode, createdBy }
+    });
   }
 };

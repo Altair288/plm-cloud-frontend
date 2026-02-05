@@ -18,6 +18,7 @@ import {
   Flex,
   Input,
   message,
+  Modal,
 } from "antd";
 import AttributeList from "./components/AttributeList";
 import AttributeWorkspace from "./components/AttributeWorkspace";
@@ -219,6 +220,35 @@ const AttributeDesigner: React.FC<Props> = ({
       }
   };
 
+  const handleDeleteAttribute = (attribute: AttributeItem) => {
+    Modal.confirm({
+      title: "确认删除 (Confirm Delete)",
+      content: `确定要删除属性 "${attribute.name}" 吗？此操作不可恢复。`,
+      okType: "danger",
+      onOk: async () => {
+        // If it's a new unsaved attribute, just remove from list
+        if (attribute.id.startsWith("new_attr_")) {
+          setDataSource((prev) => prev.filter((item) => item.id !== attribute.id));
+          message.success("已移除 (Removed)");
+          return;
+        }
+
+        // If it's a real backend attribute
+        if (!currentNode?.code) return;
+
+        try {
+          await metaAttributeApi.deleteAttribute(attribute.code, currentNode.code);
+          message.success("删除成功 (Deleted)");
+          // Refresh list
+          loadAttributes(currentNode.code);
+        } catch (e) {
+          console.error(e);
+          message.error("删除失败 (Delete Failed)");
+        }
+      },
+    });
+  };
+
   const handleSaveAll = () => {
     // Optional: Bulk save implementation if backend supports it, otherwise warn user
     message.info("Please save each attribute individually in the workspace.");
@@ -301,6 +331,7 @@ const AttributeDesigner: React.FC<Props> = ({
               selectedAttributeId={selectedAttributeId}
               onSelectAttribute={(id) => setSelectedAttributeId(id)}
               searchText={searchText}
+              onDeleteAttribute={handleDeleteAttribute}
             />
           </Splitter.Panel>
           <Splitter.Panel>
