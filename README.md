@@ -68,6 +68,19 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+Local backend proxy (fix for `/api` calls)
+
+- This project reads the backend base URL from the environment variable `NEXT_PUBLIC_API_BASE_URL`.
+- For local development, create a `.env.local` in the project root (this file is already added) or set the env var before starting the dev server.
+
+Example `.env.local` (already present):
+
+```
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+```
+
+After editing/adding `.env.local`, restart the dev server (`npm run dev`) so `next` picks up the environment.
+
 ### Build for Production
 
 Build the application for production:
