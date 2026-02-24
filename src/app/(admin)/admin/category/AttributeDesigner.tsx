@@ -89,15 +89,27 @@ const AttributeDesigner: React.FC<Props> = ({
     modifiedBy: dto.modifiedBy,
     modifiedAt: dto.modifiedAt ? dayjs(dto.modifiedAt).format("YYYY-MM-DD HH:mm:ss") : undefined,
     description: dto.latestVersion.description || undefined,
+    
+    // Map extended value configurations
+    min: dto.latestVersion.minValue,
+    max: dto.latestVersion.maxValue,
+    step: dto.latestVersion.step,
+    precision: dto.latestVersion.precision,
+    trueLabel: dto.latestVersion.trueLabel,
+    falseLabel: dto.latestVersion.falseLabel,
   });
 
-  const loadAttributes = async (categoryCode: string) => {
+  const loadAttributes = async (categoryCode: string, selectAttributeId?: string) => {
     setLoading(true);
     try {
       const res = await metaAttributeApi.listAttributes({ 
         categoryCode, page: 0, size: 100 
       });
       setDataSource(res.content.map(mapListItemToAttributeItem));
+      
+      if (selectAttributeId) {
+        setSelectedAttributeId(selectAttributeId);
+      }
     } catch (e) {
       console.error(e);
       message.error("加载属性列表失败");
@@ -129,10 +141,24 @@ const AttributeDesigner: React.FC<Props> = ({
 
         try {
            console.log(`Fetching detail for ${selectedAttributeId}`);
-           const detail = await metaAttributeApi.getAttributeDetail(selectedAttributeId);
+           const detail = await metaAttributeApi.getAttributeDetail(selectedAttributeId, true); // includeValues=true
            console.log('Detail fetched:', detail);
            const mapped = mapDetailToAttributeItem(detail);
            setCurrentAttribute(mapped);
+           
+           // Load enum options if present
+           if (detail.lovValues && detail.lovValues.length > 0) {
+             setEnumOptions(detail.lovValues.map((v: any, index: number) => ({
+               id: `enum_${index}`,
+               code: v.code,
+               value: v.value, // Backend detail DTO uses `value`
+               label: v.label || '',
+               order: index
+             })));
+           } else {
+             setEnumOptions([]);
+           }
+
            // Also update the list item with latest details just in case
            setDataSource(prev => prev.map(p => p.id === selectedAttributeId ? mapped : p));
         } catch(e) {
@@ -200,6 +226,21 @@ const AttributeDesigner: React.FC<Props> = ({
           readOnly: attribute.readonly,
           searchable: attribute.searchable,
           description: attribute.description,
+          
+          // Extended value configurations
+          minValue: attribute.min,
+          maxValue: attribute.max,
+          step: attribute.step,
+          precision: attribute.precision,
+          trueLabel: attribute.trueLabel,
+          falseLabel: attribute.falseLabel,
+          lovValues: attribute.type === 'enum' || attribute.type === 'multi-enum' 
+            ? enumOptions.map(opt => ({
+                code: opt.code,
+                name: opt.value, // Using value as name for now
+                label: opt.label
+              }))
+            : undefined
       };
 
       try {
@@ -210,8 +251,8 @@ const AttributeDesigner: React.FC<Props> = ({
               await metaAttributeApi.updateAttribute(attribute.code, currentNode.code, dto);
               message.success("Updated successfully");
           }
-          // Reload to get latest state/version
-          loadAttributes(currentNode.code);
+          // Reload to get latest state/version and keep the saved attribute selected
+          loadAttributes(currentNode.code, attribute.code);
           setHasUnsavedChanges(false);
       } catch (e: any) {
           console.error("Save error:", e);

@@ -356,9 +356,18 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
              setIsEditing(false);
              setSaveStatus("success");
              setTimeout(() => setSaveStatus("idle"), 2000);
-          } catch (e) {
+          } catch (e: any) {
              setSaveStatus("idle");
              // Error handling should be done by onSave or global message
+             const errorMsg = e?.message || e?.error || "";
+             if (errorMsg.includes("attribute already exists")) {
+               form.setFields([
+                 {
+                   name: "code",
+                   errors: ["属性编码已存在，请修改"],
+                 },
+               ]);
+             }
           }
         } else {
              setIsEditing(false);
@@ -373,22 +382,17 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
 
   const handleCancel = () => {
     if (
-      attribute?.name === "New Attribute" &&
-      attribute?.code.startsWith("new_attr_") &&
+      attribute?.id.startsWith("new_attr_") &&
       onDiscard
     ) {
       Modal.confirm({
-        title: "保存为草稿? (Save as Draft?)",
+        title: "放弃新建? (Discard New Attribute?)",
         content:
-          "这是一个新属性，是否将其保存为临时草稿？(This is a new attribute. Do you want to save it as a temporary draft?)",
-        okText: "保存 (Save)",
-        cancelText: "丢弃 (Discard)",
-        okButtonProps: { type: "primary" },
-        cancelButtonProps: { danger: true },
+          "这是一个未保存的新属性，取消将直接删除该属性。是否确认放弃？(This is an unsaved new attribute. Canceling will delete it. Are you sure?)",
+        okText: "放弃 (Discard)",
+        cancelText: "继续编辑 (Continue Editing)",
+        okButtonProps: { danger: true },
         onOk: () => {
-          setIsEditing(false);
-        },
-        onCancel: () => {
           onDiscard(attribute.id);
         },
       });
@@ -518,7 +522,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
       </Descriptions>
 
       {/* Constraints Display */}
-      {(attribute.type === "number" || attribute.type === "string") && (
+      {(attribute.type === "number") && (
         <div style={{ marginTop: 12 }}>
           <Descriptions
             title="约束 (Constraints)"
@@ -527,7 +531,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
             size="small"
             labelStyle={{ width: "120px" }}
           >
-            {attribute.type === "string" && (
+            {/* {attribute.type === "string" && (
               <>
                 <Descriptions.Item label="最大长度 (Max Length)">
                   {attribute.maxLength || "-"}
@@ -536,7 +540,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
                   {attribute.pattern || "-"}
                 </Descriptions.Item>
               </>
-            )}
+            )} */}
             {attribute.type === "number" && (
               <>
                 <Descriptions.Item label="模式 (Mode)">
@@ -628,7 +632,6 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
                     <Col span={4}>
                       <Form.Item label="数据类型 (Data Type)" name="type">
                         <Select size="middle">
-                          <Option value="string">String</Option>
                           <Option value="number">Number</Option>
                           <Option value="boolean">Boolean</Option>
                           <Option value="enum">Enum</Option>
@@ -906,59 +909,59 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
     );
 
     // 1. String: Text Rules
-    if (attribute.type === "string") {
-      return (
-        <CommonHelper
-          title="文本规则 (Text Rules)"
-          extra={
-            <Button
-              size="small"
-              type="link"
-              onClick={() => handleTypeChange("enum")}
-            >
-              转为枚举 (Convert to Enum)
-            </Button>
-          }
-        >
-          <Form layout="vertical" size="small">
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item label="最小长度 (Min Length)">
-                  <InputNumber
-                    style={{ width: "100%" }}
-                    min={0}
-                    value={attribute.minLength}
-                    onChange={(v) =>
-                      updateAttribute({ minLength: v || undefined })
-                    }
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item label="最大长度 (Max Length)">
-                  <InputNumber
-                    style={{ width: "100%" }}
-                    min={0}
-                    value={attribute.maxLength}
-                    onChange={(v) =>
-                      updateAttribute({ maxLength: v || undefined })
-                    }
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Form.Item label="正则表达式 (Regex Pattern)">
-              <Input
-                prefix="/"
-                placeholder="e.g. ^[a-z]+$"
-                value={attribute.pattern}
-                onChange={(e) => updateAttribute({ pattern: e.target.value })}
-              />
-            </Form.Item>
-          </Form>
-        </CommonHelper>
-      );
-    }
+    // if (attribute.type === "string") {
+    //   return (
+    //     <CommonHelper
+    //       title="文本规则 (Text Rules)"
+    //       extra={
+    //         <Button
+    //           size="small"
+    //           type="link"
+    //           onClick={() => handleTypeChange("enum")}
+    //         >
+    //           转为枚举 (Convert to Enum)
+    //         </Button>
+    //       }
+    //     >
+    //       <Form layout="vertical" size="small">
+    //         <Row gutter={16}>
+    //           <Col span={12}>
+    //             <Form.Item label="最小长度 (Min Length)">
+    //               <InputNumber
+    //                 style={{ width: "100%" }}
+    //                 min={0}
+    //                 value={attribute.minLength}
+    //                 onChange={(v) =>
+    //                   updateAttribute({ minLength: v || undefined })
+    //                 }
+    //               />
+    //             </Form.Item>
+    //           </Col>
+    //           <Col span={12}>
+    //             <Form.Item label="最大长度 (Max Length)">
+    //               <InputNumber
+    //                 style={{ width: "100%" }}
+    //                 min={0}
+    //                 value={attribute.maxLength}
+    //                 onChange={(v) =>
+    //                   updateAttribute({ maxLength: v || undefined })
+    //                 }
+    //               />
+    //             </Form.Item>
+    //           </Col>
+    //         </Row>
+    //         <Form.Item label="正则表达式 (Regex Pattern)">
+    //           <Input
+    //             prefix="/"
+    //             placeholder="e.g. ^[a-z]+$"
+    //             value={attribute.pattern}
+    //             onChange={(e) => updateAttribute({ pattern: e.target.value })}
+    //           />
+    //         </Form.Item>
+    //       </Form>
+    //     </CommonHelper>
+    //   );
+    // }
 
     // 2. Number: Numeric Rules
     if (attribute.type === "number") {

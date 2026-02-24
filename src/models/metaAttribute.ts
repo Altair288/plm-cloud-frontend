@@ -42,6 +42,14 @@ export interface MetaAttributeLatestVersionDto {
   lovKey: string | null;
   createdBy: string;
   createdAt: string;
+  
+  // Extended value configurations
+  minValue?: number;
+  maxValue?: number;
+  step?: number;
+  precision?: number;
+  trueLabel?: string;
+  falseLabel?: string;
 }
 
 export interface MetaAttributeDefDetailDto {
@@ -72,6 +80,19 @@ export interface MetaAttributeUpsertRequestDto {
   readOnly?: boolean;
   searchable?: boolean;
   lovKey?: string;
+  
+  // Extended value configurations
+  minValue?: number;
+  maxValue?: number;
+  step?: number;
+  precision?: number;
+  trueLabel?: string;
+  falseLabel?: string;
+  lovValues?: {
+    code: string;
+    name: string;
+    label?: string;
+  }[];
 }
 
 export interface AttributeImportSummaryDto {
