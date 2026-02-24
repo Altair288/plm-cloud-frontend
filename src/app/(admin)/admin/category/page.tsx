@@ -47,7 +47,7 @@ const CategoryManagementPage: React.FC = () => {
   const loadSegments = async () => {
     try {
       const segments = await metaCategoryApi.listUnspscSegments();
-      const nodes: CategoryTreeNode[] = segments.map((s) => ({
+      const nodes: CategoryTreeNode[] = (Array.isArray(segments) ? segments : []).map((s) => ({
         title: `${s.code} - ${s.title}`,
         key: s.key,
         isLeaf: false,
