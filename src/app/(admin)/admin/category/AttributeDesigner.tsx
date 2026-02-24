@@ -213,9 +213,21 @@ const AttributeDesigner: React.FC<Props> = ({
           // Reload to get latest state/version
           loadAttributes(currentNode.code);
           setHasUnsavedChanges(false);
-      } catch (e) {
-          console.error(e);
-          message.error("Operation failed");
+      } catch (e: any) {
+          console.error("Save error:", e);
+          // Since request.ts interceptor now rejects with error.response.data directly
+          let errorMsg = e.message || e.error || "Operation failed";
+          
+          // User-friendly error message translation
+          if (errorMsg.includes("attribute already exists")) {
+            errorMsg = `保存失败：属性编码 "${attribute.code}" 已存在，请使用其他编码。`;
+          } else if (errorMsg.includes("INVALID_ARGUMENT")) {
+            errorMsg = `参数错误：${errorMsg}`;
+          } else {
+            errorMsg = `保存失败：${errorMsg}`;
+          }
+          
+          message.error(errorMsg);
           throw e; // Throw to let Workspace know it failed
       }
   };

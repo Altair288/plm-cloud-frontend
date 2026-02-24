@@ -17,6 +17,10 @@ request.interceptors.response.use(
   (resp) => resp.data,
   (error) => {
     // 简单错误处理，可扩展为全局消息
+    // 如果后端返回了标准的错误结构，直接将 response 抛出，方便上层捕获
+    if (error.response && error.response.data) {
+      return Promise.reject(error.response.data);
+    }
     return Promise.reject(error);
   },
 );
