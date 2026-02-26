@@ -135,6 +135,8 @@ const AttributeDesigner: React.FC<Props> = ({
              const localItem = dataSource.find(i => i.id === selectedAttributeId);
              if (localItem) {
                 setCurrentAttribute({ ...localItem });
+                // Clear enum options for new attributes
+                setEnumOptions([]);
              }
              return;
         }
@@ -167,6 +169,7 @@ const AttributeDesigner: React.FC<Props> = ({
         }
       } else {
         setCurrentAttribute(null);
+        setEnumOptions([]);
       }
     };
     fetchDetail();

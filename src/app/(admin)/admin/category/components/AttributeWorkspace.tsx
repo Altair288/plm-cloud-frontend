@@ -665,13 +665,13 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
                               <Option
                                 key={opt.id}
                                 value={opt.value}
-                                label={opt.label || opt.value}
+                                label={opt.value}
                               >
                                 <Space>
                                   {opt.image && (
                                     <img
                                       src={opt.image}
-                                      alt={opt.label}
+                                      alt={opt.value}
                                       style={{
                                         width: 16,
                                         height: 16,
@@ -682,9 +682,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
                                     />
                                   )}
                                   <span>
-                                    {opt.label
-                                      ? `${opt.value} - ${opt.label}`
-                                      : opt.value}
+                                    {opt.value}
                                   </span>
                                 </Space>
                               </Option>
@@ -877,15 +875,11 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
       form.setFieldsValue(updates);
     };
 
-    const CommonHelper = ({
-      title,
-      extra,
-      children,
-    }: {
-      title: string;
-      extra?: React.ReactNode;
-      children: React.ReactNode;
-    }) => (
+    const renderCommonHelper = (
+      title: string,
+      children: React.ReactNode,
+      extra?: React.ReactNode,
+    ) => (
       <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
         <Flex
           justify="space-between"
@@ -910,148 +904,137 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
 
     // 1. String: Text Rules
     // if (attribute.type === "string") {
-    //   return (
-    //     <CommonHelper
-    //       title="文本规则 (Text Rules)"
-    //       extra={
-    //         <Button
-    //           size="small"
-    //           type="link"
-    //           onClick={() => handleTypeChange("enum")}
-    //         >
-    //           转为枚举 (Convert to Enum)
-    //         </Button>
-    //       }
+    //   return renderCommonHelper(
+    //     "文本规则 (Text Rules)",
+    //     <Form layout="vertical" size="small">
+    //       <Row gutter={16}>
+    //         <Col span={12}>
+    //           <Form.Item label="最小长度 (Min Length)">
+    //             <InputNumber
+    //               style={{ width: "100%" }}
+    //               min={0}
+    //               value={attribute.minLength}
+    //               onChange={(v) =>
+    //                 updateAttribute({ minLength: v || undefined })
+    //               }
+    //             />
+    //           </Form.Item>
+    //         </Col>
+    //         <Col span={12}>
+    //           <Form.Item label="最大长度 (Max Length)">
+    //             <InputNumber
+    //               style={{ width: "100%" }}
+    //               min={0}
+    //               value={attribute.maxLength}
+    //               onChange={(v) =>
+    //                 updateAttribute({ maxLength: v || undefined })
+    //               }
+    //             />
+    //           </Form.Item>
+    //         </Col>
+    //       </Row>
+    //       <Form.Item label="正则表达式 (Regex Pattern)">
+    //         <Input
+    //           prefix="/"
+    //           placeholder="e.g. ^[a-z]+$"
+    //           value={attribute.pattern}
+    //           onChange={(e) => updateAttribute({ pattern: e.target.value })}
+    //         />
+    //       </Form.Item>
+    //     </Form>,
+    //     <Button
+    //       size="small"
+    //       type="link"
+    //       onClick={() => handleTypeChange("enum")}
     //     >
-    //       <Form layout="vertical" size="small">
-    //         <Row gutter={16}>
-    //           <Col span={12}>
-    //             <Form.Item label="最小长度 (Min Length)">
-    //               <InputNumber
-    //                 style={{ width: "100%" }}
-    //                 min={0}
-    //                 value={attribute.minLength}
-    //                 onChange={(v) =>
-    //                   updateAttribute({ minLength: v || undefined })
-    //                 }
-    //               />
-    //             </Form.Item>
-    //           </Col>
-    //           <Col span={12}>
-    //             <Form.Item label="最大长度 (Max Length)">
-    //               <InputNumber
-    //                 style={{ width: "100%" }}
-    //                 min={0}
-    //                 value={attribute.maxLength}
-    //                 onChange={(v) =>
-    //                   updateAttribute({ maxLength: v || undefined })
-    //                 }
-    //               />
-    //             </Form.Item>
-    //           </Col>
-    //         </Row>
-    //         <Form.Item label="正则表达式 (Regex Pattern)">
-    //           <Input
-    //             prefix="/"
-    //             placeholder="e.g. ^[a-z]+$"
-    //             value={attribute.pattern}
-    //             onChange={(e) => updateAttribute({ pattern: e.target.value })}
-    //           />
-    //         </Form.Item>
-    //       </Form>
-    //     </CommonHelper>
+    //       转为枚举 (Convert to Enum)
+    //     </Button>
     //   );
     // }
 
     // 2. Number: Numeric Rules
     if (attribute.type === "number") {
-      return (
-        <CommonHelper
-          title="数值规则 (Numeric Rules)"
-          extra={
-            <Button
-              size="small"
-              type="link"
-              onClick={() => handleTypeChange("enum")}
-            >
-              转为枚举 (Convert to Enum)
-            </Button>
-          }
+      return renderCommonHelper(
+        "数值规则 (Numeric Rules)",
+        <Form layout="vertical" size="small">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="最小值 (Min Value)">
+                <InputNumber
+                  style={{ width: "100%" }}
+                  value={attribute.min}
+                  onChange={(v) => updateAttribute({ min: v || undefined })}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="最大值 (Max Value)">
+                <InputNumber
+                  style={{ width: "100%" }}
+                  value={attribute.max}
+                  onChange={(v) => updateAttribute({ max: v || undefined })}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="步长 (Step)">
+                <InputNumber
+                  style={{ width: "100%" }}
+                  min={0}
+                  value={attribute.step}
+                  onChange={(v) => updateAttribute({ step: v || undefined })}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="精度 (Precision)">
+                <InputNumber
+                  style={{ width: "100%" }}
+                  min={0}
+                  max={10}
+                  value={attribute.precision}
+                  onChange={(v) =>
+                    updateAttribute({ precision: v || undefined })
+                  }
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>,
+        <Button
+          size="small"
+          type="link"
+          onClick={() => handleTypeChange("enum")}
         >
-          <Form layout="vertical" size="small">
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item label="最小值 (Min Value)">
-                  <InputNumber
-                    style={{ width: "100%" }}
-                    value={attribute.min}
-                    onChange={(v) => updateAttribute({ min: v || undefined })}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item label="最大值 (Max Value)">
-                  <InputNumber
-                    style={{ width: "100%" }}
-                    value={attribute.max}
-                    onChange={(v) => updateAttribute({ max: v || undefined })}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item label="步长 (Step)">
-                  <InputNumber
-                    style={{ width: "100%" }}
-                    min={0}
-                    value={attribute.step}
-                    onChange={(v) => updateAttribute({ step: v || undefined })}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item label="精度 (Precision)">
-                  <InputNumber
-                    style={{ width: "100%" }}
-                    min={0}
-                    max={10}
-                    value={attribute.precision}
-                    onChange={(v) =>
-                      updateAttribute({ precision: v || undefined })
-                    }
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Form>
-        </CommonHelper>
+          转为枚举 (Convert to Enum)
+        </Button>
       );
     }
 
     // 3. Boolean: Display Config
     if (attribute.type === "boolean") {
-      return (
-        <CommonHelper title="布尔配置 (Boolean Configuration)">
-          <Form layout="vertical" size="small">
-            <Form.Item label="True 显示文本 (Display for True)">
-              <Input
-                placeholder="e.g. Yes, Open, Active"
-                value={attribute.trueLabel}
-                onChange={(e) => updateAttribute({ trueLabel: e.target.value })}
-              />
-            </Form.Item>
-            <Form.Item label="False 显示文本 (Display for False)">
-              <Input
-                placeholder="e.g. No, Closed, Inactive"
-                value={attribute.falseLabel}
-                onChange={(e) =>
-                  updateAttribute({ falseLabel: e.target.value })
-                }
-              />
-            </Form.Item>
-          </Form>
-        </CommonHelper>
+      return renderCommonHelper(
+        "布尔配置 (Boolean Configuration)",
+        <Form layout="vertical" size="small">
+          <Form.Item label="True 显示文本 (Display for True)">
+            <Input
+              placeholder="e.g. Yes, Open, Active"
+              value={attribute.trueLabel}
+              onChange={(e) => updateAttribute({ trueLabel: e.target.value })}
+            />
+          </Form.Item>
+          <Form.Item label="False 显示文本 (Display for False)">
+            <Input
+              placeholder="e.g. No, Closed, Inactive"
+              value={attribute.falseLabel}
+              onChange={(e) =>
+                updateAttribute({ falseLabel: e.target.value })
+              }
+            />
+          </Form.Item>
+        </Form>
       );
     }
 
