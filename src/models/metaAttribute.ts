@@ -5,6 +5,7 @@ export interface MetaAttributeDefListItemDto {
   status: 'ACTIVE' | 'INACTIVE' | 'DRAFT'; // 根据实际情况推断状态枚举
   latestVersionNo: number;
   displayName: string;
+  attributeField?: string | null;
   dataType: 'string' | 'number' | 'bool' | 'enum' | 'date'; // 根据常规推断
   unit: string | null;
   hasLov: boolean;
@@ -30,6 +31,7 @@ export interface MetaAttributeVersionSummaryDto {
 export interface MetaAttributeLatestVersionDto {
   versionNo: number;
   displayName: string;
+  attributeField?: string | null;
   description: string | null;
   dataType: 'string' | 'number' | 'bool' | 'enum' | 'date';
   unit: string | null;
@@ -70,6 +72,7 @@ export interface MetaAttributeDefDetailDto {
 export interface MetaAttributeUpsertRequestDto {
   key?: string; // 更新时通常不需要传key在body中，但创建时可能需要，或者path参数
   displayName: string;
+  attributeField?: string;
   description?: string;
   dataType: 'string' | 'number' | 'bool' | 'enum' | 'date';
   unit?: string;

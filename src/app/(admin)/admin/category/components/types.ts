@@ -4,6 +4,7 @@ export interface AttributeItem {
   id: string;
   code: string;
   name: string;
+  attributeField?: string;
   type: AttributeType;
   unit?: string;
   required?: boolean;

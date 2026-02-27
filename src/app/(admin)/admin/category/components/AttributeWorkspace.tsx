@@ -426,7 +426,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
         </Title>
         <Tag color="cyan">V{attribute.version}.0</Tag>
         <Text type="secondary" copyable style={{ fontSize: 12 }}>
-          {attribute.code}
+          {attribute.attributeField || attribute.code}
         </Text>
         <Tag color="blue" variant="filled">
           {attribute.type}
@@ -475,6 +475,9 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
         </Descriptions.Item>
         <Descriptions.Item label="数据类型 (Data Type)">
           {attribute.type}
+        </Descriptions.Item>
+        <Descriptions.Item label="属性字段 (Attribute Field)">
+          {attribute.attributeField || "-"}
         </Descriptions.Item>
         <Descriptions.Item label="编码 (Code)">
           {attribute.code}
@@ -607,6 +610,14 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
                         label="名称 (Display Name)"
                         name="name"
                         rules={[{ required: true }]}
+                      >
+                        <Input size="middle" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={4}>
+                      <Form.Item
+                        label="属性字段 (Attribute Field)"
+                        name="attributeField"
                       >
                         <Input size="middle" />
                       </Form.Item>

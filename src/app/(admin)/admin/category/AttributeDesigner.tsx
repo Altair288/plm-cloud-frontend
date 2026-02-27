@@ -52,6 +52,7 @@ const AttributeDesigner: React.FC<Props> = ({
     id: dto.key,
     code: dto.key,
     name: dto.displayName,
+    attributeField: dto.attributeField || undefined,
     type: (dto.dataType === 'bool' ? 'boolean' : dto.dataType) as any,
     unit: dto.unit || undefined,
     version: dto.latestVersionNo,
@@ -69,6 +70,7 @@ const AttributeDesigner: React.FC<Props> = ({
     id: dto.key,
     code: dto.key,
     name: dto.latestVersion.displayName,
+      attributeField: dto.latestVersion.attributeField || undefined,
     type: (dto.latestVersion.dataType === 'bool' ? 'boolean' : dto.latestVersion.dataType) as any,
     unit: dto.latestVersion.unit || undefined,
     defaultValue: dto.latestVersion.defaultValue || undefined,
@@ -219,6 +221,7 @@ const AttributeDesigner: React.FC<Props> = ({
       const dto: MetaAttributeUpsertRequestDto = {
           key: attribute.code,
           displayName: attribute.name,
+          attributeField: attribute.attributeField,
           dataType: (attribute.type === 'boolean' ? 'bool' : attribute.type) as any,
           unit: attribute.unit,
           defaultValue: attribute.defaultValue ? String(attribute.defaultValue) : undefined,
@@ -344,14 +347,6 @@ const AttributeDesigner: React.FC<Props> = ({
               未保存 (Unsaved Changes)
            </Tag>
         )}
-        <Input
-          placeholder="筛选属性 . . ."
-          prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          allowClear
-          style={{ width: 300 }}
-        />
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -361,8 +356,8 @@ const AttributeDesigner: React.FC<Props> = ({
         </Button>
       </Space>
       <Space>
-        <Button icon={<EyeOutlined />}>预览 (Preview)</Button>
-        <Button icon={<HistoryOutlined />}>日志 (Log)</Button>
+        {/* <Button icon={<EyeOutlined />}>预览 (Preview)</Button> */}
+        {/* <Button icon={<HistoryOutlined />}>日志 (Log)</Button> */}
         {/* Bulk Save is disabled or hidden as we move to single save */}
         {/* <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAll}>保存模型</Button> */}
       </Space>
@@ -374,13 +369,14 @@ const AttributeDesigner: React.FC<Props> = ({
       {renderToolbar()}
 
       <Splitter style={{ flex: 1, minHeight: 0 }}>
-        <Splitter.Panel defaultSize={350} min={250} max={500} collapsible>
+        <Splitter.Panel defaultSize={500} min={350} max={650} collapsible>
           <AttributeList
             dataSource={dataSource}
             setDataSource={setDataSource}
             selectedAttributeId={selectedAttributeId}
             onSelectAttribute={(id) => setSelectedAttributeId(id)}
             searchText={searchText}
+            onSearchTextChange={setSearchText}
             onDeleteAttribute={handleDeleteAttribute}
           />
         </Splitter.Panel>

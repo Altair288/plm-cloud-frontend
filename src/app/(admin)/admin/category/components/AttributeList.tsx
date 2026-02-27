@@ -10,9 +10,6 @@ import {
   CheckSquareOutlined,
   DeleteOutlined,
   CopyOutlined,
-  EyeInvisibleOutlined,
-  LockOutlined,
-  KeyOutlined,
 } from "@ant-design/icons";
 import {
   List,
@@ -24,7 +21,7 @@ import {
   theme,
   Flex,
   Tooltip,
-  Tag,
+  Checkbox,
 } from "antd";
 import { AttributeItem, AttributeType } from "./types";
 
@@ -34,6 +31,7 @@ interface AttributeListProps {
   selectedAttributeId: string | null;
   onSelectAttribute: (id: string, item: AttributeItem) => void;
   searchText: string;
+  onSearchTextChange: (text: string) => void;
   onDeleteAttribute?: (item: AttributeItem) => void;
 }
 
@@ -83,6 +81,7 @@ const AttributeList: React.FC<AttributeListProps> = ({
   selectedAttributeId,
   onSelectAttribute,
   searchText,
+  onSearchTextChange,
   onDeleteAttribute,
 }) => {
   const { token } = theme.useToken();
@@ -100,8 +99,27 @@ const AttributeList: React.FC<AttributeListProps> = ({
   const filteredData = dataSource.filter(
     (item) =>
       item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      item.code.toLowerCase().includes(searchText.toLowerCase()),
+      item.code.toLowerCase().includes(searchText.toLowerCase()) ||
+      item.attributeField?.toLowerCase().includes(searchText.toLowerCase()),
   );
+
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+
+  const handleSelectAll = (e: any) => {
+    if (e.target.checked) {
+      setSelectedRowKeys(filteredData.map(item => item.id));
+    } else {
+      setSelectedRowKeys([]);
+    }
+  };
+
+  const handleSelectRow = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedRowKeys(prev => [...prev, id]);
+    } else {
+      setSelectedRowKeys(prev => prev.filter(key => key !== id));
+    }
+  };
 
   const getMenuItems = (item: AttributeItem): MenuProps["items"] => [
     {
@@ -140,14 +158,64 @@ const AttributeList: React.FC<AttributeListProps> = ({
         background: token.colorBgContainer,
       }}
     >
+      {/* Search Bar */}
+      <div style={{ padding: "12px 16px", borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+        <Input
+          placeholder="筛选属性 . . ."
+          prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
+          value={searchText}
+          onChange={(e) => onSearchTextChange(e.target.value)}
+          allowClear
+        />
+      </div>
+
+      {/* List Header */}
+      <div style={{ 
+        padding: "8px 16px", 
+        borderBottom: `1px solid ${token.colorBorderSecondary}`,
+        background: token.colorFillAlter,
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        paddingRight: 40,
+        position: "relative"
+      }}>
+        <Checkbox 
+          checked={filteredData.length > 0 && selectedRowKeys.length === filteredData.length}
+          indeterminate={selectedRowKeys.length > 0 && selectedRowKeys.length < filteredData.length}
+          onChange={handleSelectAll}
+        />
+        <Text type="secondary" style={{ fontSize: 12, width: 30, textAlign: "center" }}>序号</Text>
+        <Flex align="center" style={{ flex: 1, minWidth: 0, gap: 8 }}>
+          <Text type="secondary" style={{ fontSize: 12, flex: 1, minWidth: 0 }}>属性名称</Text>
+          <Text type="secondary" style={{ fontSize: 12, flex: 1, minWidth: 0 }}>属性字段</Text>
+          <Text type="secondary" style={{ fontSize: 12, width: 100, flexShrink: 0 }}>数据类型</Text>
+          <div style={{ width: 16, flexShrink: 0 }}></div>
+        </Flex>
+        {selectedRowKeys.length > 0 && (
+          <Button 
+            type="text" 
+            danger 
+            size="small" 
+            icon={<DeleteOutlined />}
+            onClick={() => {
+              // TODO: Implement batch delete
+              console.log("Batch delete", selectedRowKeys);
+            }}
+            style={{ position: "absolute", right: 8 }}
+          />
+        )}
+      </div>
+
       {/* List Content */}
       <div style={{ flex: 1, overflowY: "auto" }} ref={listRef}>
         <List
           itemLayout="horizontal"
           dataSource={filteredData}
           split={false}
-          renderItem={(item) => {
+          renderItem={(item, index) => {
             const isSelected = selectedAttributeId === item.id;
+            const isChecked = selectedRowKeys.includes(item.id);
             return (
               <div id={`attr-list-item-${item.id}`}>
                 <List.Item
@@ -160,7 +228,7 @@ const AttributeList: React.FC<AttributeListProps> = ({
                     ? token.controlItemBgActive
                     : "transparent",
                   position: "relative",
-                  paddingRight: "40px" // Make room for the absolute positioned action button
+                  paddingRight: "40px"
                 }}
                 className={!isSelected ? "hover:bg-gray-50" : ""} // Keep minimal tailwind for hover if not strict
                 onClick={() => onSelectAttribute(item.id, item)}
@@ -183,16 +251,21 @@ const AttributeList: React.FC<AttributeListProps> = ({
                     />
                   </Dropdown>
                 </div>
-                <div style={{ width: "100%" }}>
-                  <Flex
-                    justify="space-between"
-                    align="center"
-                    style={{ marginBottom: 4 }}
-                  >
+                <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 12 }}>
+                  <Checkbox 
+                    checked={isChecked} 
+                    onChange={(e) => handleSelectRow(item.id, e.target.checked)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <Text type="secondary" style={{ fontSize: 12, width: 30, textAlign: "center" }}>
+                    {index + 1}
+                  </Text>
+                  
+                  <Flex align="center" style={{ flex: 1, minWidth: 0, gap: 8 }}>
                     <Text
                       strong
-                      style={{ fontSize: 14, maxWidth: 180 }}
-                      ellipsis
+                      style={{ fontSize: 14, flex: 1, minWidth: 0 }}
+                      ellipsis={{ tooltip: item.name || "未命名属性" }}
                     >
                       {item.name || (
                         <span
@@ -201,79 +274,49 @@ const AttributeList: React.FC<AttributeListProps> = ({
                             fontStyle: "italic",
                           }}
                         >
-                          未命名属性 (Unnamed Attribute)
+                          未命名属性
                         </span>
                       )}
                     </Text>
-                    {item.required && (
-                      <div
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: token.colorError,
-                        }}
-                        title="Required"
-                      ></div>
-                    )}
-                  </Flex>
 
-                  <Flex align="center" style={{ gap: 8, flexWrap: "wrap" }}>
-                    <Flex align="center" style={{ flex: 1, minWidth: 0, flexWrap: "wrap", gap: 4 }}>
-                      <span
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                          whiteSpace: "nowrap"
-                        }}
-                        title={item.type}
-                      >
-                        {getTypeIcon(item.type)}
-                        <span style={{ fontSize: 12 }}>
-                          {getTypeLabel(item.type)}
-                        </span>
+                    <Text
+                      type="secondary"
+                      style={{ fontSize: 12, fontFamily: "monospace", flex: 1, minWidth: 0 }}
+                      ellipsis={{ tooltip: item.attributeField }}
+                    >
+                      {item.attributeField || '-'}
+                    </Text>
+
+                    <span
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                        width: 100
+                      }}
+                      title={item.type}
+                    >
+                      {getTypeIcon(item.type)}
+                      <span style={{ fontSize: 12 }}>
+                        {getTypeLabel(item.type)}
                       </span>
-                      <Text
-                        type="secondary"
-                        style={{ fontSize: 12, fontFamily: "monospace", whiteSpace: "nowrap" }}
-                        ellipsis
-                      >
-                        编码: {item.code}
-                      </Text>
-                    </Flex>
-
-                    <Flex gap={2} style={{ flexShrink: 0, flexWrap: "wrap" }}>
-                      {item.hidden && (
-                        <Tag
-                          icon={<EyeInvisibleOutlined />}
-                          variant="filled"
-                          style={{ margin: 0, fontSize: 10, padding: "0 4px" }}
-                        >
-                          隐藏
-                        </Tag>
+                    </span>
+                    
+                    <div style={{ width: 16, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+                      {item.required && (
+                        <div
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: "50%",
+                            background: token.colorError,
+                          }}
+                          title="必填"
+                        ></div>
                       )}
-                      {item.readonly && (
-                        <Tag
-                          icon={<LockOutlined />}
-                          variant="filled"
-                          color="warning"
-                          style={{ margin: 0, fontSize: 10, padding: "0 4px" }}
-                        >
-                          只读
-                        </Tag>
-                      )}
-                      {item.unique && (
-                        <Tag
-                          icon={<KeyOutlined />}
-                          variant="filled"
-                          color="success"
-                          style={{ margin: 0, fontSize: 10, padding: "0 4px" }}
-                        >
-                          唯一
-                        </Tag>
-                      )}
-                    </Flex>
+                    </div>
                   </Flex>
                 </div>
                 </List.Item>
@@ -294,7 +337,7 @@ const AttributeList: React.FC<AttributeListProps> = ({
           color: token.colorTextQuaternary,
         }}
       >
-        {dataSource.length} attributes defined
+        共 {dataSource.length} 个属性
       </div>
     </div>
   );
