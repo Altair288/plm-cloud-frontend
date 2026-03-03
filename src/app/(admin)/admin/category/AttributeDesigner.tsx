@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { PlusOutlined } from "@ant-design/icons";
 import {
   App,
-  Button,
   Space,
   Typography,
   Tag,
@@ -11,6 +9,7 @@ import {
   theme,
   Flex,
 } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 import AttributeList from "./components/AttributeList";
 import AttributeWorkspace from "./components/AttributeWorkspace";
 import { AttributeItem, EnumOptionItem } from "./components/types";
@@ -522,13 +521,6 @@ const AttributeDesigner: React.FC<Props> = ({
         <Typography.Title level={5} style={{ margin: 0, marginRight: 16 }}>
           {currentNode?.title || "未知对象 (Unknown Item)"}
         </Typography.Title>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleAddAttribute}
-        >
-          新建属性
-        </Button>
       </Space>
       <Space>
         {/* <Button icon={<EyeOutlined />}>预览 (Preview)</Button> */}

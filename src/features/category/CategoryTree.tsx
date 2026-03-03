@@ -15,6 +15,7 @@ export interface CategoryTreeProps {
   searchPlaceholder?: string;
   onRightClick?: TreeProps['onRightClick'];
   titleRender?: TreeProps['titleRender'];
+  toolbarRender?: React.ReactNode;
 }
 
 const CategoryTree = forwardRef<HTMLDivElement, CategoryTreeProps>(({
@@ -27,7 +28,8 @@ const CategoryTree = forwardRef<HTMLDivElement, CategoryTreeProps>(({
   defaultSelectedKeys = [],
   searchPlaceholder = '搜索分类',
   onRightClick,
-  titleRender
+  titleRender,
+  toolbarRender,
 }, ref) => {
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>(initialExpandedKeys);
   const [searchValue, setSearchValue] = useState('');
@@ -101,10 +103,37 @@ const CategoryTree = forwardRef<HTMLDivElement, CategoryTreeProps>(({
       ref={ref}
       style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
     >
-      <div style={{ padding: '16px 16px 8px' }}>
-        <Search style={{ marginBottom: 8 }} placeholder={searchPlaceholder} onChange={onChange} />
-      </div>
-      <div style={{ flex: 1, overflow: 'auto', padding: '0 16px 16px' }}>
+      {toolbarRender ? (
+        <div
+          style={{
+            height: 48,
+            padding: '0 16px',
+            borderBottom: '1px solid var(--ant-color-border-secondary, #f0f0f0)',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}
+          >
+            {toolbarRender}
+            <div style={{ flex: 1, minWidth: 160, maxWidth: 320 }}>
+              <Search size="small" placeholder={searchPlaceholder} onChange={onChange} />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ padding: '16px 16px 8px' }}>
+          <Search style={{ marginBottom: 8 }} placeholder={searchPlaceholder} onChange={onChange} />
+        </div>
+      )}
+      <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
         {treeData.length > 0 ? (
           <Tree
             onExpand={onExpand}

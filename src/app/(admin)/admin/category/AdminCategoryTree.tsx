@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { App } from "antd";
+import { App, Button, theme } from "antd";
 import type { MenuProps } from "antd";
 import type { DataNode, TreeProps } from "antd/es/tree";
 import {
@@ -12,6 +12,13 @@ import CategoryTree, {
   CategoryTreeProps,
 } from "@/features/category/CategoryTree";
 import FloatingContextMenu from "@/components/ContextMenu/FloatingContextMenu";
+import {
+  AddCircleOutline,
+  DeleteOutline,
+  ContentCopy,
+  FileUploadOutlined,
+  FileDownloadOutlined,
+} from "@mui/icons-material";
 
 interface AdminCategoryTreeProps extends CategoryTreeProps {
   onMenuClick?: (key: string, node: DataNode) => void;
@@ -21,6 +28,7 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
   onMenuClick,
   ...props
 }) => {
+  const { token } = theme.useToken();
   const { message: messageApi } = App.useApp();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -93,6 +101,40 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
         ref={containerRef}
         {...props}
         onRightClick={handleRightClick}
+        toolbarRender={
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            <Button
+              type="text"
+              size="small"
+              icon={<AddCircleOutline fontSize="small" />}
+              style={{ color: token.colorPrimary }}
+            />
+            <Button
+              type="text"
+              size="small"
+              icon={<DeleteOutline fontSize="small" />}
+              style={{ color: token.colorPrimary }}
+            />
+            <Button
+              type="text"
+              size="small"
+              icon={<ContentCopy fontSize="small" />}
+              style={{ color: token.colorPrimary }}
+            />
+            <Button
+              type="text"
+              size="small"
+              icon={<FileUploadOutlined fontSize="small" />}
+              style={{ color: token.colorPrimary }}
+            />
+            <Button
+              type="text"
+              size="small"
+              icon={<FileDownloadOutlined fontSize="small" />}
+              style={{ color: token.colorPrimary }}
+            />
+          </div>
+        }
       />
       <FloatingContextMenu
         open={contextMenuState.visible}
