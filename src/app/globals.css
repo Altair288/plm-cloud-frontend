@@ -1,3 +1,18 @@
+@import "react-quill-new/dist/quill.snow.css";
+
+.category-description-editor .ql-toolbar.ql-snow {
+  border: none;
+  border-bottom: 1px solid var(--ant-color-border, #d9d9d9);
+}
+
+.category-description-editor .ql-container.ql-snow {
+  border: none;
+}
+
+.category-description-editor .ql-editor {
+  min-height: 140px;
+}
+
 * {
   margin: 0;
   padding: 0;

@@ -7,11 +7,13 @@ import {
   EditOutlined,
   DeleteOutlined,
   SettingOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import CategoryTree, {
   CategoryTreeProps,
 } from "@/features/category/CategoryTree";
 import FloatingContextMenu from "@/components/ContextMenu/FloatingContextMenu";
+import CreateCategoryModal from "./components/CreateCategoryModal";
 import {
   AddCircleOutline,
   DeleteOutline,
@@ -31,6 +33,8 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
   const { token } = theme.useToken();
   const { message: messageApi } = App.useApp();
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const [createModalVisible, setCreateModalVisible] = useState(false);
 
   const [contextMenuState, setContextMenuState] = useState<{
     visible: boolean;
@@ -57,19 +61,27 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
     };
   }, []);
 
-  const renderContextMenuItems = (node: DataNode | null): MenuProps["items"] => {
+  const renderContextMenuItems = (
+    node: DataNode | null,
+  ): MenuProps["items"] => {
     if (!node) return [];
+    const nodeRef = (node as any)?.dataRef as
+      | { code?: string; name?: string; level?: number }
+      | undefined;
     const titleText =
-      typeof node.title === "string"
-        ? node.title
-        : (node.title as any)?.props?.children?.[0] || "Selected Node";
+      nodeRef?.code || nodeRef?.name
+        ? `${nodeRef?.code || "-"} - ${nodeRef?.name || "未命名分类"}`
+        : typeof node.title === "string"
+          ? node.title
+          : String(node.key);
+    const levelText = nodeRef?.level ? `L${nodeRef.level}` : "-";
 
     const items: MenuProps["items"] = [
       {
         key: "header",
         label: (
           <span style={{ cursor: "default", color: "#888", fontSize: "12px" }}>
-            操作: {titleText}
+            节点: {titleText} | 层级: {levelText}
           </span>
         ),
         disabled: true,
@@ -78,6 +90,12 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
       { type: "divider" },
       { key: "add", label: "新增子分类", icon: <PlusOutlined /> },
       { key: "rename", label: "重命名", icon: <EditOutlined /> },
+      { type: "divider" },
+      {
+        key: "basic-info",
+        label: "分类基本信息",
+        icon: <InfoCircleOutlined />,
+      },
       { type: "divider" },
       { key: "design", label: "属性设计", icon: <SettingOutlined /> },
       { type: "divider" },
@@ -102,12 +120,20 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
         {...props}
         onRightClick={handleRightClick}
         toolbarRender={
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              flexShrink: 0,
+            }}
+          >
             <Button
               type="text"
               size="small"
               icon={<AddCircleOutline fontSize="small" />}
               style={{ color: token.colorPrimary }}
+              onClick={() => setCreateModalVisible(true)}
             />
             <Button
               type="text"
@@ -143,6 +169,11 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
         items={renderContextMenuItems(contextMenuState.node)}
         onMenuClick={({ key, domEvent }) => {
           domEvent.stopPropagation();
+          if (key === "basic-info") {
+            messageApi.info("分类基本信息功能待实现");
+            setContextMenuState((prev) => ({ ...prev, visible: false }));
+            return;
+          }
           if (onMenuClick && contextMenuState.node) {
             onMenuClick(key, contextMenuState.node);
           } else {
@@ -154,6 +185,16 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
         }}
         onClose={() => {
           setContextMenuState((prev) => ({ ...prev, visible: false }));
+        }}
+      />
+
+      <CreateCategoryModal
+        open={createModalVisible}
+        onCancel={() => setCreateModalVisible(false)}
+        onOk={(values) => {
+          messageApi.success("保存成功");
+          console.log(values);
+          setCreateModalVisible(false);
         }}
       />
     </>
