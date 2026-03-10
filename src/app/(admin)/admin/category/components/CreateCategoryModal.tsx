@@ -202,7 +202,7 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
 
             <Row gutter={24}>
               <Col span={24}>
-                <Form.Item label="详细描述" name="description">
+                <Form.Item label="详细描述">
                   <div
                     className="category-description-editor"
                     style={{
@@ -212,13 +212,15 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
                       background: token.colorBgContainer,
                     }}
                   >
-                    <ReactQuill
-                      theme="snow"
-                      modules={quillModules}
-                      formats={quillFormats}
-                      placeholder="请输入详细描述..."
-                      style={{ minHeight: 180 }}
-                    />
+                    <Form.Item name="description" noStyle>
+                      <ReactQuill
+                        theme="snow"
+                        modules={quillModules}
+                        formats={quillFormats}
+                        placeholder="请输入详细描述..."
+                        style={{ minHeight: 180 }}
+                      />
+                    </Form.Item>
                   </div>
                 </Form.Item>
               </Col>

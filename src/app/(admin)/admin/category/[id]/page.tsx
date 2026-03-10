@@ -10,9 +10,10 @@ import {
   type MetaCategoryDetailDto,
 } from "@/services/metaCategory";
 import {
-  AppstoreOutlined,
-  PartitionOutlined,
-  TagsOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  StopOutlined,
+  QuestionCircleOutlined,
 } from "@ant-design/icons";
 import { Descriptions } from "antd";
 import AttributeDesigner from "../AttributeDesigner";
@@ -45,12 +46,22 @@ const getChildLevel = (
   return undefined;
 };
 
-const getDefaultIconByLevel = (level?: CategoryTreeNode["level"]) => {
-  if (level === "segment") return <AppstoreOutlined />;
-  if (level === "family" || level === "class" || level === "commodity") {
-    return <PartitionOutlined />;
+const getStatusIcon = (status?: string) => {
+  const normalized = (status || "").toUpperCase();
+
+  if (normalized === "CREATED" || normalized === "DRAFT") {
+    return <ClockCircleOutlined style={{ color: "#faad14" }} />;
   }
-  return <TagsOutlined />;
+
+  if (normalized === "EFFECTIVE" || normalized === "ACTIVE") {
+    return <CheckCircleOutlined style={{ color: "#52c41a" }} />;
+  }
+
+  if (normalized === "INVALID" || normalized === "INACTIVE") {
+    return <StopOutlined style={{ color: "#ff4d4f" }} />;
+  }
+
+  return <QuestionCircleOutlined style={{ color: "#8c8c8c" }} />;
 };
 
 const getLevelByNumber = (level?: number): CategoryTreeNode["level"] => {
@@ -120,7 +131,7 @@ const CategoryManagementPage: React.FC = () => {
 
   const loadSegments = async () => {
     try {
-      const page = await metaCategoryApi.listNodes({ taxonomy: "UNSPSC", level: 1, page: 0, size: 200 });
+      const page = await metaCategoryApi.listNodes({ taxonomy: "UNSPSC", level: 1, status: "ALL", page: 0, size: 200 });
       const nodes: CategoryTreeNode[] = (Array.isArray(page.content) ? page.content : []).map((s) => {
         const ref: CategoryNodeRef = {
           ...s,
@@ -135,7 +146,7 @@ const CategoryManagementPage: React.FC = () => {
           isLeaf: !s.hasChildren,
           dataRef: ref,
           level,
-          icon: getDefaultIconByLevel(level),
+          icon: getStatusIcon(s.status),
         };
       });
       setTreeData(nodes);
@@ -154,6 +165,7 @@ const CategoryManagementPage: React.FC = () => {
       const page = await metaCategoryApi.listNodes({
         taxonomy: "UNSPSC",
         parentId: String(key),
+        status: "ALL",
         page: 0,
         size: 200,
       });
@@ -172,7 +184,7 @@ const CategoryManagementPage: React.FC = () => {
           isLeaf: !c.hasChildren,
           dataRef: ref,
           level: childLevel,
-          icon: getDefaultIconByLevel(childLevel),
+          icon: getStatusIcon(c.status),
         };
       });
 
@@ -303,7 +315,7 @@ const CategoryManagementPage: React.FC = () => {
             },
             level: childLevel,
             isLeaf: childLevel === "commodity" || childLevel === "item",
-            icon: getDefaultIconByLevel(childLevel),
+            icon: getStatusIcon("CREATED"),
           };
 
           setTreeData((origin) =>
@@ -431,7 +443,7 @@ const CategoryManagementPage: React.FC = () => {
         sort: created.sort,
       },
       level,
-      icon: getDefaultIconByLevel(level),
+      icon: getStatusIcon(created.status),
     };
 
     if (!created.parentId) {
