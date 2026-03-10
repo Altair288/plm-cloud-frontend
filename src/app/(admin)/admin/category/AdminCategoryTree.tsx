@@ -254,11 +254,6 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
         items={renderContextMenuItems(contextMenuState.node)}
         onMenuClick={({ key, domEvent }) => {
           domEvent.stopPropagation();
-          if (key === "basic-info") {
-            messageApi.info("分类基本信息功能待实现");
-            setContextMenuState((prev) => ({ ...prev, visible: false }));
-            return;
-          }
           if (key === "add") {
             openCreateModal(contextMenuState.node);
             setContextMenuState((prev) => ({ ...prev, visible: false }));

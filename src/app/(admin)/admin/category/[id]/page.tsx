@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { App, Splitter, Input } from "antd";
+import { App, Splitter, Input, Drawer, Descriptions, Typography, theme } from "antd";
 import type { DataNode, TreeProps } from "antd/es/tree";
 import CategoryTree from "../AdminCategoryTree";
 import {
@@ -15,7 +15,6 @@ import {
   StopOutlined,
   QuestionCircleOutlined,
 } from "@ant-design/icons";
-import { Descriptions } from "antd";
 import AttributeDesigner from "../AttributeDesigner";
 
 import { useParams } from "next/navigation";
@@ -74,6 +73,7 @@ const getLevelByNumber = (level?: number): CategoryTreeNode["level"] => {
 
 const CategoryManagementPage: React.FC = () => {
   const { message: messageApi, modal } = App.useApp();
+  const { token } = theme.useToken();
   const params = useParams();
   const categoryId = params.id as string;
 
@@ -82,6 +82,9 @@ const CategoryManagementPage: React.FC = () => {
     CategoryTreeNode | undefined
   >(undefined);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
+
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [previewNode, setPreviewNode] = useState<CategoryTreeNode | undefined>(undefined);
 
   const [treeData, setTreeData] = useState<CategoryTreeNode[]>([]);
   const [loadedKeys, setLoadedKeys] = useState<React.Key[]>([]);
@@ -265,6 +268,12 @@ const CategoryManagementPage: React.FC = () => {
   };
 
   const handleMenuClick = (key: string, node: CategoryTreeNode) => {
+    if (key === "basic-info") {
+      setPreviewNode(node);
+      setDrawerVisible(true);
+      return;
+    }
+
     if (key === "design") {
       requestCategorySelection(node.key, node);
       return;
@@ -538,25 +547,51 @@ const CategoryManagementPage: React.FC = () => {
           />
         </Splitter.Panel>
         <Splitter.Panel>
-          {selectedNode ? (
-            <AttributeDesigner
-              currentNode={selectedNode.dataRef}
-              onUnsavedStateChange={setAttributeUnsavedState}
-            />
-          ) : (
-            <div
-              style={{
-                height: "100%",
-                padding: "16px",
-                color: "#999",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+          <div style={{ position: "relative", height: "100%", overflow: "hidden" }}>
+            {selectedNode ? (
+              <AttributeDesigner
+                currentNode={selectedNode.dataRef}
+                onUnsavedStateChange={setAttributeUnsavedState}
+              />
+            ) : (
+              <div
+                style={{
+                  height: "100%",
+                  padding: "16px",
+                  color: "#999",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                请选择左侧分类节点
+              </div>
+            )}
+            
+            <Drawer
+              title={previewNode?.dataRef?.name ? `分类详细信息 - ${previewNode.dataRef.name}` : "分类详细信息"}
+              placement="right"
+              closable={true}
+              onClose={() => setDrawerVisible(false)}
+              open={drawerVisible}
+              getContainer={false}
+              style={{ position: 'absolute' }}
+              width="100%"
             >
-              请选择左侧分类节点
-            </div>
-          )}
+              {previewNode?.dataRef ? (
+                <Descriptions column={1} bordered size="small">
+                  <Descriptions.Item label="分类名称">{previewNode.dataRef.name || "-"}</Descriptions.Item>
+                  <Descriptions.Item label="分类编码">{previewNode.dataRef.code || "-"}</Descriptions.Item>
+                  <Descriptions.Item label="系统层级">{previewNode.level || "-"}</Descriptions.Item>
+                  <Descriptions.Item label="状态">{previewNode.dataRef.status || "-"}</Descriptions.Item>
+                  <Descriptions.Item label="创建时间">{previewNode.dataRef.createdAt ? new Date(previewNode.dataRef.createdAt).toLocaleString() : "-"}</Descriptions.Item>
+                  <Descriptions.Item label="分类描述">{(previewNode.dataRef as any).description || "暂无描述"}</Descriptions.Item>
+                </Descriptions>
+              ) : (
+                <div style={{ color: "#999", textAlign: "center", marginTop: 40 }}>请选择节点查看信息</div>
+              )}
+            </Drawer>
+          </div>
         </Splitter.Panel>
       </Splitter>
     </div>
