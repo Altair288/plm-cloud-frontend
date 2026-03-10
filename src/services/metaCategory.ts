@@ -66,21 +66,38 @@ export interface MetaCategoryVersionDto {
   updatedBy?: string;
 }
 
+export interface MetaCategoryVersionHistoryDto {
+  versionNo: number;
+  versionDate: string;
+  name: string;
+  description?: string;
+  updatedBy?: string;
+  latest?: boolean;
+}
+
 export interface MetaCategoryDetailDto {
   id: string;
   code: string;
   businessDomain: string;
   status: string;
   parentId?: string | null;
+  parentCode?: string;
+  parentName?: string;
   rootId?: string;
   rootCode?: string;
+  rootName?: string;
   path?: string;
   level?: number;
   depth?: number;
   sort?: number;
+  description?: string;
   createdBy?: string;
   createdAt?: string;
+  modifiedBy?: string;
+  modifiedAt?: string;
+  version?: number;
   latestVersion?: MetaCategoryVersionDto;
+  historyVersions?: MetaCategoryVersionHistoryDto[];
 }
 
 const CATEGORY_BASE = '/api/meta/categories';
@@ -134,5 +151,9 @@ export const metaCategoryApi = {
         operator: options?.operator || 'admin',
       },
     });
+  },
+
+  getCategoryDetail(id: string): Promise<MetaCategoryDetailDto> {
+    return request.get(`${CATEGORY_BASE}/${encodeURIComponent(id)}`);
   }
 };

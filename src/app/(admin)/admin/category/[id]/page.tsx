@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { App, Splitter, Input, Drawer, Descriptions, Typography, theme } from "antd";
+import { App, Splitter, Input, Drawer, Descriptions, Typography, theme, Spin, Empty, Divider } from "antd";
 import type { DataNode, TreeProps } from "antd/es/tree";
 import CategoryTree from "../AdminCategoryTree";
 import {
@@ -85,6 +85,8 @@ const CategoryManagementPage: React.FC = () => {
 
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [previewNode, setPreviewNode] = useState<CategoryTreeNode | undefined>(undefined);
+  const [previewDetail, setPreviewDetail] = useState<MetaCategoryDetailDto | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const [treeData, setTreeData] = useState<CategoryTreeNode[]>([]);
   const [loadedKeys, setLoadedKeys] = useState<React.Key[]>([]);
@@ -271,6 +273,27 @@ const CategoryManagementPage: React.FC = () => {
     if (key === "basic-info") {
       setPreviewNode(node);
       setDrawerVisible(true);
+      const id = String(node.key);
+      if (id.startsWith("local_")) {
+        setPreviewDetail(null);
+        messageApi.warning("本地临时节点暂无完整详情，请保存后查看");
+        return;
+      }
+
+      setPreviewLoading(true);
+      metaCategoryApi
+        .getCategoryDetail(id)
+        .then((detail) => {
+          setPreviewDetail(detail);
+        })
+        .catch((e) => {
+          console.error(e);
+          setPreviewDetail(null);
+          messageApi.error("加载分类详情失败");
+        })
+        .finally(() => {
+          setPreviewLoading(false);
+        });
       return;
     }
 
@@ -572,21 +595,55 @@ const CategoryManagementPage: React.FC = () => {
               title={previewNode?.dataRef?.name ? `分类详细信息 - ${previewNode.dataRef.name}` : "分类详细信息"}
               placement="right"
               closable={true}
-              onClose={() => setDrawerVisible(false)}
+              onClose={() => {
+                setDrawerVisible(false);
+                setPreviewDetail(null);
+              }}
               open={drawerVisible}
               getContainer={false}
               style={{ position: 'absolute' }}
               width="100%"
             >
-              {previewNode?.dataRef ? (
-                <Descriptions column={1} bordered size="small">
-                  <Descriptions.Item label="分类名称">{previewNode.dataRef.name || "-"}</Descriptions.Item>
-                  <Descriptions.Item label="分类编码">{previewNode.dataRef.code || "-"}</Descriptions.Item>
-                  <Descriptions.Item label="系统层级">{previewNode.level || "-"}</Descriptions.Item>
-                  <Descriptions.Item label="状态">{previewNode.dataRef.status || "-"}</Descriptions.Item>
-                  <Descriptions.Item label="创建时间">{previewNode.dataRef.createdAt ? new Date(previewNode.dataRef.createdAt).toLocaleString() : "-"}</Descriptions.Item>
-                  <Descriptions.Item label="分类描述">{(previewNode.dataRef as any).description || "暂无描述"}</Descriptions.Item>
-                </Descriptions>
+              {previewLoading ? (
+                <div style={{ height: 220, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Spin />
+                </div>
+              ) : previewDetail ? (
+                <>
+                  <Descriptions column={1} bordered size="small">
+                    <Descriptions.Item label="分类编码">{previewDetail.code || "-"}</Descriptions.Item>
+                    <Descriptions.Item label="分类名称">{previewDetail.latestVersion?.name || "-"}</Descriptions.Item>
+                    <Descriptions.Item label="业务领域">{previewDetail.businessDomain || "-"}</Descriptions.Item>
+                    <Descriptions.Item label="分类状态">{previewDetail.status || "-"}</Descriptions.Item>
+                    <Descriptions.Item label="上级分类">{previewDetail.parentCode ? `${previewDetail.parentCode} - ${previewDetail.parentName || ""}` : "-"}</Descriptions.Item>
+                    <Descriptions.Item label="根分类">{previewDetail.rootCode ? `${previewDetail.rootCode} - ${previewDetail.rootName || ""}` : "-"}</Descriptions.Item>
+                    <Descriptions.Item label="详细信息">{previewDetail.description || "暂无描述"}</Descriptions.Item>
+                    <Descriptions.Item label="创建人">{previewDetail.createdBy || "-"}</Descriptions.Item>
+                    <Descriptions.Item label="创建时间">{previewDetail.createdAt ? new Date(previewDetail.createdAt).toLocaleString() : "-"}</Descriptions.Item>
+                    <Descriptions.Item label="修改人">{previewDetail.modifiedBy || "-"}</Descriptions.Item>
+                    <Descriptions.Item label="修改时间">{previewDetail.modifiedAt ? new Date(previewDetail.modifiedAt).toLocaleString() : "-"}</Descriptions.Item>
+                    <Descriptions.Item label="版本">{previewDetail.version ?? "-"}</Descriptions.Item>
+                  </Descriptions>
+
+                  <Divider titlePlacement="start" style={{ marginTop: 20 }}>历史版本信息</Divider>
+                  {previewDetail.historyVersions && previewDetail.historyVersions.length > 0 ? (
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {previewDetail.historyVersions.map((v) => (
+                        <div key={v.versionNo} style={{ padding: 10, border: "1px solid #f0f0f0", borderRadius: 8 }}>
+                          <div style={{ fontWeight: 600 }}>
+                            v{v.versionNo} {v.latest ? "(当前)" : ""}
+                          </div>
+                          <div>名称: {v.name || "-"}</div>
+                          <div>描述: {v.description || "-"}</div>
+                          <div>修改人: {v.updatedBy || "-"}</div>
+                          <div>修改时间: {v.versionDate ? new Date(v.versionDate).toLocaleString() : "-"}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无历史版本" />
+                  )}
+                </>
               ) : (
                 <div style={{ color: "#999", textAlign: "center", marginTop: 40 }}>请选择节点查看信息</div>
               )}
