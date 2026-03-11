@@ -58,6 +58,15 @@ export interface CreateCategoryRequestDto {
   sort?: number;
 }
 
+export interface UpdateCategoryRequestDto {
+  name?: string;
+  businessDomain?: string;
+  parentId?: string | null;
+  status?: 'CREATED' | 'EFFECTIVE' | 'INVALID';
+  description?: string;
+  sort?: number;
+}
+
 export interface MetaCategoryVersionDto {
   versionNo: number;
   versionDate: string;
@@ -155,5 +164,17 @@ export const metaCategoryApi = {
 
   getCategoryDetail(id: string): Promise<MetaCategoryDetailDto> {
     return request.get(`${CATEGORY_BASE}/${encodeURIComponent(id)}`);
+  },
+
+  updateCategory(
+    id: string,
+    data: UpdateCategoryRequestDto,
+    options?: { operator?: string },
+  ): Promise<MetaCategoryDetailDto> {
+    return request.put(`${CATEGORY_BASE}/${encodeURIComponent(id)}`, data, {
+      params: {
+        operator: options?.operator || 'admin',
+      },
+    });
   }
 };

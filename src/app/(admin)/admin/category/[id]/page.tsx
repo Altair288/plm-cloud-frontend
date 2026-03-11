@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { App, Splitter, Input, Drawer, Descriptions, Typography, theme, Spin, Empty, Divider } from "antd";
+import { App, Splitter, Input, Drawer, Descriptions, Typography, theme, Spin, Empty, Divider, Button, Form, Select, Space, Card, Row, Col } from "antd";
 import type { DataNode, TreeProps } from "antd/es/tree";
+import dynamic from "next/dynamic";
 import CategoryTree from "../AdminCategoryTree";
 import {
   metaCategoryApi,
@@ -20,6 +21,40 @@ import { useDictionary } from "@/contexts/DictionaryContext";
 import type { MetaDictionaryEntryDto } from "@/models/dictionary";
 
 import { useParams } from "next/navigation";
+
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
+const EMPTY_QUILL_DELTA_JSON = '{"ops":[{"insert":"\\n"}]}'
+
+const quillModules = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    [{ font: [] }],
+    ["bold", "italic", "underline", "strike"],
+    [{ color: [] }, { background: [] }],
+    [{ list: "ordered" }, { list: "bullet" }],
+    [{ align: [] }],
+    ["blockquote", "code-block"],
+    ["link", "image"],
+    ["clean"],
+  ],
+};
+
+const quillFormats = [
+  "header",
+  "font",
+  "bold",
+  "italic",
+  "underline",
+  "strike",
+  "color",
+  "background",
+  "list",
+  "align",
+  "blockquote",
+  "code-block",
+  "link",
+  "image",
+];
 
 interface CategoryTreeNode extends Omit<DataNode, "children"> {
   children?: CategoryTreeNode[];
@@ -113,6 +148,7 @@ const CategoryManagementPage: React.FC = () => {
   }, [ensureScene]);
 
   const categoryStatusEntries = getEntries("META_CATEGORY_STATUS");
+  const businessDomainEntries = getEntries("META_CATEGORY_BUSINESS_DOMAIN");
 
   const [selectedKey, setSelectedKey] = useState<React.Key>("");
   const [selectedNode, setSelectedNode] = useState<
@@ -124,6 +160,9 @@ const CategoryManagementPage: React.FC = () => {
   const [previewNode, setPreviewNode] = useState<CategoryTreeNode | undefined>(undefined);
   const [previewDetail, setPreviewDetail] = useState<MetaCategoryDetailDto | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewEditing, setPreviewEditing] = useState(false);
+  const [previewSaving, setPreviewSaving] = useState(false);
+  const [previewForm] = Form.useForm();
 
   const [treeData, setTreeData] = useState<CategoryTreeNode[]>([]);
   const [loadedKeys, setLoadedKeys] = useState<React.Key[]>([]);
@@ -306,31 +345,55 @@ const CategoryManagementPage: React.FC = () => {
     }
   };
 
+  const checkPreviewUnsaved = (onConfirm: () => void) => {
+    if (previewEditing && previewForm.isFieldsTouched()) {
+      modal.confirm({
+        title: "放弃修改确认",
+        content: "检测到分类详细信息存在未保存的修改，放弃或离开后将丢失这些内容，是否继续？",
+        okText: "放弃并继续",
+        cancelText: "取消",
+        okType: "danger",
+        onOk: () => {
+          previewForm.resetFields();
+          onConfirm();
+        },
+      });
+    } else {
+      onConfirm();
+    }
+  };
+
   const handleMenuClick = (key: string, node: CategoryTreeNode) => {
     if (key === "basic-info") {
-      setPreviewNode(node);
-      setDrawerVisible(true);
-      const id = String(node.key);
-      if (id.startsWith("local_")) {
-        setPreviewDetail(null);
-        messageApi.warning("本地临时节点暂无完整详情，请保存后查看");
-        return;
-      }
-
-      setPreviewLoading(true);
-      metaCategoryApi
-        .getCategoryDetail(id)
-        .then((detail) => {
-          setPreviewDetail(detail);
-        })
-        .catch((e) => {
-          console.error(e);
+      const loadNodeInfo = () => {
+        setPreviewNode(node);
+        setDrawerVisible(true);
+        const id = String(node.key);
+        if (id.startsWith("local_")) {
           setPreviewDetail(null);
-          messageApi.error("加载分类详情失败");
-        })
-        .finally(() => {
-          setPreviewLoading(false);
-        });
+          messageApi.warning("本地临时节点暂无完整详情，请保存后查看");
+          return;
+        }
+
+        setPreviewLoading(true);
+        metaCategoryApi
+          .getCategoryDetail(id)
+          .then((detail) => {
+            setPreviewDetail(detail);
+            setPreviewEditing(false);
+            previewForm.resetFields();
+          })
+          .catch((e) => {
+            console.error(e);
+            setPreviewDetail(null);
+            messageApi.error("加载分类详情失败");
+          })
+          .finally(() => {
+            setPreviewLoading(false);
+          });
+      };
+
+      checkPreviewUnsaved(loadNodeInfo);
       return;
     }
 
@@ -544,6 +607,82 @@ const CategoryManagementPage: React.FC = () => {
     );
   };
 
+  const handleStartPreviewEdit = () => {
+    if (!previewDetail) return;
+    previewForm.setFieldsValue({
+      name: previewDetail.latestVersion?.name || "",
+      businessDomain: previewDetail.businessDomain,
+      status: resolveStatusSemantic(previewDetail.status, categoryStatusEntries),
+      description: previewDetail.description || EMPTY_QUILL_DELTA_JSON,
+    });
+    setPreviewEditing(true);
+  };
+
+  const handleSavePreviewEdit = async () => {
+    if (!previewDetail) return;
+    const values = await previewForm.validateFields();
+
+    setPreviewSaving(true);
+    try {
+      const updated = await metaCategoryApi.updateCategory(
+        previewDetail.id,
+        {
+          name: values.name,
+          businessDomain: values.businessDomain,
+          parentId: previewDetail.parentId || null,
+          status: values.status,
+          description: values.description || EMPTY_QUILL_DELTA_JSON,
+        },
+        { operator: "admin" },
+      );
+
+      setPreviewDetail(updated);
+      setPreviewEditing(false);
+      previewForm.resetFields();
+
+      setTreeData((origin) =>
+        updateNodeInTree(origin, previewDetail.id, (targetNode) => ({
+          ...targetNode,
+          title: `${updated.code} - ${updated.latestVersion?.name || updated.code}`,
+          icon: getStatusIcon(updated.status, categoryStatusEntries),
+          dataRef: targetNode.dataRef
+            ? {
+                ...targetNode.dataRef,
+                name: updated.latestVersion?.name || targetNode.dataRef.name,
+                status: updated.status,
+              }
+            : targetNode.dataRef,
+        })),
+      );
+
+      if (selectedKey === previewDetail.id) {
+        setSelectedNode((prev) =>
+          prev
+            ? {
+                ...prev,
+                title: `${updated.code} - ${updated.latestVersion?.name || updated.code}`,
+                icon: getStatusIcon(updated.status, categoryStatusEntries),
+                dataRef: prev.dataRef
+                  ? {
+                      ...prev.dataRef,
+                      name: updated.latestVersion?.name || prev.dataRef.name,
+                      status: updated.status,
+                    }
+                  : prev.dataRef,
+              }
+            : prev,
+        );
+      }
+
+      messageApi.success("分类信息已更新");
+    } catch (e: any) {
+      const msg = e?.message || e?.error || "更新分类失败";
+      messageApi.error(msg);
+    } finally {
+      setPreviewSaving(false);
+    }
+  };
+
   if (categoryId !== "2") {
     return (
       <div
@@ -632,9 +771,26 @@ const CategoryManagementPage: React.FC = () => {
               title={previewNode?.dataRef?.name ? `分类详细信息 - ${previewNode.dataRef.name}` : "分类详细信息"}
               placement="right"
               closable={true}
+              extra={
+                previewDetail ? (
+                  previewEditing ? (
+                    <Space>
+                      <Button onClick={() => checkPreviewUnsaved(() => setPreviewEditing(false))}>取消</Button>
+                      <Button type="primary" loading={previewSaving} onClick={handleSavePreviewEdit}>
+                        保存
+                      </Button>
+                    </Space>
+                  ) : (
+                    <Button type="primary" onClick={handleStartPreviewEdit}>编辑</Button>
+                  )
+                ) : null
+              }
               onClose={() => {
-                setDrawerVisible(false);
-                setPreviewDetail(null);
+                checkPreviewUnsaved(() => {
+                  setDrawerVisible(false);
+                  setPreviewDetail(null);
+                  setPreviewEditing(false);
+                });
               }}
               open={drawerVisible}
               getContainer={false}
@@ -647,31 +803,168 @@ const CategoryManagementPage: React.FC = () => {
                 </div>
               ) : previewDetail ? (
                 <>
-                  <Descriptions column={1} bordered size="small">
-                    <Descriptions.Item label="分类编码">{previewDetail.code || "-"}</Descriptions.Item>
-                    <Descriptions.Item label="分类名称">{previewDetail.latestVersion?.name || "-"}</Descriptions.Item>
-                    <Descriptions.Item label="业务领域">
-                      {getLabel("META_CATEGORY_BUSINESS_DOMAIN", previewDetail.businessDomain, {
-                        fallback: previewDetail.businessDomain || "-",
-                      })}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="分类状态">
-                      {getLabel("META_CATEGORY_STATUS", previewDetail.status, {
-                        matchDbValue: true,
-                        fallback: previewDetail.status || "-",
-                      })}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="上级分类">{previewDetail.parentCode ? `${previewDetail.parentCode} - ${previewDetail.parentName || ""}` : "-"}</Descriptions.Item>
-                    <Descriptions.Item label="根分类">{previewDetail.rootCode ? `${previewDetail.rootCode} - ${previewDetail.rootName || ""}` : "-"}</Descriptions.Item>
-                    <Descriptions.Item label="详细信息">
-                      {deltaJsonToPlainText(previewDetail.description) || "暂无描述"}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="创建人">{previewDetail.createdBy || "-"}</Descriptions.Item>
-                    <Descriptions.Item label="创建时间">{previewDetail.createdAt ? new Date(previewDetail.createdAt).toLocaleString() : "-"}</Descriptions.Item>
-                    <Descriptions.Item label="修改人">{previewDetail.modifiedBy || "-"}</Descriptions.Item>
-                    <Descriptions.Item label="修改时间">{previewDetail.modifiedAt ? new Date(previewDetail.modifiedAt).toLocaleString() : "-"}</Descriptions.Item>
-                    <Descriptions.Item label="版本">{previewDetail.version ?? "-"}</Descriptions.Item>
-                  </Descriptions>
+                  {previewEditing ? (
+                    <Form form={previewForm} layout="vertical">
+                      <Card 
+                        size="small" 
+                        bordered={false} 
+                        style={{ 
+                          borderRadius: token.borderRadiusLG,
+                          backgroundColor: token.colorFillAlter,
+                          marginBottom: 16
+                        }}
+                      >
+                        <Row gutter={24}>
+                          <Col span={12}>
+                            <Form.Item label="分类编码">
+                              <Input 
+                                value={previewDetail.code} 
+                                readOnly 
+                                style={{ 
+                                  color: token.colorTextDisabled, 
+                                  backgroundColor: token.colorBgContainerDisabled, 
+                                  cursor: 'not-allowed' 
+                                }} 
+                              />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item label="分类名称" name="name" rules={[{ required: true, message: "请输入分类名称" }]}>
+                              <Input placeholder="请输入分类名称" />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+
+                        <Row gutter={24}>
+                          <Col span={12}>
+                            <Form.Item label="业务领域" name="businessDomain" rules={[{ required: true, message: "请选择业务领域" }]}>
+                              <Select placeholder="请选择业务领域">
+                                {businessDomainEntries.map((entry) => (
+                                  <Select.Option key={entry.value} value={entry.value}>
+                                    {entry.label} ({entry.value})
+                                  </Select.Option>
+                                ))}
+                              </Select>
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item label="上级分类">
+                              <Input 
+                                value={previewDetail.parentCode ? `${previewDetail.parentCode} - ${previewDetail.parentName || ""}` : "-"} 
+                                readOnly 
+                                style={{ 
+                                  color: token.colorTextDisabled, 
+                                  backgroundColor: token.colorBgContainerDisabled, 
+                                  cursor: 'not-allowed' 
+                                }} 
+                              />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+
+                        <Row gutter={24}>
+                          <Col span={12}>
+                            <Form.Item label="分类状态" name="status" rules={[{ required: true, message: "请选择分类状态" }]}>
+                              <Select placeholder="请选择分类状态">
+                                {categoryStatusEntries
+                                  .filter((entry) => ["CREATED", "EFFECTIVE", "INVALID"].includes(String(entry.value).toUpperCase()))
+                                  .map((entry) => (
+                                    <Select.Option key={entry.value} value={entry.value}>
+                                      {entry.label}
+                                    </Select.Option>
+                                  ))}
+                              </Select>
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item label="根分类">
+                              <Input 
+                                value={previewDetail.rootCode ? `${previewDetail.rootCode} - ${previewDetail.rootName || ""}` : "-"} 
+                                readOnly 
+                                style={{ 
+                                  color: token.colorTextDisabled, 
+                                  backgroundColor: token.colorBgContainerDisabled, 
+                                  cursor: 'not-allowed' 
+                                }} 
+                              />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+
+                        <Row gutter={24}>
+                          <Col span={24}>
+                            <Form.Item label="详细信息">
+                              <div
+                                className="category-description-editor"
+                                style={{
+                                  border: `1px solid ${token.colorBorder}`,
+                                  borderRadius: token.borderRadius,
+                                  overflow: "hidden",
+                                  background: token.colorBgContainer,
+                                }}
+                              >
+                                <Form.Item
+                                  name="description"
+                                  noStyle
+                                  trigger="onChange"
+                                  getValueFromEvent={(_content, _delta, _source, editor) => {
+                                    if (!editor || typeof editor.getContents !== "function") {
+                                      return EMPTY_QUILL_DELTA_JSON;
+                                    }
+                                    return JSON.stringify(editor.getContents());
+                                  }}
+                                  getValueProps={(value) => {
+                                    if (!value || typeof value !== "string") {
+                                      return { value: undefined };
+                                    }
+                                    try {
+                                      return { value: JSON.parse(value) };
+                                    } catch {
+                                      return { value: undefined };
+                                    }
+                                  }}
+                                >
+                                  <ReactQuill
+                                    theme="snow"
+                                    modules={quillModules}
+                                    formats={quillFormats}
+                                    placeholder="请输入详细信息"
+                                    style={{ minHeight: 180 }}
+                                  />
+                                </Form.Item>
+                              </div>
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                      </Card>
+                    </Form>
+                  ) : (
+                    <Descriptions column={1} bordered size="small">
+                      <Descriptions.Item label="分类编码">{previewDetail.code || "-"}</Descriptions.Item>
+                      <Descriptions.Item label="分类名称">{previewDetail.latestVersion?.name || "-"}</Descriptions.Item>
+                      <Descriptions.Item label="业务领域">
+                        {getLabel("META_CATEGORY_BUSINESS_DOMAIN", previewDetail.businessDomain, {
+                          fallback: previewDetail.businessDomain || "-",
+                        })}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="分类状态">
+                        {getLabel("META_CATEGORY_STATUS", previewDetail.status, {
+                          matchDbValue: true,
+                          fallback: previewDetail.status || "-",
+                        })}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="上级分类">{previewDetail.parentCode ? `${previewDetail.parentCode} - ${previewDetail.parentName || ""}` : "-"}</Descriptions.Item>
+                      <Descriptions.Item label="根分类">{previewDetail.rootCode ? `${previewDetail.rootCode} - ${previewDetail.rootName || ""}` : "-"}</Descriptions.Item>
+                      <Descriptions.Item label="详细信息">
+                        {deltaJsonToPlainText(previewDetail.description) || "暂无描述"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="创建人">{previewDetail.createdBy || "-"}</Descriptions.Item>
+                      <Descriptions.Item label="创建时间">{previewDetail.createdAt ? new Date(previewDetail.createdAt).toLocaleString() : "-"}</Descriptions.Item>
+                      <Descriptions.Item label="修改人">{previewDetail.modifiedBy || "-"}</Descriptions.Item>
+                      <Descriptions.Item label="修改时间">{previewDetail.modifiedAt ? new Date(previewDetail.modifiedAt).toLocaleString() : "-"}</Descriptions.Item>
+                      <Descriptions.Item label="版本">{previewDetail.version ?? "-"}</Descriptions.Item>
+                    </Descriptions>
+                  )}
 
                   <Divider titlePlacement="start" style={{ marginTop: 20 }}>历史版本信息</Divider>
                   {previewDetail.historyVersions && previewDetail.historyVersions.length > 0 ? (
