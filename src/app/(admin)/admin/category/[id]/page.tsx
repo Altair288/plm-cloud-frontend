@@ -979,7 +979,7 @@ const CategoryManagementPage: React.FC = () => {
                     {
                       key: 'version',
                       label: '版本信息',
-                      children: <VersionGraph versions={(previewDetail as any).historyVersions || []} />
+                      children: <VersionGraph categoryId={previewDetail.id} versions={(previewDetail as any).historyVersions || []} />
                     }
                   ]}
                 />

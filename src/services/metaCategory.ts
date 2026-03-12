@@ -64,12 +64,40 @@ export interface MetaCategoryVersionDto {
 }
 
 export interface MetaCategoryVersionHistoryDto {
+  versionId?: string;
   versionNo: number;
   versionDate: string;
   name: string;
   description?: string;
   updatedBy?: string;
   latest?: boolean;
+}
+
+export interface MetaCategoryVersionSnapshotDto {
+  versionId: string;
+  versionNo: number;
+  versionDate: string;
+  name?: string;
+  description?: string;
+  updatedBy?: string;
+}
+
+export interface MetaCategoryVersionCompareDiffDto {
+  sameVersion?: boolean;
+  nameChanged?: boolean;
+  descriptionChanged?: boolean;
+  structureChanged?: boolean;
+  structureChangedPaths?: string[];
+  changedFields?: string[];
+}
+
+export interface MetaCategoryVersionCompareDto {
+  categoryId: string;
+  categoryCode: string;
+  businessDomain: string;
+  baseVersion: MetaCategoryVersionSnapshotDto;
+  targetVersion: MetaCategoryVersionSnapshotDto;
+  diff: MetaCategoryVersionCompareDiffDto;
 }
 
 export interface MetaCategoryDetailDto {
@@ -157,6 +185,19 @@ export const metaCategoryApi = {
     return request.put(`${CATEGORY_BASE}/${encodeURIComponent(id)}`, data, {
       params: {
         operator: options?.operator || 'admin',
+      },
+    });
+  },
+
+  compareCategoryVersions(
+    id: string,
+    baseVersionId: string,
+    targetVersionId: string,
+  ): Promise<MetaCategoryVersionCompareDto> {
+    return request.get(`${CATEGORY_BASE}/${encodeURIComponent(id)}/versions/compare`, {
+      params: {
+        baseVersionId,
+        targetVersionId,
       },
     });
   }
