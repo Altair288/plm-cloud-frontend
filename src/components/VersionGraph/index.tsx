@@ -387,7 +387,7 @@ const VersionGraph: React.FC<VersionGraphProps> = ({ categoryId, versions = [] }
         }}
         footer={null}
         width={960}
-        destroyOnClose
+        destroyOnHidden
       >
         <Space orientation="vertical" style={{ width: '100%', marginTop: 16 }}>
           <Divider style={{ margin: '0 0 12px 0' }}>差异内容（Git Diff 视图）</Divider>
