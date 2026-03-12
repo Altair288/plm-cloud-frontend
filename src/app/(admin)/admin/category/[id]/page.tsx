@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { App, Splitter, Input, Drawer, Descriptions, Typography, theme, Spin, Empty, Divider, Button, Form, Select, Space, Card, Row, Col } from "antd";
+import { App, Splitter, Input, Drawer, Descriptions, Typography, theme, Spin, Empty, Divider, Button, Form, Select, Space, Card, Row, Col, Tabs } from "antd";
 import type { DataNode, TreeProps } from "antd/es/tree";
 import dynamic from "next/dynamic";
 import CategoryTree from "../AdminCategoryTree";
+import VersionGraph from "@/components/VersionGraph";
 import {
   metaCategoryApi,
   MetaCategoryNodeDto,
@@ -802,189 +803,186 @@ const CategoryManagementPage: React.FC = () => {
                   <Spin />
                 </div>
               ) : previewDetail ? (
-                <>
-                  {previewEditing ? (
-                    <Form form={previewForm} layout="vertical">
-                      <Card 
-                        size="small" 
-                        bordered={false} 
-                        style={{ 
-                          borderRadius: token.borderRadiusLG,
-                          backgroundColor: token.colorFillAlter,
-                          marginBottom: 16
-                        }}
-                      >
-                        <Row gutter={24}>
-                          <Col span={12}>
-                            <Form.Item label="分类编码">
-                              <Input 
-                                value={previewDetail.code} 
-                                readOnly 
+                <Tabs
+                  defaultActiveKey="basic"
+                  items={[
+                    {
+                      key: 'basic',
+                      label: '基本信息',
+                      children: (
+                        <>
+                          {previewEditing ? (
+                            <Form form={previewForm} layout="vertical">
+                              <Card 
+                                size="small" 
+                                variant="outlined" 
                                 style={{ 
-                                  color: token.colorTextDisabled, 
-                                  backgroundColor: token.colorBgContainerDisabled, 
-                                  cursor: 'not-allowed' 
-                                }} 
-                              />
-                            </Form.Item>
-                          </Col>
-                          <Col span={12}>
-                            <Form.Item label="分类名称" name="name" rules={[{ required: true, message: "请输入分类名称" }]}>
-                              <Input placeholder="请输入分类名称" />
-                            </Form.Item>
-                          </Col>
-                        </Row>
-
-                        <Row gutter={24}>
-                          <Col span={12}>
-                            <Form.Item label="业务领域" name="businessDomain" rules={[{ required: true, message: "请选择业务领域" }]}>
-                              <Select placeholder="请选择业务领域">
-                                {businessDomainEntries.map((entry) => (
-                                  <Select.Option key={entry.value} value={entry.value}>
-                                    {entry.label} ({entry.value})
-                                  </Select.Option>
-                                ))}
-                              </Select>
-                            </Form.Item>
-                          </Col>
-                          <Col span={12}>
-                            <Form.Item label="上级分类">
-                              <Input 
-                                value={previewDetail.parentCode ? `${previewDetail.parentCode} - ${previewDetail.parentName || ""}` : "-"} 
-                                readOnly 
-                                style={{ 
-                                  color: token.colorTextDisabled, 
-                                  backgroundColor: token.colorBgContainerDisabled, 
-                                  cursor: 'not-allowed' 
-                                }} 
-                              />
-                            </Form.Item>
-                          </Col>
-                        </Row>
-
-                        <Row gutter={24}>
-                          <Col span={12}>
-                            <Form.Item label="分类状态" name="status" rules={[{ required: true, message: "请选择分类状态" }]}>
-                              <Select placeholder="请选择分类状态">
-                                {categoryStatusEntries
-                                  .filter((entry) => ["CREATED", "EFFECTIVE", "INVALID"].includes(String(entry.value).toUpperCase()))
-                                  .map((entry) => (
-                                    <Select.Option key={entry.value} value={entry.value}>
-                                      {entry.label}
-                                    </Select.Option>
-                                  ))}
-                              </Select>
-                            </Form.Item>
-                          </Col>
-                          <Col span={12}>
-                            <Form.Item label="根分类">
-                              <Input 
-                                value={previewDetail.rootCode ? `${previewDetail.rootCode} - ${previewDetail.rootName || ""}` : "-"} 
-                                readOnly 
-                                style={{ 
-                                  color: token.colorTextDisabled, 
-                                  backgroundColor: token.colorBgContainerDisabled, 
-                                  cursor: 'not-allowed' 
-                                }} 
-                              />
-                            </Form.Item>
-                          </Col>
-                        </Row>
-
-                        <Row gutter={24}>
-                          <Col span={24}>
-                            <Form.Item label="详细信息">
-                              <div
-                                className="category-description-editor"
-                                style={{
-                                  border: `1px solid ${token.colorBorder}`,
-                                  borderRadius: token.borderRadius,
-                                  overflow: "hidden",
-                                  background: token.colorBgContainer,
+                                  borderRadius: token.borderRadiusLG,
+                                  backgroundColor: token.colorFillAlter,
+                                  marginBottom: 16
                                 }}
                               >
-                                <Form.Item
-                                  name="description"
-                                  noStyle
-                                  trigger="onChange"
-                                  getValueFromEvent={(_content, _delta, _source, editor) => {
-                                    if (!editor || typeof editor.getContents !== "function") {
-                                      return EMPTY_QUILL_DELTA_JSON;
-                                    }
-                                    return JSON.stringify(editor.getContents());
-                                  }}
-                                  getValueProps={(value) => {
-                                    if (!value || typeof value !== "string") {
-                                      return { value: undefined };
-                                    }
-                                    try {
-                                      return { value: JSON.parse(value) };
-                                    } catch {
-                                      return { value: undefined };
-                                    }
-                                  }}
-                                >
-                                  <ReactQuill
-                                    theme="snow"
-                                    modules={quillModules}
-                                    formats={quillFormats}
-                                    placeholder="请输入详细信息"
-                                    style={{ minHeight: 180 }}
-                                  />
-                                </Form.Item>
-                              </div>
-                            </Form.Item>
-                          </Col>
-                        </Row>
-                      </Card>
-                    </Form>
-                  ) : (
-                    <Descriptions column={1} bordered size="small">
-                      <Descriptions.Item label="分类编码">{previewDetail.code || "-"}</Descriptions.Item>
-                      <Descriptions.Item label="分类名称">{previewDetail.latestVersion?.name || "-"}</Descriptions.Item>
-                      <Descriptions.Item label="业务领域">
-                        {getLabel("META_CATEGORY_BUSINESS_DOMAIN", previewDetail.businessDomain, {
-                          fallback: previewDetail.businessDomain || "-",
-                        })}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="分类状态">
-                        {getLabel("META_CATEGORY_STATUS", previewDetail.status, {
-                          matchDbValue: true,
-                          fallback: previewDetail.status || "-",
-                        })}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="上级分类">{previewDetail.parentCode ? `${previewDetail.parentCode} - ${previewDetail.parentName || ""}` : "-"}</Descriptions.Item>
-                      <Descriptions.Item label="根分类">{previewDetail.rootCode ? `${previewDetail.rootCode} - ${previewDetail.rootName || ""}` : "-"}</Descriptions.Item>
-                      <Descriptions.Item label="详细信息">
-                        {deltaJsonToPlainText(previewDetail.description) || "暂无描述"}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="创建人">{previewDetail.createdBy || "-"}</Descriptions.Item>
-                      <Descriptions.Item label="创建时间">{previewDetail.createdAt ? new Date(previewDetail.createdAt).toLocaleString() : "-"}</Descriptions.Item>
-                      <Descriptions.Item label="修改人">{previewDetail.modifiedBy || "-"}</Descriptions.Item>
-                      <Descriptions.Item label="修改时间">{previewDetail.modifiedAt ? new Date(previewDetail.modifiedAt).toLocaleString() : "-"}</Descriptions.Item>
-                      <Descriptions.Item label="版本">{previewDetail.version ?? "-"}</Descriptions.Item>
-                    </Descriptions>
-                  )}
+                                <Row gutter={24}>
+                                  <Col span={12}>
+                                    <Form.Item label="分类编码">
+                                      <Input 
+                                        value={previewDetail.code} 
+                                        readOnly 
+                                        style={{ 
+                                          color: token.colorTextDisabled, 
+                                          backgroundColor: token.colorBgContainerDisabled, 
+                                          cursor: 'not-allowed' 
+                                        }} 
+                                      />
+                                    </Form.Item>
+                                  </Col>
+                                  <Col span={12}>
+                                    <Form.Item label="分类名称" name="name" rules={[{ required: true, message: "请输入分类名称" }]}>
+                                      <Input placeholder="请输入分类名称" />
+                                    </Form.Item>
+                                  </Col>
+                                </Row>
 
-                  <Divider titlePlacement="start" style={{ marginTop: 20 }}>历史版本信息</Divider>
-                  {previewDetail.historyVersions && previewDetail.historyVersions.length > 0 ? (
-                    <div style={{ display: "grid", gap: 8 }}>
-                      {previewDetail.historyVersions.map((v) => (
-                        <div key={v.versionNo} style={{ padding: 10, border: "1px solid #f0f0f0", borderRadius: 8 }}>
-                          <div style={{ fontWeight: 600 }}>
-                            v{v.versionNo} {v.latest ? "(当前)" : ""}
-                          </div>
-                          <div>名称: {v.name || "-"}</div>
-                          <div>描述: {deltaJsonToPlainText(v.description) || "-"}</div>
-                          <div>修改人: {v.updatedBy || "-"}</div>
-                          <div>修改时间: {v.versionDate ? new Date(v.versionDate).toLocaleString() : "-"}</div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无历史版本" />
-                  )}
-                </>
+                                <Row gutter={24}>
+                                  <Col span={12}>
+                                    <Form.Item label="业务领域" name="businessDomain" rules={[{ required: true, message: "请选择业务领域" }]}>
+                                      <Select placeholder="请选择业务领域">
+                                        {businessDomainEntries.map((entry) => (
+                                          <Select.Option key={entry.value} value={entry.value}>
+                                            {entry.label} ({entry.value})
+                                          </Select.Option>
+                                        ))}
+                                      </Select>
+                                    </Form.Item>
+                                  </Col>
+                                  <Col span={12}>
+                                    <Form.Item label="上级分类">
+                                      <Input 
+                                        value={previewDetail.parentCode ? `${previewDetail.parentCode} - ${previewDetail.parentName || ""}` : "-"} 
+                                        readOnly 
+                                        style={{ 
+                                          color: token.colorTextDisabled, 
+                                          backgroundColor: token.colorBgContainerDisabled, 
+                                          cursor: 'not-allowed' 
+                                        }} 
+                                      />
+                                    </Form.Item>
+                                  </Col>
+                                </Row>
+
+                                <Row gutter={24}>
+                                  <Col span={12}>
+                                    <Form.Item label="分类状态" name="status" rules={[{ required: true, message: "请选择分类状态" }]}>
+                                      <Select placeholder="请选择分类状态">
+                                        {categoryStatusEntries
+                                          .filter((entry) => ["CREATED", "EFFECTIVE", "INVALID"].includes(String(entry.value).toUpperCase()))
+                                          .map((entry) => (
+                                            <Select.Option key={entry.value} value={entry.value}>
+                                              {entry.label}
+                                            </Select.Option>
+                                          ))}
+                                      </Select>
+                                    </Form.Item>
+                                  </Col>
+                                  <Col span={12}>
+                                    <Form.Item label="根分类">
+                                      <Input 
+                                        value={previewDetail.rootCode ? `${previewDetail.rootCode} - ${previewDetail.rootName || ""}` : "-"} 
+                                        readOnly 
+                                        style={{ 
+                                          color: token.colorTextDisabled, 
+                                          backgroundColor: token.colorBgContainerDisabled, 
+                                          cursor: 'not-allowed' 
+                                        }} 
+                                      />
+                                    </Form.Item>
+                                  </Col>
+                                </Row>
+
+                                <Row gutter={24}>
+                                  <Col span={24}>
+                                    <Form.Item label="详细信息">
+                                      <div
+                                        className="category-description-editor"
+                                        style={{
+                                          border: `1px solid ${token.colorBorder}`,
+                                          borderRadius: token.borderRadius,
+                                          overflow: "hidden",
+                                          background: token.colorBgContainer,
+                                        }}
+                                      >
+                                        <Form.Item
+                                          name="description"
+                                          noStyle
+                                          trigger="onChange"
+                                          getValueFromEvent={(_content, _delta, _source, editor) => {
+                                            if (!editor || typeof editor.getContents !== "function") {
+                                              return EMPTY_QUILL_DELTA_JSON;
+                                            }
+                                            return JSON.stringify(editor.getContents());
+                                          }}
+                                          getValueProps={(value) => {
+                                            if (!value || typeof value !== "string") {
+                                              return { value: undefined };
+                                            }
+                                            try {
+                                              return { value: JSON.parse(value) };
+                                            } catch {
+                                              return { value: undefined };
+                                            }
+                                          }}
+                                        >
+                                          <ReactQuill
+                                            theme="snow"
+                                            modules={quillModules}
+                                            formats={quillFormats}
+                                            placeholder="请输入详细信息"
+                                            style={{ minHeight: 180 }}
+                                          />
+                                        </Form.Item>
+                                      </div>
+                                    </Form.Item>
+                                  </Col>
+                                </Row>
+                              </Card>
+                            </Form>
+                          ) : (
+                            <Descriptions column={1} bordered size="small">
+                              <Descriptions.Item label="分类编码">{previewDetail.code || "-"}</Descriptions.Item>
+                              <Descriptions.Item label="分类名称">{previewDetail.latestVersion?.name || "-"}</Descriptions.Item>
+                              <Descriptions.Item label="业务领域">
+                                {getLabel("META_CATEGORY_BUSINESS_DOMAIN", previewDetail.businessDomain, {
+                                  fallback: previewDetail.businessDomain || "-",
+                                })}
+                              </Descriptions.Item>
+                              <Descriptions.Item label="分类状态">
+                                {getLabel("META_CATEGORY_STATUS", previewDetail.status, {
+                                  matchDbValue: true,
+                                  fallback: previewDetail.status || "-",
+                                })}
+                              </Descriptions.Item>
+                              <Descriptions.Item label="上级分类">{previewDetail.parentCode ? `${previewDetail.parentCode} - ${previewDetail.parentName || ""}` : "-"}</Descriptions.Item>
+                              <Descriptions.Item label="根分类">{previewDetail.rootCode ? `${previewDetail.rootCode} - ${previewDetail.rootName || ""}` : "-"}</Descriptions.Item>
+                              <Descriptions.Item label="详细信息">
+                                {deltaJsonToPlainText(previewDetail.description) || "暂无描述"}
+                              </Descriptions.Item>
+                              <Descriptions.Item label="创建人">{previewDetail.createdBy || "-"}</Descriptions.Item>
+                              <Descriptions.Item label="创建时间">{previewDetail.createdAt ? new Date(previewDetail.createdAt).toLocaleString() : "-"}</Descriptions.Item>
+                              <Descriptions.Item label="修改人">{previewDetail.modifiedBy || "-"}</Descriptions.Item>
+                              <Descriptions.Item label="修改时间">{previewDetail.modifiedAt ? new Date(previewDetail.modifiedAt).toLocaleString() : "-"}</Descriptions.Item>
+                              <Descriptions.Item label="版本">{previewDetail.version ?? "-"}</Descriptions.Item>
+                            </Descriptions>
+                          )}
+                        </>
+                      )
+                    },
+                    {
+                      key: 'version',
+                      label: '版本信息',
+                      children: <VersionGraph versions={(previewDetail as any).historyVersions || []} />
+                    }
+                  ]}
+                />
               ) : (
                 <div style={{ color: "#999", textAlign: "center", marginTop: 40 }}>请选择节点查看信息</div>
               )}
