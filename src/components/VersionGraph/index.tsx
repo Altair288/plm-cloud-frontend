@@ -350,9 +350,9 @@ const VersionGraph: React.FC<VersionGraphProps> = ({ categoryId, versions = [] }
   return (
     <div
       style={{
-        height: 400,
+        height: 700,
         width: "100%",
-        border: "1px solid #f0f0f0",
+        border: "1px solid #ebebeb",
         borderRadius: 8,
       }}
     >

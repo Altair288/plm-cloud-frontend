@@ -1,28 +1,37 @@
 import React, { useRef, useEffect, useState } from "react";
-import { App, Button, theme } from "antd";
+import { App, Button, Dropdown, Input, Tooltip, theme } from "antd";
 import type { MenuProps } from "antd";
 import type { DataNode, TreeProps } from "antd/es/tree";
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
+  CopyOutlined,
+  CheckOutlined,
+  SearchOutlined,
+  CloseOutlined,
+  ImportOutlined,
+  ExportOutlined,
+  MoreOutlined,
   SettingOutlined,
   InfoCircleOutlined,
   SwapOutlined,
 } from "@ant-design/icons";
 import CategoryTree, {
+  CategoryTreeToolbarState,
   CategoryTreeProps,
 } from "@/features/category/CategoryTree";
+import {
+  TOOLBAR_ACTIONS_EXPANDED_WIDTH,
+  TOOLBAR_CONTROL_GAP,
+  TOOLBAR_SEARCH_CLOSE_BUTTON_SIZE,
+  TOOLBAR_SEARCH_EXPANDED_WIDTH,
+  createCircleButtonStyle,
+  createToolbarPillStyle,
+} from "./components/toolbarStyles";
 import FloatingContextMenu from "@/components/ContextMenu/FloatingContextMenu";
 import CreateCategoryModal from "./components/CreateCategoryModal";
 import { metaCategoryApi, type MetaCategoryDetailDto } from "@/services/metaCategory";
-import {
-  AddCircleOutline,
-  DeleteOutline,
-  ContentCopy,
-  FileUploadOutlined,
-  FileDownloadOutlined,
-} from "@mui/icons-material";
 import { semanticStatusColors } from "@/styles/colors";
 
 interface AdminCategoryTreeProps extends CategoryTreeProps {
@@ -49,9 +58,184 @@ const normalizeCategoryStatus = (status?: string): CategorySemanticStatus => {
 };
 
 const statusActionLabel: Record<CategorySemanticStatus, string> = {
-  CREATED: "转草稿",
+  CREATED: "转创建",
   EFFECTIVE: "转生效",
   INVALID: "转失效",
+};
+
+/* ── Toolbar 子组件：状态驱动按钮区 ── */
+interface ToolbarActionsProps {
+  token: ReturnType<typeof theme.useToken>["token"];
+  searchPlaceholder?: string;
+  showCheckableToggle?: boolean;
+  hasCheckedNodes: boolean;
+  onAdd: () => void;
+  onDelete: () => void;
+  onCopy: () => void;
+  toolbarState: CategoryTreeToolbarState;
+}
+
+const ToolbarActions: React.FC<ToolbarActionsProps> = ({
+  token,
+  searchPlaceholder,
+  showCheckableToggle,
+  hasCheckedNodes,
+  onAdd,
+  onDelete,
+  onCopy,
+  toolbarState,
+}) => {
+  const moreMenuItems: MenuProps["items"] = [
+    { key: "import", label: "导入", icon: <ImportOutlined /> },
+    { key: "export", label: "导出", icon: <ExportOutlined /> },
+  ];
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+        width: "100%",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: TOOLBAR_CONTROL_GAP,
+          flexShrink: 0,
+        }}
+      >
+        <Tooltip title="新增子分类" mouseEnterDelay={0.4}>
+          <Button
+            type="default"
+            size="small"
+            icon={<PlusOutlined />}
+            style={createCircleButtonStyle(token, "primary")}
+            onClick={onAdd}
+          />
+        </Tooltip>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            overflow: "hidden",
+            maxWidth: hasCheckedNodes ? TOOLBAR_ACTIONS_EXPANDED_WIDTH : 0,
+            opacity: hasCheckedNodes ? 1 : 0,
+            transition: "max-width 0.25s ease, opacity 0.2s ease",
+            gap: TOOLBAR_CONTROL_GAP,
+          }}
+        >
+          <Tooltip title="删除" mouseEnterDelay={0.4}>
+            <Button
+              type="default"
+              size="small"
+              icon={<DeleteOutlined />}
+              style={createCircleButtonStyle(token, "danger")}
+              onClick={onDelete}
+            />
+          </Tooltip>
+          <Tooltip title="复制" mouseEnterDelay={0.4}>
+            <Button
+              type="default"
+              size="small"
+              icon={<CopyOutlined />}
+              style={createCircleButtonStyle(token, "neutral")}
+              onClick={onCopy}
+            />
+          </Tooltip>
+        </div>
+
+        <Dropdown menu={{ items: moreMenuItems }} trigger={["click"]}>
+          <Tooltip title="更多操作" mouseEnterDelay={0.4}>
+            <Button
+              type="default"
+              size="small"
+              icon={<MoreOutlined />}
+              style={createCircleButtonStyle(token, "neutral")}
+            />
+          </Tooltip>
+        </Dropdown>
+      </div>
+
+      <div
+        style={{
+          marginLeft: "auto",
+          display: "flex",
+          alignItems: "center",
+          gap: TOOLBAR_CONTROL_GAP,
+          flexShrink: 0,
+        }}
+      >
+        <div
+          style={createToolbarPillStyle(token, toolbarState.searchExpanded || !!toolbarState.searchValue)}
+        >
+          {(toolbarState.searchExpanded || toolbarState.searchValue) && (
+            <SearchOutlined style={{ color: token.colorTextTertiary, fontSize: 13 }} />
+          )}
+          <div
+            style={{
+              width: toolbarState.searchExpanded || toolbarState.searchValue ? TOOLBAR_SEARCH_EXPANDED_WIDTH : 0,
+              opacity: toolbarState.searchExpanded || toolbarState.searchValue ? 1 : 0,
+              transition: "width 0.2s ease, opacity 0.2s ease",
+              overflow: "hidden",
+            }}
+          >
+            <Input
+              size="small"
+              variant="borderless"
+              placeholder={searchPlaceholder || "搜索分类"}
+              value={toolbarState.searchValue}
+              onChange={toolbarState.onSearchChange}
+              onBlur={() => {
+                if (!toolbarState.searchValue) {
+                  toolbarState.onSearchVisibilityChange(false);
+                }
+              }}
+              style={{ paddingInline: 0, background: "transparent" }}
+            />
+          </div>
+          <Button
+            size="small"
+            type="default"
+            icon={toolbarState.searchExpanded || toolbarState.searchValue ? <CloseOutlined /> : <SearchOutlined />}
+            aria-label="切换搜索"
+            onClick={() => {
+              if (toolbarState.searchExpanded || toolbarState.searchValue) {
+                toolbarState.onSearchClear();
+                return;
+              }
+              toolbarState.onSearchVisibilityChange(true);
+            }}
+            style={createCircleButtonStyle(
+              token,
+              toolbarState.searchExpanded || !!toolbarState.searchValue ? "primary" : "neutral",
+              toolbarState.searchExpanded || !!toolbarState.searchValue
+                ? TOOLBAR_SEARCH_CLOSE_BUTTON_SIZE
+                : undefined,
+            )}
+          />
+        </div>
+
+        {showCheckableToggle && (
+          <Button
+            size="small"
+            type="default"
+            icon={<CheckOutlined />}
+            aria-label="切换复选框"
+            onClick={toolbarState.onCheckableToggle}
+            style={createCircleButtonStyle(
+              token,
+              toolbarState.checkableEnabled ? "primary" : "neutral",
+            )}
+          />
+        )}
+      </div>
+    </div>
+  );
 };
 
 const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
@@ -236,58 +420,50 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
       });
   };
 
+  const resolveSingleCheckedNode = (checkedKeys: React.Key[]) => {
+    if (checkedKeys.length === 0) return null;
+    if (checkedKeys.length > 1) {
+      messageApi.info("当前批量操作尚未接入，请先只勾选一个分类");
+      return null;
+    }
+    return findNodeByKey(props.treeData, checkedKeys[0]);
+  };
+
   return (
     <>
       <CategoryTree
         ref={containerRef}
         {...props}
         onRightClick={handleRightClick}
-        toolbarRender={
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              flexShrink: 0,
-            }}
-          >
-            <Button
-              type="text"
-              size="small"
-              icon={<AddCircleOutline fontSize="small" />}
-              style={{ color: token.colorPrimary }}
-              onClick={() => {
+        toolbarRender={(toolbarState: CategoryTreeToolbarState) => {
+          const { checkableEnabled, checkedKeys } = toolbarState;
+          const hasCheckedNodes = checkableEnabled && checkedKeys.length > 0;
+
+          return (
+            <ToolbarActions
+              token={token}
+              searchPlaceholder={props.searchPlaceholder}
+              showCheckableToggle={props.showCheckableToggle !== false}
+              hasCheckedNodes={hasCheckedNodes}
+              toolbarState={toolbarState}
+              onAdd={() => {
                 const activeKey = props.selectedKeys?.[0];
                 const activeNode = activeKey ? findNodeByKey(props.treeData, activeKey) : null;
                 openCreateModal(activeNode);
               }}
+              onDelete={() => {
+                if (!hasCheckedNodes || !onMenuClick) return;
+                const node = resolveSingleCheckedNode(checkedKeys);
+                if (node) onMenuClick("delete", node);
+              }}
+              onCopy={() => {
+                if (!hasCheckedNodes || !onMenuClick) return;
+                const node = resolveSingleCheckedNode(checkedKeys);
+                if (node) onMenuClick("copy", node);
+              }}
             />
-            <Button
-              type="text"
-              size="small"
-              icon={<DeleteOutline fontSize="small" />}
-              style={{ color: token.colorPrimary }}
-            />
-            <Button
-              type="text"
-              size="small"
-              icon={<ContentCopy fontSize="small" />}
-              style={{ color: token.colorPrimary }}
-            />
-            <Button
-              type="text"
-              size="small"
-              icon={<FileUploadOutlined fontSize="small" />}
-              style={{ color: token.colorPrimary }}
-            />
-            <Button
-              type="text"
-              size="small"
-              icon={<FileDownloadOutlined fontSize="small" />}
-              style={{ color: token.colorPrimary }}
-            />
-          </div>
-        }
+          );
+        }}
       />
       <FloatingContextMenu
         open={contextMenuState.visible}
