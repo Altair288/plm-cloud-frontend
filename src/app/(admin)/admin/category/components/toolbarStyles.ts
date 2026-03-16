@@ -8,7 +8,7 @@ export const TOOLBAR_PILL_RADIUS = 999;
 export const TOOLBAR_CONTROL_GAP = 6;
 export const TOOLBAR_SEARCH_PILL_HEIGHT = 24;
 export const TOOLBAR_SEARCH_EXPANDED_WIDTH = 180;
-export const TOOLBAR_ACTIONS_EXPANDED_WIDTH = 88;
+export const TOOLBAR_ACTIONS_EXPANDED_WIDTH = 118;
 export const TOOLBAR_SEARCH_CLOSE_BUTTON_SIZE = 20;
 
 export const createCircleButtonStyle = (

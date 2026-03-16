@@ -6,6 +6,7 @@ import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
+  ScissorOutlined,
   CopyOutlined,
   CheckOutlined,
   SearchOutlined,
@@ -72,6 +73,7 @@ interface ToolbarActionsProps {
   hasCheckedNodes: boolean;
   onAdd: () => void;
   onDelete: () => void;
+  onCut: () => void;
   onCopy: () => void;
   toolbarState: CategoryTreeToolbarState;
 }
@@ -83,6 +85,7 @@ const ToolbarActions: React.FC<ToolbarActionsProps> = ({
   hasCheckedNodes,
   onAdd,
   onDelete,
+  onCut,
   onCopy,
   toolbarState,
 }) => {
@@ -137,6 +140,15 @@ const ToolbarActions: React.FC<ToolbarActionsProps> = ({
               icon={<DeleteOutlined />}
               style={createCircleButtonStyle(token, "danger")}
               onClick={onDelete}
+            />
+          </Tooltip>
+          <Tooltip title="剪切" mouseEnterDelay={0.4}>
+            <Button
+              type="default"
+              size="small"
+              icon={<ScissorOutlined />}
+              style={createCircleButtonStyle(token, "neutral")}
+              onClick={onCut}
             />
           </Tooltip>
           <Tooltip title="复制" mouseEnterDelay={0.4}>
@@ -469,6 +481,12 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
                   return;
                 }
                 onBatchDelete?.(nodes);
+              }}
+              onCut={() => {
+                if (!hasCheckedNodes) return;
+                const nodes = resolveCheckedNodes(checkedKeys);
+                if (!nodes.length) return;
+                messageApi.info("剪切功能暂未接入，当前为占位按钮");
               }}
               onCopy={() => {
                 if (!hasCheckedNodes || !onMenuClick) return;
