@@ -1,4 +1,4 @@
-import React, { useState, useMemo, forwardRef, useEffect } from 'react';
+import React, { useState, useMemo, forwardRef, useEffect, useRef } from 'react';
 import { Input, Tree, Empty } from 'antd';
 import type { DataNode, TreeProps } from 'antd/es/tree';
 
@@ -57,6 +57,7 @@ const CategoryTree = forwardRef<HTMLDivElement, CategoryTreeProps>(({
   const [autoExpandParent, setAutoExpandParent] = useState(true);
   const [checkableEnabled, setCheckableEnabled] = useState(defaultCheckable);
   const [checkedKeys, setCheckedKeys] = useState<React.Key[]>(defaultCheckedKeys);
+  const expandedKeysBeforeSearchRef = useRef<React.Key[]>(initialExpandedKeys);
 
   const validTreeKeys = useMemo(() => {
     const keys = new Set<React.Key>();
@@ -86,6 +87,9 @@ const CategoryTree = forwardRef<HTMLDivElement, CategoryTreeProps>(({
   const onExpand = (newExpandedKeys: React.Key[]) => {
     setExpandedKeys(newExpandedKeys);
     setAutoExpandParent(false);
+    if (!searchValue) {
+      expandedKeysBeforeSearchRef.current = newExpandedKeys;
+    }
   };
 
   const handleCheck: TreeProps['onCheck'] = (nextCheckedKeys) => {
@@ -96,9 +100,12 @@ const CategoryTree = forwardRef<HTMLDivElement, CategoryTreeProps>(({
   };
 
   const clearSearch = () => {
+    const nextExpandedKeys = searchValue
+      ? expandedKeysBeforeSearchRef.current
+      : expandedKeys;
     setSearchValue('');
-    setExpandedKeys(initialExpandedKeys);
-    setAutoExpandParent(true);
+    setExpandedKeys(nextExpandedKeys);
+    setAutoExpandParent(false);
     setSearchExpanded(false);
   };
 
@@ -114,6 +121,18 @@ const CategoryTree = forwardRef<HTMLDivElement, CategoryTreeProps>(({
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
+
+    if (!searchValue && value) {
+      expandedKeysBeforeSearchRef.current = expandedKeys;
+    }
+
+    if (!value) {
+      setExpandedKeys(expandedKeysBeforeSearchRef.current);
+      setSearchValue('');
+      setAutoExpandParent(false);
+      return;
+    }
+
     const newExpandedKeys = treeData
       .map((item) => {
         if (String(item.title).indexOf(value) > -1) {

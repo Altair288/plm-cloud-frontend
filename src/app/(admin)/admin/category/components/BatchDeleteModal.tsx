@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Modal,
-  Alert,
   Switch,
   Checkbox,
   Tag,
+  Tooltip,
   Typography,
   Space,
   Skeleton,
@@ -16,6 +16,7 @@ import {
   theme,
   App,
 } from 'antd';
+import LinearProgress from '@mui/material/LinearProgress';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import {
@@ -85,9 +86,10 @@ const BatchDeleteModal: React.FC<BatchDeleteModalProps> = ({
   const [executeResponse, setExecuteResponse] = useState<MetaCategoryBatchDeleteResponseDto | null>(null);
   const [cascadeEnabled, setCascadeEnabled] = useState(false);
   const [cascadeConfirmed, setCascadeConfirmed] = useState(false);
-  const [atomicEnabled, setAtomicEnabled] = useState(false);
+  const [atomicEnabled, setAtomicEnabled] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rechecking, setRechecking] = useState(false);
+  const [cascadeHintCount, setCascadeHintCount] = useState(0);
   const recheckSeq = useRef(0);
 
   // ─── Separate local / remote nodes ────────────────────────────
@@ -119,9 +121,10 @@ const BatchDeleteModal: React.FC<BatchDeleteModalProps> = ({
       setExecuteResponse(null);
       setCascadeEnabled(false);
       setCascadeConfirmed(false);
-      setAtomicEnabled(false);
+      setAtomicEnabled(true);
       setError(null);
       setRechecking(false);
+      setCascadeHintCount(0);
       recheckSeq.current = 0;
       return;
     }
@@ -140,7 +143,7 @@ const BatchDeleteModal: React.FC<BatchDeleteModalProps> = ({
         ids: remoteIds,
         cascade: false,
         confirm: false,
-        atomic: false,
+        atomic: true,
         dryRun: true,
         operator: 'admin',
       })
@@ -208,11 +211,15 @@ const BatchDeleteModal: React.FC<BatchDeleteModalProps> = ({
     (dryRunResponse?.failureCount ?? 0) - cascadeRequiredCount,
   );
 
+  useEffect(() => {
+    if (cascadeRequiredCount > 0) {
+      setCascadeHintCount(cascadeRequiredCount);
+    }
+  }, [cascadeRequiredCount]);
+
   // ─── Cascade toggle → re-dryRun ──────────────────────────────
 
-  const handleCascadeToggle = (checked: boolean) => {
-    setCascadeEnabled(checked);
-    setCascadeConfirmed(false);
+  const rerunDryRun = (options: { cascade: boolean; atomic: boolean }) => {
     if (remoteIds.length === 0) return;
 
     const seq = ++recheckSeq.current;
@@ -221,9 +228,9 @@ const BatchDeleteModal: React.FC<BatchDeleteModalProps> = ({
     metaCategoryApi
       .batchDeleteCategories({
         ids: remoteIds,
-        cascade: checked,
-        confirm: checked,
-        atomic: false,
+        cascade: options.cascade,
+        confirm: options.cascade,
+        atomic: options.atomic,
         dryRun: true,
         operator: 'admin',
       })
@@ -238,6 +245,17 @@ const BatchDeleteModal: React.FC<BatchDeleteModalProps> = ({
       .finally(() => {
         if (recheckSeq.current === seq) setRechecking(false);
       });
+  };
+
+  const handleCascadeToggle = (checked: boolean) => {
+    setCascadeEnabled(checked);
+    setCascadeConfirmed(false);
+    rerunDryRun({ cascade: checked, atomic: atomicEnabled });
+  };
+
+  const handleAtomicToggle = (checked: boolean) => {
+    setAtomicEnabled(checked);
+    rerunDryRun({ cascade: cascadeEnabled, atomic: checked });
   };
 
   // ─── Execute delete ───────────────────────────────────────────
@@ -295,11 +313,24 @@ const BatchDeleteModal: React.FC<BatchDeleteModalProps> = ({
 
   // ─── Derived flags ────────────────────────────────────────────
 
+  const cascadeDisplayCount = cascadeRequiredCount || cascadeHintCount;
+
+  const cascadeDescription = cascadeDisplayCount > 0
+    ? `${cascadeDisplayCount} 个分类包含子节点，开启后将同步删除所有子分类`
+    : '当前选择未检测到必须级联删除的子节点';
+
   const canExecute =
     phase === 'impact' &&
     !error &&
     !rechecking &&
-    (!hasCascadeRequired || !cascadeEnabled || (cascadeEnabled && cascadeConfirmed));
+    (cascadeDisplayCount === 0 || cascadeEnabled) &&
+    (!cascadeEnabled || cascadeConfirmed);
+
+  const executeDisabledReason = !error && !rechecking && cascadeDisplayCount > 0 && !cascadeEnabled
+    ? '存在需级联删除的对象，请先开启级联删除'
+    : !error && !rechecking && cascadeEnabled && !cascadeConfirmed
+      ? '请先确认已知晓将同步删除所有子分类'
+      : undefined;
 
   const isSingleDelete = nodes.length === 1;
   const modalTitle = isSingleDelete
@@ -442,9 +473,9 @@ const BatchDeleteModal: React.FC<BatchDeleteModalProps> = ({
   // ─── Phase renderers ──────────────────────────────────────────
 
   const renderDryRunPhase = () => (
-    <div style={{ padding: '40px 0', textAlign: 'center' }}>
+    <div style={{ minHeight: 520, padding: '28px 0 12px' }}>
       <Space orientation="vertical" size={16} align="center">
-        <Skeleton active paragraph={{ rows: 3 }} />
+        <Skeleton active title={{ width: 220 }} paragraph={{ rows: 8, width: ['100%', '100%', '92%', '100%', '94%', '100%', '88%', '96%'] }} />
         <Text type="secondary">正在评估删除影响...</Text>
       </Space>
     </div>
@@ -456,8 +487,7 @@ const BatchDeleteModal: React.FC<BatchDeleteModalProps> = ({
     }
 
     return (
-      <Spin spinning={rechecking} tip="重新评估中...">
-        <ProTable<DetailItem>
+      <ProTable<DetailItem>
           rowKey="id"
           search={false}
           options={false}
@@ -485,7 +515,7 @@ const BatchDeleteModal: React.FC<BatchDeleteModalProps> = ({
                 },
                 {
                   key: 'impact',
-                  label: '预计总销毁',
+                  label: '预计总删除',
                   value: totalWouldDelete,
                   icon: (
                     <ExclamationCircleOutlined
@@ -507,96 +537,89 @@ const BatchDeleteModal: React.FC<BatchDeleteModalProps> = ({
                 },
               ])}
 
-              {hasCascadeRequired && !cascadeEnabled && (
-                <Alert
-                  type="warning"
-                  showIcon
-                  icon={<ExclamationCircleOutlined />}
-                  message={
-                    <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-                      <Text strong>
-                        {cascadeRequiredCount === 1
-                          ? '1 个分类包含子节点'
-                          : `${cascadeRequiredCount} 个分类包含子节点`}
-                      </Text>
-                      <Space size={12} align="center">
-                        <Text>开启级联删除</Text>
-                        <Switch
-                          size="small"
-                          checked={cascadeEnabled}
-                          onChange={handleCascadeToggle}
-                        />
-                      </Space>
-                    </Space>
-                  }
-                  style={{ borderRadius: token.borderRadiusLG }}
-                />
-              )}
-
-              {cascadeEnabled && (
-                <Alert
-                  type="error"
-                  showIcon
-                  icon={<ExclamationCircleOutlined />}
-                  message={
-                    <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                        }}
-                      >
-                        <Text strong type="danger">
-                          级联删除已开启 - 将同步删除所有子分类
-                        </Text>
-                        <Switch
-                          size="small"
-                          checked={cascadeEnabled}
-                          onChange={handleCascadeToggle}
-                        />
-                      </div>
-                      <Checkbox
-                        checked={cascadeConfirmed}
-                        onChange={(e) => setCascadeConfirmed(e.target.checked)}
-                      >
-                        <Text type="danger">
-                          我已知晓此操作将同步删除所有子分类
-                        </Text>
-                      </Checkbox>
-                    </Space>
-                  }
-                  style={{ borderRadius: token.borderRadiusLG }}
-                />
-              )}
-
               <div
                 style={{
                   padding: '12px 14px',
                   borderRadius: token.borderRadiusLG,
-                  border: `1px solid ${token.colorBorderSecondary}`,
-                  background: token.colorBgContainer,
+                  border: `1px solid ${cascadeEnabled ? token.colorErrorBorder : token.colorBorderSecondary}`,
+                  background: cascadeEnabled ? token.colorErrorBg : token.colorBgContainer,
                 }}
               >
-                <Space orientation="vertical" size={4} style={{ width: '100%' }}>
+                <Space orientation="vertical" size={12} style={{ width: '100%' }}>
                   <Text type="secondary" style={{ fontSize: 13 }}>
-                    高级配置
+                    删除策略与高级配置
                   </Text>
-                  <Checkbox
-                    checked={atomicEnabled}
-                    onChange={(e) => setAtomicEnabled(e.target.checked)}
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 16,
+                    }}
                   >
-                    失败时回滚整批操作（原子模式）
-                  </Checkbox>
-                  <Text type="secondary" style={{ fontSize: 12, paddingLeft: 24 }}>
-                    开启后，若其中一项删除失败，所有已删项将恢复。
-                  </Text>
+                    <Space size={10} align="start">
+                      <ExclamationCircleOutlined
+                        style={{
+                          marginTop: 2,
+                          color: cascadeEnabled
+                            ? token.colorError
+                            : cascadeDisplayCount > 0
+                              ? '#d48806'
+                              : token.colorTextTertiary,
+                        }}
+                      />
+                      <div>
+                        <Text strong type={cascadeEnabled ? 'danger' : undefined}>
+                          级联删除
+                        </Text>
+                        <div>
+                          <Text
+                            type={cascadeEnabled || cascadeDisplayCount > 0 ? undefined : 'secondary'}
+                            style={{
+                              fontSize: 12,
+                              color: cascadeEnabled ? token.colorError : undefined,
+                            }}
+                          >
+                            {cascadeDescription}
+                          </Text>
+                        </div>
+                      </div>
+                    </Space>
+                    <Switch checked={cascadeEnabled} onChange={handleCascadeToggle} />
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 16,
+                    }}
+                  >
+                    <Space size={10} align="start">
+                      <WarningOutlined
+                        style={{
+                          marginTop: 2,
+                          color: atomicEnabled ? token.colorPrimary : token.colorTextTertiary,
+                        }}
+                      />
+                      <div>
+                        <Text strong>失败时回滚整批操作</Text>
+                        <div>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            开启后，若其中一项删除失败，所有已删项将恢复。
+                          </Text>
+                        </div>
+                      </div>
+                    </Space>
+                    <Switch checked={atomicEnabled} onChange={handleAtomicToggle} />
+                  </div>
                 </Space>
               </div>
             </Space>
           )}
         />
-      </Spin>
     );
   };
 
@@ -621,6 +644,12 @@ const BatchDeleteModal: React.FC<BatchDeleteModalProps> = ({
       (executeResponse?.deletedCount ?? 0) + localNodes.length;
     const isAllSuccess = failCount === 0;
     const isPartialSuccess = successCount > 0 && failCount > 0;
+    const failedResultIds = new Set(
+      (executeResponse?.results || [])
+        .filter((item) => !item.success)
+        .map((item) => item.id),
+    );
+    const failedDetailItems = detailItems.filter((item) => failedResultIds.has(item.id));
 
     return (
       <ProTable<DetailItem>
@@ -628,14 +657,14 @@ const BatchDeleteModal: React.FC<BatchDeleteModalProps> = ({
         search={false}
         options={false}
         pagination={
-          detailItems.length > 8
+          failedDetailItems.length > 8
             ? { pageSize: 8, size: 'small' }
             : false
         }
-        scroll={detailItems.length > 6 ? { y: 200 } : undefined}
+        scroll={failedDetailItems.length > 6 ? { y: 200 } : undefined}
         cardBordered={false}
         columns={resultColumns}
-        dataSource={failCount > 0 ? detailItems : []}
+        dataSource={failCount > 0 ? failedDetailItems : []}
         headerTitle={<Text strong>删除执行结果</Text>}
         tableAlertRender={false}
         tableAlertOptionRender={false}
@@ -706,36 +735,68 @@ const BatchDeleteModal: React.FC<BatchDeleteModalProps> = ({
 
   const footerButtons = () => {
     if (phase === 'dryrun' || phase === 'executing') {
-      return [
-        <Button key="cancel" disabled>
-          取消
-        </Button>,
-      ];
+      return (
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Button key="cancel" disabled>
+            取消
+          </Button>
+        </div>
+      );
     }
 
     if (phase === 'impact') {
-      return [
-        <Button key="cancel" onClick={onClose}>
-          取消
-        </Button>,
-        <Button
-          key="execute"
-          type="primary"
-          danger
-          disabled={!canExecute}
-          onClick={handleExecute}
+      return (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            width: '100%',
+          }}
         >
-          确认删除
-        </Button>,
-      ];
+          <div style={{ minHeight: 22, display: 'flex', alignItems: 'center' }}>
+            {cascadeEnabled ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Checkbox
+                  checked={cascadeConfirmed}
+                  onChange={(e) => setCascadeConfirmed(e.target.checked)}
+                />
+                <Text type="danger">我已知晓将同步删除所有子分类</Text>
+              </div>
+            ) : null}
+          </div>
+
+          <Space>
+            <Button key="cancel" onClick={onClose}>
+              取消
+            </Button>
+            <Tooltip title={!canExecute ? executeDisabledReason : undefined}>
+              <span>
+                <Button
+                  key="execute"
+                  type="primary"
+                  danger
+                  disabled={!canExecute}
+                  onClick={handleExecute}
+                >
+                  确认删除
+                </Button>
+              </span>
+            </Tooltip>
+          </Space>
+        </div>
+      );
     }
 
     if (phase === 'result') {
-      return [
-        <Button key="close" type="primary" onClick={handleFinish}>
-          完成
-        </Button>,
-      ];
+      return (
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Button key="close" type="primary" onClick={handleFinish}>
+            完成
+          </Button>
+        </div>
+      );
     }
 
     return undefined;
@@ -747,7 +808,6 @@ const BatchDeleteModal: React.FC<BatchDeleteModalProps> = ({
     <Modal
       title={
         <Space>
-          <DeleteOutlined style={{ color: '#ff4d4f' }} />
           <span>{modalTitle}</span>
         </Space>
       }
@@ -759,10 +819,36 @@ const BatchDeleteModal: React.FC<BatchDeleteModalProps> = ({
       keyboard={false}
       destroyOnHidden
     >
-      {phase === 'dryrun' && renderDryRunPhase()}
-      {phase === 'impact' && renderImpactPhase()}
-      {phase === 'executing' && renderExecutingPhase()}
-      {phase === 'result' && renderResultPhase()}
+      <div style={{ position: 'relative', minHeight: 520, paddingTop: 8 }}>
+        {(phase === 'dryrun' || rechecking) && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 3,
+              pointerEvents: 'none',
+            }}
+          >
+            <LinearProgress
+              sx={{
+                height: 3,
+                borderRadius: 999,
+                backgroundColor: token.colorFillSecondary,
+                '& .MuiLinearProgress-bar': {
+                  backgroundColor: token.colorPrimary,
+                },
+              }}
+            />
+          </div>
+        )}
+
+        {phase === 'dryrun' && renderDryRunPhase()}
+        {phase === 'impact' && renderImpactPhase()}
+        {phase === 'executing' && renderExecutingPhase()}
+        {phase === 'result' && renderResultPhase()}
+      </div>
     </Modal>
   );
 };
