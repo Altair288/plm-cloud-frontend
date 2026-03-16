@@ -6,7 +6,6 @@ import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  ScissorOutlined,
   CopyOutlined,
   CheckOutlined,
   SearchOutlined,
@@ -32,6 +31,7 @@ import {
 } from "./components/toolbarStyles";
 import FloatingContextMenu from "@/components/ContextMenu/FloatingContextMenu";
 import CreateCategoryModal from "./components/CreateCategoryModal";
+import BatchTransferModal from "./components/BatchTransferModal";
 import { metaCategoryApi, type MetaCategoryDetailDto } from "@/services/metaCategory";
 import { semanticStatusColors } from "@/styles/colors";
 
@@ -142,11 +142,11 @@ const ToolbarActions: React.FC<ToolbarActionsProps> = ({
               onClick={onDelete}
             />
           </Tooltip>
-          <Tooltip title="剪切" mouseEnterDelay={0.4}>
+          <Tooltip title="移动" mouseEnterDelay={0.4}>
             <Button
               type="default"
               size="small"
-              icon={<ScissorOutlined />}
+              icon={<SwapOutlined />}
               style={createCircleButtonStyle(token, "neutral")}
               onClick={onCut}
             />
@@ -279,6 +279,11 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
     y: number;
     node: DataNode | null;
   }>({ visible: false, x: 0, y: 0, node: null });
+
+  // === 迁移 / 复制 弹窗状态 ===
+  const [transferModalVisible, setTransferModalVisible] = useState(false);
+  const [transferAction, setTransferAction] = useState<'move' | 'copy' | null>(null);
+  const [transferCheckedKeys, setTransferCheckedKeys] = useState<React.Key[]>([]);
 
   // Add global contextmenu interception
   useEffect(() => {
@@ -484,14 +489,15 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
               }}
               onCut={() => {
                 if (!hasCheckedNodes) return;
-                const nodes = resolveCheckedNodes(checkedKeys);
-                if (!nodes.length) return;
-                messageApi.info("剪切功能暂未接入，当前为占位按钮");
+                setTransferAction('move');
+                setTransferCheckedKeys(checkedKeys);
+                setTransferModalVisible(true);
               }}
               onCopy={() => {
-                if (!hasCheckedNodes || !onMenuClick) return;
-                const node = resolveSingleCheckedNode(checkedKeys);
-                if (node) onMenuClick("copy", node);
+                if (!hasCheckedNodes) return;
+                setTransferAction('copy');
+                setTransferCheckedKeys(checkedKeys);
+                setTransferModalVisible(true);
               }}
             />
           );
@@ -552,6 +558,19 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
           } finally {
             setCreateSubmitting(false);
           }
+        }}
+      />
+
+      {/* 批量移动/复制视图弹窗 */}
+      <BatchTransferModal
+        open={transferModalVisible}
+        actionType={transferAction}
+        checkedKeys={transferCheckedKeys}
+        fullTreeData={props.treeData}
+        onCancel={() => setTransferModalVisible(false)}
+        onSuccess={() => {
+          // 这里将来可能要刷新外层树数据，暂时留空或由外层主动触发重新加载
+          messageApi.success("结构重构完成，如果需要可在此刷新树数据");
         }}
       />
     </>
