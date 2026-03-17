@@ -1020,6 +1020,9 @@ const CategoryManagementPage: React.FC = () => {
             onLoad={(keys) => setLoadedKeys(keys as React.Key[])}
             onMenuClick={handleMenuClick}
             onBatchDelete={(nodes) => openDeleteModal(nodes as CategoryTreeNode[])}
+            onTransferSuccess={() => {
+              void loadSegments();
+            }}
             onCategoryCreated={handleCategoryCreated}
           />
         </Splitter.Panel>

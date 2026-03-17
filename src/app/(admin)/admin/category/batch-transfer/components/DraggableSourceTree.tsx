@@ -48,20 +48,23 @@ export default function DraggableSourceTree({
   };
 
   return (
-    <div style={{ flex: '1 1 0', height: 0, minHeight: 0 }}>
-      <Tree
-        className="draggable-source-tree dnd-transfer-tree"
-        treeData={treeData as TreeDataNode[]}
-        expandedKeys={expandedKeys}
-        onExpand={onExpand}
-        titleRender={titleRender}
-        showIcon
-        icon={(nodeProps: any) => 
-          nodeProps.expanded ? <FolderOpenOutlined /> : <FolderOutlined />
-        }
-        blockNode
-        selectable={false} // 取消自带的选中能力，避免和拖动冲突
-      />
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      <div style={{ flex: '1 1 0', minHeight: 0, overflow: 'auto' }}>
+        <Tree
+          className="draggable-source-tree dnd-transfer-tree"
+          treeData={treeData as TreeDataNode[]}
+          expandedKeys={expandedKeys}
+          autoExpandParent
+          onExpand={onExpand}
+          titleRender={titleRender}
+          showIcon
+          icon={(nodeProps: any) => 
+            nodeProps.expanded ? <FolderOpenOutlined /> : <FolderOutlined />
+          }
+          blockNode
+          selectable={false}
+        />
+      </div>
     </div>
   );
 }

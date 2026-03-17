@@ -11,6 +11,7 @@ interface DropTargetTreeProps {
   treeData: TransferTreeNode[];
   expandedKeys: React.Key[];
   onExpand: (keys: React.Key[]) => void;
+  loadData?: (node: TransferTreeNode) => Promise<void>;
   disabledKeys: React.Key[]; 
   pendingDropKeys?: React.Key[];
   hoveredTargetKey?: React.Key | null; // 从外部透传的悬停状态，用于绘制呼吸灯
@@ -57,6 +58,7 @@ export default function DropTargetTree({
   treeData,
   expandedKeys,
   onExpand,
+  loadData,
   disabledKeys,
   pendingDropKeys = [],
   hoveredTargetKey
@@ -89,6 +91,7 @@ export default function DropTargetTree({
           treeData={treeData as TreeDataNode[]}
           expandedKeys={expandedKeys}
           onExpand={onExpand}
+          loadData={loadData ? (node) => loadData(node as unknown as TransferTreeNode) : undefined}
           titleRender={titleRender}
           showIcon
           icon={(nodeProps: any) => 

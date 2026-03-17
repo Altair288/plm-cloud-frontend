@@ -38,6 +38,7 @@ import { semanticStatusColors } from "@/styles/colors";
 interface AdminCategoryTreeProps extends CategoryTreeProps {
   onMenuClick?: (key: string, node: DataNode) => void;
   onBatchDelete?: (nodes: DataNode[]) => void;
+  onTransferSuccess?: () => void;
   onCategoryCreated?: (
     created: MetaCategoryDetailDto,
     parent?: {
@@ -254,6 +255,7 @@ const ToolbarActions: React.FC<ToolbarActionsProps> = ({
 const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
   onMenuClick,
   onBatchDelete,
+  onTransferSuccess,
   onCategoryCreated,
   ...props
 }) => {
@@ -569,8 +571,8 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
         fullTreeData={props.treeData}
         onCancel={() => setTransferModalVisible(false)}
         onSuccess={() => {
-          // 这里将来可能要刷新外层树数据，暂时留空或由外层主动触发重新加载
-          messageApi.success("结构重构完成，如果需要可在此刷新树数据");
+          onTransferSuccess?.();
+          messageApi.success("批量移动/复制已完成，分类树已刷新");
         }}
       />
     </>

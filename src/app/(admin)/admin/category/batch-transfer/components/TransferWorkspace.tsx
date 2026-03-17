@@ -1,21 +1,28 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Row, Col, theme, Spin, message } from 'antd';
+import { App, Col, Row, Spin, theme } from 'antd';
 import { FolderOutlined } from '@ant-design/icons';
 import {
   DndContext,
   DragOverlay,
+  PointerSensor,
+  defaultDropAnimationSideEffects,
+  pointerWithin,
   useSensor,
   useSensors,
-  PointerSensor,
-  DragStartEvent,
-  DragOverEvent,
-  DragEndEvent,
-  defaultDropAnimationSideEffects,
-  pointerWithin
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
+import type {
+  MetaCategoryBatchTransferRequestDto,
+  MetaCategoryBatchTransferResponseDto,
+  MetaCategoryNodeDto,
+  MetaCategoryTreeNodeDto,
+} from '@/models/metaCategory';
+import { metaCategoryApi } from '@/services/metaCategory';
 import ActionFooter from './ActionFooter';
 import DraggableSourceTree from './DraggableSourceTree';
 import DropTargetTree from './DropTargetTree';
@@ -30,83 +37,152 @@ import {
   getTransferNodeOverlayTitleStyle,
 } from './transferNodeStyles';
 
-// 临时 Types，后续替换为 src/models/ 下的真实接口
+const TARGET_ROOT_PAGE_SIZE = 200;
+const DEFAULT_LIST_STATUS = 'ALL';
+const DEFAULT_COPY_OPTIONS = {
+  versionPolicy: 'CURRENT_ONLY' as const,
+  codePolicy: 'AUTO_SUFFIX' as const,
+  namePolicy: 'KEEP' as const,
+  defaultStatus: 'DRAFT' as const,
+};
+
 export interface TransferTreeNode {
   key: string;
   title: string;
   isLeaf?: boolean;
   children?: TransferTreeNode[];
-  isContextOnly?: boolean;  // 用于左侧树：指示只是补全上下文的父节点
-  isVirtual?: boolean;      // 用于右侧树：指示这是插入的“虚位待命”节点
+  isContextOnly?: boolean;
+  isVirtual?: boolean;
+  dataRef?: MetaCategoryNodeDto;
 }
 
-// ================= Mock 数据生成 =================
-const getMockSourceData = (): TransferTreeNode[] => ([
-  {
-    key: 'SRC_A',
-    title: 'A大类 (上下文)',
-    isContextOnly: true,
-    children: [
-      {
-        key: 'SRC_A01',
-        title: 'A01 分类 (已勾选)',
-        isContextOnly: false,
-        children: [
-          { key: 'SRC_A01-1', title: 'A01-1 子类', isContextOnly: false }
-        ]
-      },
-      {
-        key: 'SRC_A02',
-        title: 'A02 分类 (已勾选)',
-        isContextOnly: false,
-      }
-    ]
-  }
-]);
+interface PendingOperation {
+  sourceNode: TransferTreeNode;
+  targetKey: React.Key;
+  id: string;
+}
 
-const getMockTargetData = (): TransferTreeNode[] => ([
-  {
-    key: 'TGT_B',
-    title: 'B大类',
-    children: [
-      {
-        key: 'TGT_B01',
-        title: 'B01 分类',
-        children: [
-          { key: 'TGT_B01-1', title: 'B01-1 现有子类' }
-        ]
-      }
-    ]
+export interface TransferWorkspaceProps {
+  businessDomain: string;
+  initialAction?: 'move' | 'copy';
+  sourceNodesData?: TransferTreeNode[];
+  externalLoading?: boolean;
+  onComplete?: (response?: MetaCategoryBatchTransferResponseDto) => void;
+  onCancelWorkspace?: () => void;
+}
+
+const formatTransferNodeTitle = (
+  code?: string | null,
+  name?: string | null,
+  fallback?: string,
+) => {
+  if (code && name) {
+    return `${code} - ${name}`;
+  }
+  return fallback || name || code || '-';
+};
+
+const mapCategoryNodeToTransferNode = (
+  node: MetaCategoryNodeDto | MetaCategoryTreeNodeDto,
+): TransferTreeNode => ({
+  key: node.id,
+  title: formatTransferNodeTitle(node.code, node.name, node.name),
+  isLeaf: node.leaf ?? !node.hasChildren,
+  dataRef: {
+    id: node.id,
+    businessDomain: node.businessDomain,
+    code: node.code,
+    name: node.name,
+    level: node.level,
+    parentId: node.parentId,
+    path: node.path,
+    hasChildren: node.hasChildren,
+    leaf: node.leaf,
+    status: node.status,
+    sort: node.sort,
+    createdAt: node.createdAt,
+    updatedAt: node.updatedAt,
   },
-  {
-    key: 'TGT_C',
-    title: 'C大类',
-    children: []
-  }
-]);
+  children:
+    'children' in node && node.children
+      ? node.children.map(mapCategoryNodeToTransferNode)
+      : undefined,
+});
 
-// Helper: 递归移除虚位待命节点
-const removeVirtualNode = (data: TransferTreeNode[]): TransferTreeNode[] => {
-  return data.filter(node => !node.isVirtual).map(node => {
-    if (node.children) return { ...node, children: removeVirtualNode(node.children) };
+const updateTransferNode = (
+  nodes: TransferTreeNode[],
+  key: React.Key,
+  updater: (node: TransferTreeNode) => TransferTreeNode,
+): TransferTreeNode[] => {
+  return nodes.map((node) => {
+    if (node.key === key) {
+      return updater(node);
+    }
+    if (node.children?.length) {
+      return {
+        ...node,
+        children: updateTransferNode(node.children, key, updater),
+      };
+    }
     return node;
   });
 };
 
-export interface TransferWorkspaceProps {
-  initialAction?: 'move' | 'copy';
-  sourceNodesData?: TransferTreeNode[];
-  onComplete?: () => void;
-  onCancelWorkspace?: () => void;
-}
+const findTransferNode = (
+  nodes: TransferTreeNode[],
+  key: React.Key,
+): TransferTreeNode | null => {
+  for (const node of nodes) {
+    if (node.key === key) {
+      return node;
+    }
+    if (node.children?.length) {
+      const found = findTransferNode(node.children, key);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
+};
+
+const collectInitialSourceExpandedKeys = (nodes: TransferTreeNode[]): React.Key[] => {
+  const expandedKeys: React.Key[] = [];
+
+  const visit = (items: TransferTreeNode[], depth: number) => {
+    items.forEach((item) => {
+      if (!item.children?.length) {
+        return;
+      }
+
+      const shouldExpand = depth === 0 || Boolean(item.isContextOnly);
+      if (shouldExpand) {
+        expandedKeys.push(item.key);
+      }
+
+      if (item.isContextOnly) {
+        visit(item.children, depth + 1);
+      }
+    });
+  };
+
+  visit(nodes, 0);
+  return expandedKeys;
+};
+
+const getErrorMessage = (error: any, fallback: string) => {
+  return error?.message || error?.error || fallback;
+};
 
 export default function TransferWorkspace({
+  businessDomain,
   initialAction,
   sourceNodesData,
+  externalLoading = false,
   onComplete,
-  onCancelWorkspace
 }: TransferWorkspaceProps) {
   const { token } = theme.useToken();
+  const { message: messageApi, modal } = App.useApp();
   const workspaceLayoutStyles = useMemo(
     () => `
       .transfer-workspace-spin.ant-spin-nested-loading {
@@ -130,84 +206,130 @@ export default function TransferWorkspace({
     `,
     [],
   );
-  
-  // ================= 状态管理 =================
+
   const [isClientMounted, setIsClientMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pendingAction, setPendingAction] = useState<'move' | 'copy' | null>(null);
+  const [activeDragNode, setActiveDragNode] = useState<TransferTreeNode | null>(null);
+  const [pendingOperations, setPendingOperations] = useState<PendingOperation[]>([]);
+  const [hoveredTargetKey, setHoveredTargetKey] = useState<React.Key | null>(null);
+  const [hoveredTargetTitle, setHoveredTargetTitle] = useState<string>('目标分类');
+  const [sourceData, setSourceData] = useState<TransferTreeNode[]>([]);
+  const [targetData, setTargetData] = useState<TransferTreeNode[]>([]);
+  const [sourceExpandedKeys, setSourceExpandedKeys] = useState<React.Key[]>([]);
+  const [targetExpandedKeys, setTargetExpandedKeys] = useState<React.Key[]>([]);
+  const [targetLoadedKeys, setTargetLoadedKeys] = useState<React.Key[]>([]);
 
-  // activeDragNode: 当前正在按住拖拽的实时节点信息
-  const [activeDragNode, setActiveDragNode] = useState<any>(null); 
   const overlayActionLabel = useMemo(() => {
     const action = pendingAction || initialAction || 'move';
     return action === 'copy' ? '复制' : '移动';
   }, [initialAction, pendingAction]);
-  
-  // pendingOperations: 暂存的历次拖拽动作数组（支持多节一起批处理）
-  interface PendingOperation {
-    sourceNode: TransferTreeNode;
-    targetKey: React.Key;
-    id: string; // 每一次临时拖拽的唯一标记
-  }
-  const [pendingOperations, setPendingOperations] = useState<PendingOperation[]>([]);
-  
-  const [hoveredTargetKey, setHoveredTargetKey] = useState<React.Key | null>(null);
-  const [hoveredTargetTitle, setHoveredTargetTitle] = useState<string>('目标分类');
-  
-  const [sourceData, setSourceData] = useState<TransferTreeNode[]>([]);
-  const [targetData, setTargetData] = useState<TransferTreeNode[]>([]);
-
-  // 展开状态
-  const [sourceExpandedKeys, setSourceExpandedKeys] = useState<React.Key[]>(['SRC_A']);
-  const [targetExpandedKeys, setTargetExpandedKeys] = useState<React.Key[]>(['TGT_B']);
 
   useEffect(() => {
     setIsClientMounted(true);
   }, []);
 
-  // 初始化加载数据
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      // 如果外层传入了真实勾选的节点数据，则将其置入，否则回退到 mock 数据以便页面独立预览
-      if (sourceNodesData && sourceNodesData.length > 0) {
-        setSourceData(sourceNodesData);
-        // 默认将外层传来的数据的根节点展开 (简单起见展开第一层)
-        setSourceExpandedKeys(sourceNodesData.map(n => n.key));
-      } else {
-        setSourceData(getMockSourceData());
-      }
-      setTargetData(getMockTargetData());
-      setLoading(false);
-    }, 500);
+    const nextSourceData = sourceNodesData || [];
+    const nextExpandedKeys = collectInitialSourceExpandedKeys(nextSourceData);
+
+    setSourceData(nextSourceData);
+    setSourceExpandedKeys(nextExpandedKeys);
   }, [sourceNodesData]);
 
-  // 动态计算：右侧被禁用的目标节点（防止父挂子以及自身）
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTargetRoots = async () => {
+      if (!businessDomain) {
+        setTargetData([]);
+        setTargetExpandedKeys([]);
+        setTargetLoadedKeys([]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const page = await metaCategoryApi.listNodes({
+          businessDomain,
+          level: 1,
+          status: DEFAULT_LIST_STATUS,
+          page: 0,
+          size: TARGET_ROOT_PAGE_SIZE,
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        setTargetData((Array.isArray(page.content) ? page.content : []).map(mapCategoryNodeToTransferNode));
+        setTargetExpandedKeys([]);
+        setTargetLoadedKeys([]);
+      } catch (error: any) {
+        if (!cancelled) {
+          setTargetData([]);
+          messageApi.error(getErrorMessage(error, '加载目标分类失败'));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadTargetRoots();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [businessDomain, messageApi]);
+
   const disabledKeys = useMemo(() => {
     if (!activeDragNode) return [];
-    
-    // 提取拖拽源的所有相关自节点和子孙节点的 keys，防止逻辑死循环挂载到自己深层链路中
-    const getKeys = (node: any): React.Key[] => {
-      const keys = [node.key];
-      if (node.children) {
-        node.children.forEach((child: any) => keys.push(...getKeys(child)));
+
+    const collectKeys = (node: TransferTreeNode): React.Key[] => {
+      const keys: React.Key[] = [node.key];
+      if (node.children?.length) {
+        node.children.forEach((child) => keys.push(...collectKeys(child)));
       }
       return keys;
     };
-    
-    return getKeys(activeDragNode);
+
+    return collectKeys(activeDragNode);
   }, [activeDragNode]);
 
-  // ================= 核心操作钩子 (dnd-kit) =================
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 }, // 移动超过 5px 才判定为拖拽，防止单击误触
-    })
+      activationConstraint: { distance: 5 },
+    }),
   );
 
+  const handleLoadTargetChildren = async (node: TransferTreeNode): Promise<void> => {
+    if (node.isLeaf || targetLoadedKeys.includes(node.key)) {
+      return;
+    }
+
+    const page = await metaCategoryApi.listNodes({
+      businessDomain,
+      parentId: String(node.key),
+      status: DEFAULT_LIST_STATUS,
+      page: 0,
+      size: TARGET_ROOT_PAGE_SIZE,
+    });
+
+    const childNodes = (Array.isArray(page.content) ? page.content : []).map(mapCategoryNodeToTransferNode);
+    setTargetData((origin) =>
+      updateTransferNode(origin, node.key, (targetNode) => ({
+        ...targetNode,
+        isLeaf: childNodes.length === 0,
+        children: childNodes,
+      })),
+    );
+    setTargetLoadedKeys((keys) => (keys.includes(node.key) ? keys : [...keys, node.key]));
+  };
+
   const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const nodeData = active.data.current;
+    const nodeData = event.active.data.current as TransferTreeNode | undefined;
     if (!nodeData) return;
 
     setHoveredTargetKey(null);
@@ -216,149 +338,193 @@ export default function TransferWorkspace({
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event;
-    if (over && over.data.current) {
-      const overKey = over.data.current.key;
-      if (!disabledKeys.includes(overKey)) {
-        setHoveredTargetKey(overKey);
-        setHoveredTargetTitle(String(over.data.current.title || '目标分类'));
-      } else {
-        setHoveredTargetKey(null);
-        setHoveredTargetTitle('目标分类');
-      }
-    } else {
+    const overNode = event.over?.data.current as TransferTreeNode | undefined;
+    if (!overNode) {
       setHoveredTargetKey(null);
       setHoveredTargetTitle('目标分类');
+      return;
     }
+
+    if (disabledKeys.includes(overNode.key)) {
+      setHoveredTargetKey(null);
+      setHoveredTargetTitle('目标分类');
+      return;
+    }
+
+    setHoveredTargetKey(overNode.key);
+    setHoveredTargetTitle(overNode.title || '目标分类');
   };
 
-  // 稳定且优雅的自动展开 (Debounced Auto-expand) -> 防抖 400ms
   useEffect(() => {
-    if (hoveredTargetKey && !disabledKeys.includes(hoveredTargetKey)) {
-      const timer = setTimeout(() => {
-        setTargetExpandedKeys(prev => Array.from(new Set([...prev, hoveredTargetKey])));
-      }, 400);
-      return () => clearTimeout(timer);
+    if (!hoveredTargetKey || disabledKeys.includes(hoveredTargetKey)) {
+      return;
     }
-  }, [hoveredTargetKey, disabledKeys]);
+
+    const timer = setTimeout(() => {
+      const hoveredNode = findTransferNode(targetData, hoveredTargetKey);
+      if (hoveredNode && !hoveredNode.isLeaf && !targetLoadedKeys.includes(hoveredTargetKey)) {
+        void handleLoadTargetChildren(hoveredNode).catch(() => {
+          // 自动展开场景下的懒加载失败，保留已有结构即可。
+        });
+      }
+      setTargetExpandedKeys((prev) => Array.from(new Set([...prev, hoveredTargetKey])));
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [hoveredTargetKey, disabledKeys, targetData, targetLoadedKeys]);
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { over } = event;
+    const overNode = event.over?.data.current as TransferTreeNode | undefined;
     setHoveredTargetKey(null);
     setHoveredTargetTitle('目标分类');
 
     const draggedNode = activeDragNode;
     setActiveDragNode(null);
 
-    if (!over || !over.data.current || !draggedNode) {
+    if (!overNode || !draggedNode || disabledKeys.includes(overNode.key)) {
       return;
     }
 
-    const dropKey = over.data.current.key;
-    if (disabledKeys.includes(dropKey)) {
-      return;
-    }
+    const nextOperation: PendingOperation = {
+      sourceNode: draggedNode,
+      targetKey: overNode.key,
+      id: `OP_${Date.now()}_${draggedNode.key}`,
+    };
+    const resolvedAction = pendingAction || initialAction || 'move';
 
-    // 将刚才成功的拖拽作为一条记录放入待处理队列中
-    setPendingOperations(prev => [
-      ...prev,
-      {
-        sourceNode: draggedNode,
-        targetKey: dropKey,
-        id: `OP_${Date.now()}_${draggedNode.key}`
+    setPendingOperations((prev) => {
+      if (resolvedAction === 'move') {
+        const next = prev.filter((item) => item.sourceNode.key !== draggedNode.key);
+        return [...next, nextOperation];
       }
-    ]);
-    
-    // 强制展开目标节点以便用户看到即时的挂载结果
-    setTargetExpandedKeys(prev => Array.from(new Set([...prev, dropKey])));
-    
-    // 如果还没设定意向，默认设定为 initialAction 或者 move
+      return [...prev, nextOperation];
+    });
+    setTargetExpandedKeys((prev) => Array.from(new Set([...prev, overNode.key])));
+
     if (!pendingAction) {
       setPendingAction(initialAction || 'move');
     }
   };
 
-  // 确认操作
-  const handleConfirm = async (actionType: 'move' | 'copy') => {
-    if (pendingOperations.length === 0) return;
-    
+  const buildBatchTransferRequest = (
+    actionType: 'move' | 'copy',
+    dryRun: boolean,
+  ): MetaCategoryBatchTransferRequestDto => {
+    return {
+      businessDomain,
+      action: actionType.toUpperCase() as 'MOVE' | 'COPY',
+      dryRun,
+      atomic: false,
+      operator: 'admin',
+      copyOptions: actionType === 'copy' ? DEFAULT_COPY_OPTIONS : undefined,
+      operations: pendingOperations.map((operation) => ({
+        clientOperationId: operation.id,
+        sourceNodeId: String(operation.sourceNode.key),
+        targetParentId: String(operation.targetKey),
+      })),
+    };
+  };
+
+  const executeBatchTransfer = async (actionType: 'move' | 'copy') => {
     setLoading(true);
     try {
-      console.log(`执行批处理: ${actionType}, 共 ${pendingOperations.length} 个节点操作`);
-      // 此处将发送真实请求，携带 pendingOperations
-      
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      message.success(`成功${actionType === 'move' ? '移动' : '复制'}了 ${pendingOperations.length} 个节点！`);
-      
-      // 1. 将真实的拖拽节点深拷贝并统一合并到右边的目标树中
-      const buildRealNode = (node: TransferTreeNode, idx: number): TransferTreeNode => ({
-        ...node,
-        key: `NODE_${Date.now()}_${idx}_${node.key}`, // 模拟生成的新ID
-        isVirtual: false,
-        isContextOnly: false,
-        children: node.children ? node.children.map(child => buildRealNode(child, idx)) : undefined
-      });
-      
-      let updatedData = [...targetData];
-      
-      const insertMultipleNodes = (data: TransferTreeNode[], op: PendingOperation, idx: number): TransferTreeNode[] => {
-        const realNode = buildRealNode(op.sourceNode, idx);
-        return data.map(item => {
-          if (item.key === op.targetKey) {
-            return {
-              ...item,
-              children: [...(item.children || []), realNode]
-            };
-          }
-          if (item.children) {
-            return { ...item, children: insertMultipleNodes(item.children, op, idx) };
-          }
-          return item;
-        });
-      };
-      
-      pendingOperations.forEach((op, index) => {
-        updatedData = insertMultipleNodes(updatedData, op, index);
-      });
-      
-      setTargetData(updatedData);
+      const response = await metaCategoryApi.batchTransferCategories(
+        buildBatchTransferRequest(actionType, false),
+      );
 
-      // 2. 如果是移动操作，从左侧源树中永久移除所有被移动的节点
-      if (actionType === 'move') {
-        const removeSourceNodes = (data: TransferTreeNode[], keysToRemove: React.Key[]): TransferTreeNode[] => {
-          return data
-            .filter(item => !keysToRemove.includes(item.key))
-            .map(item => ({
-              ...item,
-              children: item.children ? removeSourceNodes(item.children, keysToRemove) : undefined
-            }));
-        };
-        const keysToRemove = pendingOperations.map(op => op.sourceNode.key);
-        setSourceData(prev => removeSourceNodes(prev, keysToRemove));
+      const actionLabel = actionType === 'copy' ? '复制' : '移动';
+      if (response.failureCount > 0 && response.successCount > 0) {
+        messageApi.warning(
+          `${actionLabel}完成，成功 ${response.successCount} 项，失败 ${response.failureCount} 项`,
+        );
+      } else if (response.failureCount > 0) {
+        messageApi.error(`${actionLabel}失败，共 ${response.failureCount} 项失败`);
+      } else {
+        messageApi.success(`${actionLabel}成功，共处理 ${response.successCount} 项`);
       }
-      
-      setPendingOperations([]);
-      setPendingAction(null);
-      
-      onComplete?.();
-    } catch (error) {
-      message.error('操作失败，请重试。');
+
+      if (response.successCount > 0 || response.normalizedCount > 0) {
+        setPendingOperations([]);
+        setPendingAction(null);
+        onComplete?.(response);
+      }
+    } catch (error: any) {
+      messageApi.error(getErrorMessage(error, `${actionType === 'copy' ? '复制' : '移动'}失败`));
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  // 取消选定
+  const handleConfirm = async (actionType: 'move' | 'copy') => {
+    if (!pendingOperations.length) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const dryRunResponse = await metaCategoryApi.batchTransferCategories(
+        buildBatchTransferRequest(actionType, true),
+      );
+      const actionLabel = actionType === 'copy' ? '复制' : '移动';
+      const failedResults = dryRunResponse.results.filter((result) => !result.success);
+      const normalizedResults = dryRunResponse.results.filter(
+        (result) => result.code === 'SOURCE_OVERLAP_NORMALIZED',
+      );
+
+      if (failedResults.length > 0 || dryRunResponse.successCount === 0) {
+        modal.error({
+          title: `${actionLabel}预检未通过`,
+          width: 560,
+          content: (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {failedResults.slice(0, 5).map((result) => (
+                <div key={result.clientOperationId || result.sourceNodeId}>
+                  {result.message || result.code || `源节点 ${result.sourceNodeId} 预检失败`}
+                </div>
+              ))}
+              {failedResults.length === 0 && <div>预检未通过，请检查拖拽目标是否有效。</div>}
+            </div>
+          ),
+        });
+        return;
+      }
+
+      modal.confirm({
+        title: `确认${actionLabel}`,
+        okText: `确认${actionLabel}`,
+        cancelText: '取消',
+        width: 560,
+        content: (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div>预检通过，共 {dryRunResponse.total} 项操作。</div>
+            <div>预计成功 {dryRunResponse.successCount} 项。</div>
+            {normalizedResults.length > 0 && (
+              <div>存在 {normalizedResults.length} 项父子重叠操作，将由祖先节点自动归一化。</div>
+            )}
+            {(dryRunResponse.warnings?.length || 0) > 0 &&
+              dryRunResponse.warnings?.map((warning) => <div key={warning}>{warning}</div>)}
+          </div>
+        ),
+        onOk: async () => {
+          await executeBatchTransfer(actionType);
+        },
+      });
+    } catch (error: any) {
+      messageApi.error(getErrorMessage(error, '批量转移预检失败'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCancel = () => {
     setPendingAction(null);
     setPendingOperations([]);
   };
 
-
-  // 监听 Esc 键触发取消
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
         handleCancel();
       }
     };
@@ -366,16 +532,15 @@ export default function TransferWorkspace({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // 计算左侧用于展示的树数据（如果处于“移动”且已拖放到右侧预览，则在左侧临时隐藏该节点避免视觉重复）
   const displaySourceData = useMemo(() => {
     if (pendingAction === 'move' && pendingOperations.length > 0) {
-      const keysToHide = pendingOperations.map(op => op.sourceNode.key);
-      const hideNodes = (data: TransferTreeNode[]): TransferTreeNode[] => {
-        return data
-          .filter(item => !keysToHide.includes(item.key))
-          .map(item => ({
-            ...item,
-            children: item.children ? hideNodes(item.children) : undefined
+      const keysToHide = new Set(pendingOperations.map((operation) => operation.sourceNode.key));
+      const hideNodes = (nodes: TransferTreeNode[]): TransferTreeNode[] => {
+        return nodes
+          .filter((node) => !keysToHide.has(node.key))
+          .map((node) => ({
+            ...node,
+            children: node.children ? hideNodes(node.children) : undefined,
           }));
       };
       return hideNodes(sourceData);
@@ -383,50 +548,56 @@ export default function TransferWorkspace({
     return sourceData;
   }, [sourceData, pendingAction, pendingOperations]);
 
-  // 计算右侧用于展示的树数据（将所有挂起的记录插装成虚拟节点进行预览）
   const displayTargetData = useMemo(() => {
     let currentData = [...targetData];
 
-    pendingOperations.forEach(op => {
-      const createVirtualNodes = (node: TransferTreeNode, isRoot: boolean): TransferTreeNode => {
-        return {
-          ...node,
-          key: isRoot ? `VIRTUAL_PENDING_${op.id}` : `VIRTUAL_PENDING_${op.id}_${node.key}`,
-          title: isRoot ? `${node.title} (预览)` : node.title,
-          isVirtual: true,
-          children: node.children ? node.children.map(child => createVirtualNodes(child, false)) : undefined
-        };
-      };
-      const virtualNode = createVirtualNodes(op.sourceNode, true);
+    pendingOperations.forEach((operation) => {
+      const createVirtualNodes = (
+        node: TransferTreeNode,
+        isRoot: boolean,
+      ): TransferTreeNode => ({
+        ...node,
+        key: isRoot ? `VIRTUAL_PENDING_${operation.id}` : `VIRTUAL_PENDING_${operation.id}_${node.key}`,
+        title: isRoot ? `${node.title} (预览)` : node.title,
+        isVirtual: true,
+        children: node.children?.map((child) => createVirtualNodes(child, false)),
+      });
 
-      const insertNode = (data: TransferTreeNode[], targetKey: React.Key): TransferTreeNode[] => {
-        return data.map(item => {
-          if (item.key === targetKey) {
+      const virtualNode = createVirtualNodes(operation.sourceNode, true);
+      const insertNode = (nodes: TransferTreeNode[], targetKey: React.Key): TransferTreeNode[] => {
+        return nodes.map((node) => {
+          if (node.key === targetKey) {
             return {
-              ...item,
-              children: [...(item.children || []), virtualNode]
+              ...node,
+              children: [...(node.children || []), virtualNode],
             };
           }
-          if (item.children) {
-            return { ...item, children: insertNode(item.children, targetKey) };
+          if (node.children?.length) {
+            return {
+              ...node,
+              children: insertNode(node.children, targetKey),
+            };
           }
-          return item;
+          return node;
         });
       };
-      currentData = insertNode(currentData, op.targetKey);
+
+      currentData = insertNode(currentData, operation.targetKey);
     });
 
     return currentData;
   }, [targetData, pendingOperations]);
 
+  const spinning = loading || externalLoading;
+
   return (
-    <Spin spinning={loading} tip="正在处理中，请稍候..." size="large" wrapperClassName="transfer-workspace-spin">
+    <Spin spinning={spinning} tip="正在处理中，请稍候..." size="large" wrapperClassName="transfer-workspace-spin">
       <style dangerouslySetInnerHTML={{ __html: workspaceLayoutStyles }} />
-      <div 
-        style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          height: '100%', 
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
           minHeight: 0,
           background: token.colorBgContainer,
           borderRadius: 12,
@@ -435,19 +606,17 @@ export default function TransferWorkspace({
         }}
       >
         <style dangerouslySetInnerHTML={{ __html: dndTreeGlobalStyles }} />
-        {/* 上半部：双树拖拽区 */}
-        <DndContext 
-          sensors={sensors} 
+        <DndContext
+          sensors={sensors}
           collisionDetection={pointerWithin}
-          onDragStart={handleDragStart} 
-          onDragOver={handleDragOver} 
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
           <Row style={{ flex: 1, height: '100%', minHeight: 0, overflow: 'hidden' }} gutter={0}>
-            {/* 左侧源树区 */}
-            <Col 
-              span={12} 
-              style={{ 
+            <Col
+              span={12}
+              style={{
                 borderRight: `1px solid ${token.colorBorderSecondary}`,
                 display: 'flex',
                 flexDirection: 'column',
@@ -459,12 +628,12 @@ export default function TransferWorkspace({
               <div style={{ padding: '16px 24px', borderBottom: `1px solid ${token.colorSplit}` }}>
                 <div style={{ fontWeight: 600, fontSize: 16 }}>已选源分类</div>
                 <div style={{ fontSize: 12, color: token.colorTextDescription, marginTop: 4 }}>
-                  透传展示已选层级，仅高亮节点可拖拽
+                  基于专用子树接口加载完整源分类结构
                 </div>
               </div>
               <div className="transfer-workspace-pane">
                 {displaySourceData.length > 0 ? (
-                  <DraggableSourceTree 
+                  <DraggableSourceTree
                     treeData={displaySourceData}
                     expandedKeys={sourceExpandedKeys}
                     onExpand={setSourceExpandedKeys}
@@ -477,7 +646,6 @@ export default function TransferWorkspace({
               </div>
             </Col>
 
-            {/* 右侧目标树区 */}
             <Col
               span={12}
               style={{
@@ -489,57 +657,43 @@ export default function TransferWorkspace({
               }}
             >
               <div style={{ padding: '16px 24px', borderBottom: `1px solid ${token.colorSplit}` }}>
-                <div style={{ fontWeight: 600, fontSize: 16 }}>目标位置 (接收方)</div>
+                <div style={{ fontWeight: 600, fontSize: 16 }}>目标位置</div>
                 <div style={{ fontSize: 12, color: token.colorTextDescription, marginTop: 4 }}>
-                  支持搜索定位，悬停节点自动展开
+                  使用原有节点懒加载接口，拖拽悬停可自动展开
                 </div>
               </div>
               <div className="transfer-workspace-pane">
-                {displayTargetData.length > 0 ? (
-                  <DropTargetTree
-                    treeData={displayTargetData}
-                    expandedKeys={targetExpandedKeys}
-                    onExpand={setTargetExpandedKeys}
-                    disabledKeys={disabledKeys}
-                    pendingDropKeys={pendingOperations.map(op => op.targetKey)}
-                    hoveredTargetKey={hoveredTargetKey}
-                  />
-                ) : (
-                  <div style={{ color: token.colorTextDisabled, textAlign: 'center', marginTop: 40 }}>
-                    (无目标树数据)
-                  </div>
-                )}
+                <DropTargetTree
+                  treeData={displayTargetData}
+                  expandedKeys={targetExpandedKeys}
+                  onExpand={setTargetExpandedKeys}
+                  loadData={handleLoadTargetChildren}
+                  disabledKeys={disabledKeys}
+                  pendingDropKeys={pendingOperations.map((operation) => operation.targetKey)}
+                  hoveredTargetKey={hoveredTargetKey}
+                />
               </div>
             </Col>
           </Row>
-          
-          {/* Drag Overlay 用于在整个页面上方浮动展示拖拽的节点快照 */}
+
           {isClientMounted
             ? createPortal(
-                <DragOverlay 
+                <DragOverlay
                   zIndex={DRAG_OVERLAY_Z_INDEX}
-                  dropAnimation={{ 
-                    sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.4' } } }) 
+                  dropAnimation={{
+                    sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.4' } } }),
                   }}
                 >
                   {activeDragNode ? (
                     <div style={getTransferNodeOverlayShellStyle(token)}>
                       <div style={getTransferNodeOverlayCardStyle(token)}>
-                        <div style={getTransferNodeOverlayActionStyle(token)}>
-                          {overlayActionLabel}
-                        </div>
+                        <div style={getTransferNodeOverlayActionStyle(token)}>{overlayActionLabel}</div>
                         <div style={getTransferNodeOverlayIconStyle(token)}>
                           <FolderOutlined style={{ fontSize: 12 }} />
                         </div>
-                        <div style={getTransferNodeOverlayTitleStyle(token)}>
-                          {activeDragNode.title}
-                        </div>
-                        <div style={getTransferNodeOverlayConnectorStyle(token)}>
-                          至
-                        </div>
-                        <div style={getTransferNodeOverlayTargetStyle(token)}>
-                          {hoveredTargetTitle}
-                        </div>
+                        <div style={getTransferNodeOverlayTitleStyle(token)}>{activeDragNode.title}</div>
+                        <div style={getTransferNodeOverlayConnectorStyle(token)}>至</div>
+                        <div style={getTransferNodeOverlayTargetStyle(token)}>{hoveredTargetTitle}</div>
                       </div>
                     </div>
                   ) : null}
@@ -549,12 +703,11 @@ export default function TransferWorkspace({
             : null}
         </DndContext>
 
-        {/* 底部：操作意图栏 */}
-        <ActionFooter 
-          pendingAction={pendingAction} 
-          onConfirm={handleConfirm} 
+        <ActionFooter
+          pendingAction={pendingAction}
+          onConfirm={handleConfirm}
           onCancel={handleCancel}
-          loading={loading}
+          loading={spinning}
         />
       </div>
     </Spin>
