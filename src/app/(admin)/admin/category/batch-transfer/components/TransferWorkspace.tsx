@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { App, Col, Row, Spin, theme } from 'antd';
 import { FolderOutlined } from '@ant-design/icons';
@@ -12,6 +12,7 @@ import {
   pointerWithin,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -39,6 +40,9 @@ import {
 
 const TARGET_ROOT_PAGE_SIZE = 200;
 const DEFAULT_LIST_STATUS = 'ALL';
+const ROOT_DROP_TARGET_KEY = '__ROOT_DROP_TARGET__';
+const ROOT_DROP_TARGET_TITLE = '根分类';
+const ROOT_DROP_TARGET_DROPPABLE_ID = `tgt-${ROOT_DROP_TARGET_KEY}`;
 const DEFAULT_COPY_OPTIONS = {
   versionPolicy: 'CURRENT_ONLY' as const,
   codePolicy: 'AUTO_SUFFIX' as const,
@@ -53,12 +57,14 @@ export interface TransferTreeNode {
   children?: TransferTreeNode[];
   isContextOnly?: boolean;
   isVirtual?: boolean;
+  isPendingPlacement?: boolean;
+  isPreviewRoot?: boolean;
   dataRef?: MetaCategoryNodeDto;
 }
 
 interface PendingOperation {
   sourceNode: TransferTreeNode;
-  targetKey: React.Key;
+  targetKey: React.Key | null;
   id: string;
 }
 
@@ -174,6 +180,33 @@ const getErrorMessage = (error: any, fallback: string) => {
   return error?.message || error?.error || fallback;
 };
 
+const rectContainsPoint = (
+  rect: { top: number; right: number; bottom: number; left: number },
+  point: { x: number; y: number },
+) => {
+  return point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
+};
+
+const rectIntersects = (
+  rect: { top: number; right: number; bottom: number; left: number },
+  viewport: { top: number; right: number; bottom: number; left: number },
+) => {
+  return !(
+    rect.right <= viewport.left ||
+    rect.left >= viewport.right ||
+    rect.bottom <= viewport.top ||
+    rect.top >= viewport.bottom
+  );
+};
+
+const isRootCategoryNode = (node?: TransferTreeNode | null) => {
+  if (!node?.dataRef) {
+    return false;
+  }
+
+  return node.dataRef.level === 1 || node.dataRef.parentId == null;
+};
+
 export default function TransferWorkspace({
   businessDomain,
   initialAction,
@@ -219,11 +252,63 @@ export default function TransferWorkspace({
   const [sourceExpandedKeys, setSourceExpandedKeys] = useState<React.Key[]>([]);
   const [targetExpandedKeys, setTargetExpandedKeys] = useState<React.Key[]>([]);
   const [targetLoadedKeys, setTargetLoadedKeys] = useState<React.Key[]>([]);
+  const targetScrollViewportRef = useRef<HTMLDivElement | null>(null);
+  const rootDropTargetRef = useRef<HTMLDivElement | null>(null);
 
   const overlayActionLabel = useMemo(() => {
     const action = pendingAction || initialAction || 'move';
     return action === 'copy' ? '复制' : '移动';
   }, [initialAction, pendingAction]);
+
+  const rootDropDisabled = useMemo(() => {
+    return isRootCategoryNode(activeDragNode);
+  }, [activeDragNode]);
+
+  const collisionDetectionStrategy = useMemo<CollisionDetection>(() => {
+    return (args) => {
+      const collisions = pointerWithin(args);
+      const pointer = args.pointerCoordinates;
+      const rootElementRect = rootDropTargetRef.current?.getBoundingClientRect();
+      const rootRect = args.droppableRects.get(ROOT_DROP_TARGET_DROPPABLE_ID);
+
+      if (pointer && rootElementRect && rectContainsPoint(rootElementRect, pointer)) {
+        if (rootDropDisabled) {
+          return [];
+        }
+
+        const rootCollision = collisions.find(
+          (collision) => collision.id === ROOT_DROP_TARGET_DROPPABLE_ID,
+        );
+
+        return rootCollision ? [rootCollision] : [];
+      }
+
+      const viewportRect = targetScrollViewportRef.current?.getBoundingClientRect();
+      const visibleCollisions = viewportRect
+        ? collisions.filter((collision) => {
+            const collisionRect = args.droppableRects.get(collision.id);
+            return collisionRect ? rectIntersects(collisionRect, viewportRect) : false;
+          })
+        : collisions;
+
+      if (rootDropDisabled) {
+        return visibleCollisions.filter((collision) => collision.id !== ROOT_DROP_TARGET_DROPPABLE_ID);
+      }
+
+      const rootCollision = visibleCollisions.find(
+        (collision) => collision.id === ROOT_DROP_TARGET_DROPPABLE_ID,
+      );
+
+      if (rootCollision) {
+        return [
+          rootCollision,
+          ...visibleCollisions.filter((collision) => collision.id !== ROOT_DROP_TARGET_DROPPABLE_ID),
+        ];
+      }
+
+      return visibleCollisions;
+    };
+  }, [rootDropDisabled]);
 
   useEffect(() => {
     setIsClientMounted(true);
@@ -345,18 +430,25 @@ export default function TransferWorkspace({
       return;
     }
 
-    if (disabledKeys.includes(overNode.key)) {
+    if (
+      (overNode.key === ROOT_DROP_TARGET_KEY && rootDropDisabled) ||
+      (overNode.key !== ROOT_DROP_TARGET_KEY && disabledKeys.includes(overNode.key))
+    ) {
       setHoveredTargetKey(null);
       setHoveredTargetTitle('目标分类');
       return;
     }
 
     setHoveredTargetKey(overNode.key);
-    setHoveredTargetTitle(overNode.title || '目标分类');
+    setHoveredTargetTitle(overNode.key === ROOT_DROP_TARGET_KEY ? ROOT_DROP_TARGET_TITLE : overNode.title || '目标分类');
   };
 
   useEffect(() => {
-    if (!hoveredTargetKey || disabledKeys.includes(hoveredTargetKey)) {
+    if (
+      !hoveredTargetKey ||
+      hoveredTargetKey === ROOT_DROP_TARGET_KEY ||
+      disabledKeys.includes(hoveredTargetKey)
+    ) {
       return;
     }
 
@@ -381,13 +473,19 @@ export default function TransferWorkspace({
     const draggedNode = activeDragNode;
     setActiveDragNode(null);
 
-    if (!overNode || !draggedNode || disabledKeys.includes(overNode.key)) {
+    if (
+      !overNode ||
+      !draggedNode ||
+      (overNode.key === ROOT_DROP_TARGET_KEY && rootDropDisabled) ||
+      (overNode.key !== ROOT_DROP_TARGET_KEY && disabledKeys.includes(overNode.key))
+    ) {
       return;
     }
 
+    const resolvedTargetKey = overNode.key === ROOT_DROP_TARGET_KEY ? null : overNode.key;
     const nextOperation: PendingOperation = {
       sourceNode: draggedNode,
-      targetKey: overNode.key,
+      targetKey: resolvedTargetKey,
       id: `OP_${Date.now()}_${draggedNode.key}`,
     };
     const resolvedAction = pendingAction || initialAction || 'move';
@@ -399,7 +497,9 @@ export default function TransferWorkspace({
       }
       return [...prev, nextOperation];
     });
-    setTargetExpandedKeys((prev) => Array.from(new Set([...prev, overNode.key])));
+    if (resolvedTargetKey) {
+      setTargetExpandedKeys((prev) => Array.from(new Set([...prev, resolvedTargetKey])));
+    }
 
     if (!pendingAction) {
       setPendingAction(initialAction || 'move');
@@ -420,7 +520,7 @@ export default function TransferWorkspace({
       operations: pendingOperations.map((operation) => ({
         clientOperationId: operation.id,
         sourceNodeId: String(operation.sourceNode.key),
-        targetParentId: String(operation.targetKey),
+        targetParentId: operation.targetKey == null ? null : String(operation.targetKey),
       })),
     };
   };
@@ -555,15 +655,18 @@ export default function TransferWorkspace({
       const createVirtualNodes = (
         node: TransferTreeNode,
         isRoot: boolean,
+        isRootPlacement: boolean,
       ): TransferTreeNode => ({
         ...node,
         key: isRoot ? `VIRTUAL_PENDING_${operation.id}` : `VIRTUAL_PENDING_${operation.id}_${node.key}`,
-        title: isRoot ? `${node.title} (预览)` : node.title,
+        title: node.title,
         isVirtual: true,
-        children: node.children?.map((child) => createVirtualNodes(child, false)),
+        isPendingPlacement: isRoot && isRootPlacement,
+        isPreviewRoot: isRoot,
+        children: node.children?.map((child) => createVirtualNodes(child, false, false)),
       });
 
-      const virtualNode = createVirtualNodes(operation.sourceNode, true);
+      const virtualNode = createVirtualNodes(operation.sourceNode, true, operation.targetKey == null);
       const insertNode = (nodes: TransferTreeNode[], targetKey: React.Key): TransferTreeNode[] => {
         return nodes.map((node) => {
           if (node.key === targetKey) {
@@ -582,7 +685,7 @@ export default function TransferWorkspace({
         });
       };
 
-      currentData = insertNode(currentData, operation.targetKey);
+      currentData = operation.targetKey == null ? [...currentData, virtualNode] : insertNode(currentData, operation.targetKey);
     });
 
     return currentData;
@@ -608,7 +711,8 @@ export default function TransferWorkspace({
         <style dangerouslySetInnerHTML={{ __html: dndTreeGlobalStyles }} />
         <DndContext
           sensors={sensors}
-          collisionDetection={pointerWithin}
+          collisionDetection={collisionDetectionStrategy}
+          autoScroll={false}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
@@ -669,8 +773,16 @@ export default function TransferWorkspace({
                   onExpand={setTargetExpandedKeys}
                   loadData={handleLoadTargetChildren}
                   disabledKeys={disabledKeys}
-                  pendingDropKeys={pendingOperations.map((operation) => operation.targetKey)}
+                  pendingDropKeys={pendingOperations
+                    .map((operation) => operation.targetKey)
+                    .filter((key): key is React.Key => key != null)}
+                  rootPendingCount={pendingOperations.filter((operation) => operation.targetKey == null).length}
                   hoveredTargetKey={hoveredTargetKey}
+                  rootDropTargetKey={ROOT_DROP_TARGET_KEY}
+                  rootDropTargetTitle={ROOT_DROP_TARGET_TITLE}
+                  rootDropDisabled={rootDropDisabled}
+                  scrollViewportRef={targetScrollViewportRef}
+                  rootDropTargetRef={rootDropTargetRef}
                 />
               </div>
             </Col>

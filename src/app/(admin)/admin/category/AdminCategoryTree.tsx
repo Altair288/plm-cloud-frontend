@@ -7,7 +7,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   CopyOutlined,
-  CheckOutlined,
+  UnorderedListOutlined,
   SearchOutlined,
   CloseOutlined,
   ImportOutlined,
@@ -238,7 +238,7 @@ const ToolbarActions: React.FC<ToolbarActionsProps> = ({
           <Button
             size="small"
             type="default"
-            icon={<CheckOutlined />}
+            icon={<UnorderedListOutlined />}
             aria-label="切换复选框"
             onClick={toolbarState.onCheckableToggle}
             style={createCircleButtonStyle(

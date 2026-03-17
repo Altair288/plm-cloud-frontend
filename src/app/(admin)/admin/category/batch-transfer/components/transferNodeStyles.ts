@@ -41,7 +41,7 @@ const hexToRgba = (hex: string, alpha: number): string | null => {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 };
 
-const colorToRgba = (color: string, alpha: number): string => {
+export const colorToRgba = (color: string, alpha: number): string => {
   if (color.startsWith('#')) {
     return hexToRgba(color, alpha) ?? color;
   }
