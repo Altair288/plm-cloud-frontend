@@ -69,10 +69,17 @@ export default function BatchTransferModal({
       width="80%"
       destroyOnHidden
       styles={{ 
-        body: { padding: 0 } // 因为 TransferWorkspace 自带了内边距与外壳
+        body: {
+          padding: 0,
+          height: 'min(80vh, calc(100vh - 160px))',
+          minHeight: 0,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        },
       }}
     >
-      <div style={{ height: '80vh', minHeight: 600 }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <TransferWorkspace 
           initialAction={actionType || undefined}
           sourceNodesData={transformedSourceNodes}

@@ -107,6 +107,29 @@ export default function TransferWorkspace({
   onCancelWorkspace
 }: TransferWorkspaceProps) {
   const { token } = theme.useToken();
+  const workspaceLayoutStyles = useMemo(
+    () => `
+      .transfer-workspace-spin.ant-spin-nested-loading {
+        height: 100%;
+      }
+      .transfer-workspace-spin .ant-spin-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+      }
+      .transfer-workspace-pane {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 0;
+        height: 0;
+        min-height: 0;
+        overflow: auto;
+        padding: 24px;
+      }
+    `,
+    [],
+  );
   
   // ================= 状态管理 =================
   const [isClientMounted, setIsClientMounted] = useState(false);
@@ -397,16 +420,18 @@ export default function TransferWorkspace({
   }, [targetData, pendingOperations]);
 
   return (
-    <Spin spinning={loading} tip="正在处理中，请稍候..." size="large">
+    <Spin spinning={loading} tip="正在处理中，请稍候..." size="large" wrapperClassName="transfer-workspace-spin">
+      <style dangerouslySetInnerHTML={{ __html: workspaceLayoutStyles }} />
       <div 
         style={{ 
           display: 'flex', 
           flexDirection: 'column', 
           height: '100%', 
-          minHeight: '600px',
+          minHeight: 0,
           background: token.colorBgContainer,
           borderRadius: 12,
           boxShadow: token.boxShadowTertiary,
+          overflow: 'hidden',
         }}
       >
         <style dangerouslySetInnerHTML={{ __html: dndTreeGlobalStyles }} />
@@ -418,14 +443,17 @@ export default function TransferWorkspace({
           onDragOver={handleDragOver} 
           onDragEnd={handleDragEnd}
         >
-          <Row style={{ flex: 1, minHeight: 0, overflow: 'hidden' }} gutter={0}>
+          <Row style={{ flex: 1, height: '100%', minHeight: 0, overflow: 'hidden' }} gutter={0}>
             {/* 左侧源树区 */}
             <Col 
               span={12} 
               style={{ 
                 borderRight: `1px solid ${token.colorBorderSecondary}`,
                 display: 'flex',
-                flexDirection: 'column'
+                flexDirection: 'column',
+                height: '100%',
+                minHeight: 0,
+                overflow: 'hidden',
               }}
             >
               <div style={{ padding: '16px 24px', borderBottom: `1px solid ${token.colorSplit}` }}>
@@ -434,7 +462,7 @@ export default function TransferWorkspace({
                   透传展示已选层级，仅高亮节点可拖拽
                 </div>
               </div>
-              <div style={{ flex: 1, overflow: 'auto', padding: 24 }}>
+              <div className="transfer-workspace-pane">
                 {displaySourceData.length > 0 ? (
                   <DraggableSourceTree 
                     treeData={displaySourceData}
@@ -450,14 +478,23 @@ export default function TransferWorkspace({
             </Col>
 
             {/* 右侧目标树区 */}
-            <Col span={12} style={{ display: 'flex', flexDirection: 'column' }}>
+            <Col
+              span={12}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100%',
+                minHeight: 0,
+                overflow: 'hidden',
+              }}
+            >
               <div style={{ padding: '16px 24px', borderBottom: `1px solid ${token.colorSplit}` }}>
                 <div style={{ fontWeight: 600, fontSize: 16 }}>目标位置 (接收方)</div>
                 <div style={{ fontSize: 12, color: token.colorTextDescription, marginTop: 4 }}>
                   支持搜索定位，悬停节点自动展开
                 </div>
               </div>
-              <div style={{ flex: 1, overflow: 'auto', padding: 24 }}>
+              <div className="transfer-workspace-pane">
                 {displayTargetData.length > 0 ? (
                   <DropTargetTree
                     treeData={displayTargetData}

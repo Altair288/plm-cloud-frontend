@@ -76,14 +76,14 @@ export default function DropTargetTree({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
       <Search 
         placeholder="搜索目标分类..." 
         allowClear 
         prefix={<SearchOutlined />} 
         style={{ marginBottom: 16 }}
       />
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      <div style={{ flex: '1 1 0', height: 0, minHeight: 0, overflow: 'auto' }}>
         <Tree
           className="drop-target-tree dnd-transfer-tree"
           treeData={treeData as TreeDataNode[]}

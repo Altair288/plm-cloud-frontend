@@ -48,7 +48,7 @@ export default function DraggableSourceTree({
   };
 
   return (
-    <div>
+    <div style={{ flex: '1 1 0', height: 0, minHeight: 0 }}>
       <Tree
         className="draggable-source-tree dnd-transfer-tree"
         treeData={treeData as TreeDataNode[]}
