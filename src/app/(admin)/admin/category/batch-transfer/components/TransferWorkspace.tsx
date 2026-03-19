@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { App, Col, Row, Spin, theme } from 'antd';
-import { FolderOutlined } from '@ant-design/icons';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { App, Col, Row, Spin, theme } from "antd";
+import { FolderOutlined } from "@ant-design/icons";
 import {
   DndContext,
   DragOverlay,
@@ -17,7 +17,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
-} from '@dnd-kit/core';
+} from "@dnd-kit/core";
 import type {
   MetaCategoryBatchTransferRequestDto,
   MetaCategoryBatchTransferResponseDto,
@@ -25,12 +25,12 @@ import type {
   MetaCategoryBatchTransferTopologyResponseDto,
   MetaCategoryNodeDto,
   MetaCategoryTreeNodeDto,
-} from '@/models/metaCategory';
-import { metaCategoryApi } from '@/services/metaCategory';
-import ActionFooter from './ActionFooter';
-import DraggableSourceTree from './DraggableSourceTree';
-import DropTargetTree from './DropTargetTree';
-import { DRAG_OVERLAY_Z_INDEX, dndTreeGlobalStyles } from './dnd-tree-styles';
+} from "@/models/metaCategory";
+import { metaCategoryApi } from "@/services/metaCategory";
+import ActionFooter from "./ActionFooter";
+import DraggableSourceTree from "./DraggableSourceTree";
+import DropTargetTree from "./DropTargetTree";
+import { DRAG_OVERLAY_Z_INDEX, dndTreeGlobalStyles } from "./dnd-tree-styles";
 import {
   getTransferNodeOverlayActionStyle,
   getTransferNodeOverlayCardStyle,
@@ -39,22 +39,24 @@ import {
   getTransferNodeOverlayShellStyle,
   getTransferNodeOverlayTargetStyle,
   getTransferNodeOverlayTitleStyle,
-} from './transferNodeStyles';
+} from "./transferNodeStyles";
 
 const TARGET_ROOT_PAGE_SIZE = 200;
-const DEFAULT_LIST_STATUS = 'ALL';
+const DEFAULT_LIST_STATUS = "ALL";
 const HOVER_TARGET_COMMIT_DELAY = 140; // ms，基于经验值调整，旨在平衡响应速度和避免过度频繁更新悬停目标导致的视觉干扰
-const ROOT_DROP_TARGET_KEY = '__ROOT_DROP_TARGET__';
-const ROOT_DROP_TARGET_TITLE = '根分类';
+const ROOT_DROP_TARGET_KEY = "__ROOT_DROP_TARGET__";
+const ROOT_DROP_TARGET_TITLE = "根分类";
 const ROOT_DROP_TARGET_DROPPABLE_ID = `tgt-${ROOT_DROP_TARGET_KEY}`;
 const DEFAULT_COPY_OPTIONS = {
-  versionPolicy: 'CURRENT_ONLY' as const,
-  codePolicy: 'AUTO_SUFFIX' as const,
-  namePolicy: 'KEEP' as const,
-  defaultStatus: 'DRAFT' as const,
+  versionPolicy: "CURRENT_ONLY" as const,
+  codePolicy: "AUTO_SUFFIX" as const,
+  namePolicy: "KEEP" as const,
+  defaultStatus: "DRAFT" as const,
 };
 const DEFAULT_DRAG_OVERLAY_DROP_ANIMATION = {
-  sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.4' } } }),
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: { active: { opacity: "0.4" } },
+  }),
 };
 
 export interface TransferTreeNode {
@@ -92,11 +94,13 @@ interface VirtualRelationEntry {
 
 export interface TransferWorkspaceProps {
   businessDomain: string;
-  initialAction?: 'move' | 'copy';
+  initialAction?: "move" | "copy";
   sourceNodesData?: TransferTreeNode[];
   externalLoading?: boolean;
   onComplete?: (
-    response?: MetaCategoryBatchTransferResponseDto | MetaCategoryBatchTransferTopologyResponseDto,
+    response?:
+      | MetaCategoryBatchTransferResponseDto
+      | MetaCategoryBatchTransferTopologyResponseDto,
   ) => void;
   onCancelWorkspace?: () => void;
 }
@@ -109,7 +113,7 @@ const formatTransferNodeTitle = (
   if (code && name) {
     return `${code} - ${name}`;
   }
-  return fallback || name || code || '-';
+  return fallback || name || code || "-";
 };
 
 const mapCategoryNodeToTransferNode = (
@@ -134,7 +138,7 @@ const mapCategoryNodeToTransferNode = (
     updatedAt: node.updatedAt,
   },
   children:
-    'children' in node && node.children
+    "children" in node && node.children
       ? node.children.map(mapCategoryNodeToTransferNode)
       : undefined,
 });
@@ -176,7 +180,9 @@ const findTransferNode = (
   return null;
 };
 
-const collectInitialSourceExpandedKeys = (nodes: TransferTreeNode[]): React.Key[] => {
+const collectInitialSourceExpandedKeys = (
+  nodes: TransferTreeNode[],
+): React.Key[] => {
   const expandedKeys: React.Key[] = [];
 
   const visit = (items: TransferTreeNode[], depth: number) => {
@@ -208,7 +214,12 @@ const rectContainsPoint = (
   rect: { top: number; right: number; bottom: number; left: number },
   point: { x: number; y: number },
 ) => {
-  return point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
+  return (
+    point.x >= rect.left &&
+    point.x <= rect.right &&
+    point.y >= rect.top &&
+    point.y <= rect.bottom
+  );
 };
 
 const rectIntersects = (
@@ -262,7 +273,9 @@ const insertNodeIntoTree = (
     return [...nodes, nodeToInsert];
   }
 
-  const visit = (items: TransferTreeNode[]): { nextItems: TransferTreeNode[]; inserted: boolean } => {
+  const visit = (
+    items: TransferTreeNode[],
+  ): { nextItems: TransferTreeNode[]; inserted: boolean } => {
     let inserted = false;
 
     const nextItems = items.map((item) => {
@@ -318,7 +331,9 @@ const annotateMovedSourceNodes = (
   return nodes.map((node) => ({
     ...node,
     isMovedSource: movedSourceKeySet.has(String(node.key)),
-    children: node.children ? annotateMovedSourceNodes(node.children, movedSourceKeySet) : undefined,
+    children: node.children
+      ? annotateMovedSourceNodes(node.children, movedSourceKeySet)
+      : undefined,
   }));
 };
 
@@ -344,7 +359,9 @@ const pruneNestedPendingNodes = (
   return {
     ...node,
     children: node.children
-      ?.map((child) => pruneNestedPendingNodes(child, rootSourceKey, pendingSourceKeySet))
+      ?.map((child) =>
+        pruneNestedPendingNodes(child, rootSourceKey, pendingSourceKeySet),
+      )
       .filter((child): child is TransferTreeNode => child != null),
   };
 };
@@ -361,7 +378,9 @@ const removeNodesFromTree = (
     return [
       {
         ...node,
-        children: node.children ? removeNodesFromTree(node.children, removedNodeKeySet) : undefined,
+        children: node.children
+          ? removeNodesFromTree(node.children, removedNodeKeySet)
+          : undefined,
       },
     ];
   });
@@ -381,18 +400,22 @@ const preparePendingMoveOperations = (
   operations.forEach((operation, index) => {
     operationByNodeId.set(String(operation.sourceNode.key), operation);
     operationById.set(operation.id, operation);
-    subtreeKeysByOperationId.set(operation.id, collectSubtreeKeys(operation.sourceNode));
+    subtreeKeysByOperationId.set(
+      operation.id,
+      collectSubtreeKeys(operation.sourceNode),
+    );
     dependencyMap.set(operation.id, new Set());
     indexByOperationId.set(operation.id, index);
     targetParentIdByOperationId.set(
       operation.id,
-      virtualRelationMap[String(operation.sourceNode.key)]?.currentParentId
-        ?? (operation.targetKey == null ? null : String(operation.targetKey)),
+      virtualRelationMap[String(operation.sourceNode.key)]?.currentParentId ??
+        (operation.targetKey == null ? null : String(operation.targetKey)),
     );
   });
 
   operations.forEach((operation) => {
-    const currentParentId = targetParentIdByOperationId.get(operation.id) ?? null;
+    const currentParentId =
+      targetParentIdByOperationId.get(operation.id) ?? null;
 
     if (!currentParentId) {
       // no target dependency for root placement
@@ -402,13 +425,19 @@ const preparePendingMoveOperations = (
           return;
         }
 
-        if (subtreeKeysByOperationId.get(candidateOperation.id)?.has(currentParentId)) {
+        if (
+          subtreeKeysByOperationId
+            .get(candidateOperation.id)
+            ?.has(currentParentId)
+        ) {
           dependencyMap.get(operation.id)?.add(candidateOperation.id);
         }
       });
     }
 
-    const currentOperationSubtreeKeys = subtreeKeysByOperationId.get(operation.id);
+    const currentOperationSubtreeKeys = subtreeKeysByOperationId.get(
+      operation.id,
+    );
     if (!currentOperationSubtreeKeys) {
       return;
     }
@@ -424,7 +453,9 @@ const preparePendingMoveOperations = (
       }
 
       if (
-        currentOperationSubtreeKeys.has(String(otherOperation.sourceNode.key)) &&
+        currentOperationSubtreeKeys.has(
+          String(otherOperation.sourceNode.key),
+        ) &&
         !otherSubtreeKeys.has(String(operation.sourceNode.key))
       ) {
         dependencyMap.get(operation.id)?.add(otherOperationId);
@@ -442,25 +473,43 @@ const preparePendingMoveOperations = (
 
   while (resolvedIds.size < operations.length) {
     const nextOperation = operations
-      .filter((operation) => !resolvedIds.has(operation.id) && (indegreeMap.get(operation.id) || 0) === 0)
-      .sort((left, right) => (indexByOperationId.get(left.id) || 0) - (indexByOperationId.get(right.id) || 0))[0];
+      .filter(
+        (operation) =>
+          !resolvedIds.has(operation.id) &&
+          (indegreeMap.get(operation.id) || 0) === 0,
+      )
+      .sort(
+        (left, right) =>
+          (indexByOperationId.get(left.id) || 0) -
+          (indexByOperationId.get(right.id) || 0),
+      )[0];
 
     if (!nextOperation) {
-      throw new Error('当前批量移动存在无法解析的操作依赖，请调整拖拽顺序后重试');
+      throw new Error(
+        "当前批量移动存在无法解析的操作依赖，请调整拖拽顺序后重试",
+      );
     }
 
     orderedOperations.push({
       operation: nextOperation,
       sourceNodeId: String(nextOperation.sourceNode.key),
       targetParentId: targetParentIdByOperationId.get(nextOperation.id) ?? null,
-      dependsOnOperationIds: Array.from(dependencyMap.get(nextOperation.id) || []),
+      dependsOnOperationIds: Array.from(
+        dependencyMap.get(nextOperation.id) || [],
+      ),
       originalParentId: nextOperation.sourceNode.dataRef?.parentId ?? null,
     });
     resolvedIds.add(nextOperation.id);
 
     dependencyMap.forEach((dependencyIds, operationId) => {
-      if (!resolvedIds.has(operationId) && dependencyIds.has(nextOperation.id)) {
-        indegreeMap.set(operationId, Math.max(0, (indegreeMap.get(operationId) || 0) - 1));
+      if (
+        !resolvedIds.has(operationId) &&
+        dependencyIds.has(nextOperation.id)
+      ) {
+        indegreeMap.set(
+          operationId,
+          Math.max(0, (indegreeMap.get(operationId) || 0) - 1),
+        );
       }
     });
   }
@@ -469,31 +518,43 @@ const preparePendingMoveOperations = (
 };
 
 const isTopologyTransferResponse = (
-  response: MetaCategoryBatchTransferResponseDto | MetaCategoryBatchTransferTopologyResponseDto,
+  response:
+    | MetaCategoryBatchTransferResponseDto
+    | MetaCategoryBatchTransferTopologyResponseDto,
 ): response is MetaCategoryBatchTransferTopologyResponseDto => {
-  return 'resolvedOrder' in response || 'planningWarnings' in response || 'finalParentMappings' in response;
+  return (
+    "resolvedOrder" in response ||
+    "planningWarnings" in response ||
+    "finalParentMappings" in response
+  );
 };
 
 const collectFailedTransferMessages = (
-  response: MetaCategoryBatchTransferResponseDto | MetaCategoryBatchTransferTopologyResponseDto,
+  response:
+    | MetaCategoryBatchTransferResponseDto
+    | MetaCategoryBatchTransferTopologyResponseDto,
 ): string[] => {
   return response.results
     .filter((result) => !result.success)
     .map((result) => {
-      const operationId = 'operationId' in result
-        ? result.operationId
-        : result.clientOperationId || result.sourceNodeId;
-      const code = result.code || 'UNKNOWN_ERROR';
-      const message = result.message || '未提供失败原因';
+      const operationId =
+        "operationId" in result
+          ? result.operationId
+          : result.clientOperationId || result.sourceNodeId;
+      const code = result.code || "UNKNOWN_ERROR";
+      const message = result.message || "未提供失败原因";
       return `${operationId}: ${code} - ${message}`;
     });
 };
 
 const hasAtomicRollbackFailure = (
-  response: MetaCategoryBatchTransferResponseDto | MetaCategoryBatchTransferTopologyResponseDto,
+  response:
+    | MetaCategoryBatchTransferResponseDto
+    | MetaCategoryBatchTransferTopologyResponseDto,
 ): boolean => {
   return response.results.some(
-    (result) => result.code === 'ATOMIC_ROLLBACK' || result.code === 'ATOMIC_ABORTED',
+    (result) =>
+      result.code === "ATOMIC_ROLLBACK" || result.code === "ATOMIC_ABORTED",
   );
 };
 
@@ -532,39 +593,60 @@ export default function TransferWorkspace({
 
   const [isClientMounted, setIsClientMounted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [pendingAction, setPendingAction] = useState<'move' | 'copy' | null>(null);
-  const [activeDragNode, setActiveDragNode] = useState<TransferTreeNode | null>(null);
-  const [pendingOperations, setPendingOperations] = useState<PendingOperation[]>([]);
-  const [liveHoveredTargetKey, setLiveHoveredTargetKey] = useState<React.Key | null>(null);
-  const [hoveredTargetKey, setHoveredTargetKey] = useState<React.Key | null>(null);
-  const [hoveredTargetTitle, setHoveredTargetTitle] = useState<string>('目标分类');
-  const [hoveredMovedSourceKey, setHoveredMovedSourceKey] = useState<React.Key | null>(null);
+  const [pendingAction, setPendingAction] = useState<"move" | "copy" | null>(
+    null,
+  );
+  const [activeDragNode, setActiveDragNode] = useState<TransferTreeNode | null>(
+    null,
+  );
+  const [pendingOperations, setPendingOperations] = useState<
+    PendingOperation[]
+  >([]);
+  const [liveHoveredTargetKey, setLiveHoveredTargetKey] =
+    useState<React.Key | null>(null);
+  const [hoveredTargetKey, setHoveredTargetKey] = useState<React.Key | null>(
+    null,
+  );
+  const [hoveredTargetTitle, setHoveredTargetTitle] =
+    useState<string>("目标分类");
+  const [hoveredMovedSourceKey, setHoveredMovedSourceKey] =
+    useState<React.Key | null>(null);
   const [sourceData, setSourceData] = useState<TransferTreeNode[]>([]);
   const [targetData, setTargetData] = useState<TransferTreeNode[]>([]);
   const [sourceExpandedKeys, setSourceExpandedKeys] = useState<React.Key[]>([]);
   const [targetExpandedKeys, setTargetExpandedKeys] = useState<React.Key[]>([]);
   const [targetLoadedKeys, setTargetLoadedKeys] = useState<React.Key[]>([]);
-  const [virtualRelationMap, setVirtualRelationMap] = useState<Record<string, VirtualRelationEntry>>({});
-  const [shouldAnimateDragOverlayDropBack, setShouldAnimateDragOverlayDropBack] = useState(true);
+  const [virtualRelationMap, setVirtualRelationMap] = useState<
+    Record<string, VirtualRelationEntry>
+  >({});
+  const [
+    shouldAnimateDragOverlayDropBack,
+    setShouldAnimateDragOverlayDropBack,
+  ] = useState(true);
   const targetScrollViewportRef = useRef<HTMLDivElement | null>(null);
   const rootDropTargetRef = useRef<HTMLDivElement | null>(null);
-  const hoverTargetCommitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingHoverTargetRef = useRef<{ key: React.Key | null; title: string }>({
+  const hoverTargetCommitTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+  const pendingHoverTargetRef = useRef<{
+    key: React.Key | null;
+    title: string;
+  }>({
     key: null,
-    title: '目标分类',
+    title: "目标分类",
   });
 
   const overlayActionLabel = useMemo(() => {
-    const action = pendingAction || initialAction || 'move';
-    return action === 'copy' ? '复制' : '移动';
+    const action = pendingAction || initialAction || "move";
+    return action === "copy" ? "复制" : "移动";
   }, [initialAction, pendingAction]);
 
-  const currentActionType = useMemo<'move' | 'copy'>(() => {
-    return pendingAction || initialAction || 'move';
+  const currentActionType = useMemo<"move" | "copy">(() => {
+    return pendingAction || initialAction || "move";
   }, [initialAction, pendingAction]);
 
   const rootDropDisabled = useMemo(() => {
-    return currentActionType === 'move' && isRootCategoryNode(activeDragNode);
+    return currentActionType === "move" && isRootCategoryNode(activeDragNode);
   }, [activeDragNode, currentActionType]);
 
   const transferNodeLookup = useMemo(() => {
@@ -580,10 +662,15 @@ export default function TransferWorkspace({
     return (args) => {
       const collisions = pointerWithin(args);
       const pointer = args.pointerCoordinates;
-      const rootElementRect = rootDropTargetRef.current?.getBoundingClientRect();
+      const rootElementRect =
+        rootDropTargetRef.current?.getBoundingClientRect();
       const rootRect = args.droppableRects.get(ROOT_DROP_TARGET_DROPPABLE_ID);
 
-      if (pointer && rootElementRect && rectContainsPoint(rootElementRect, pointer)) {
+      if (
+        pointer &&
+        rootElementRect &&
+        rectContainsPoint(rootElementRect, pointer)
+      ) {
         const rootCollision = collisions.find(
           (collision) => collision.id === ROOT_DROP_TARGET_DROPPABLE_ID,
         );
@@ -595,16 +682,21 @@ export default function TransferWorkspace({
         return [];
       }
 
-      const viewportRect = targetScrollViewportRef.current?.getBoundingClientRect();
+      const viewportRect =
+        targetScrollViewportRef.current?.getBoundingClientRect();
       const visibleCollisions = viewportRect
         ? collisions.filter((collision) => {
             const collisionRect = args.droppableRects.get(collision.id);
-            return collisionRect ? rectIntersects(collisionRect, viewportRect) : false;
+            return collisionRect
+              ? rectIntersects(collisionRect, viewportRect)
+              : false;
           })
         : collisions;
 
       if (rootDropDisabled) {
-        return visibleCollisions.filter((collision) => collision.id !== ROOT_DROP_TARGET_DROPPABLE_ID);
+        return visibleCollisions.filter(
+          (collision) => collision.id !== ROOT_DROP_TARGET_DROPPABLE_ID,
+        );
       }
 
       const rootCollision = visibleCollisions.find(
@@ -614,7 +706,9 @@ export default function TransferWorkspace({
       if (rootCollision) {
         return [
           rootCollision,
-          ...visibleCollisions.filter((collision) => collision.id !== ROOT_DROP_TARGET_DROPPABLE_ID),
+          ...visibleCollisions.filter(
+            (collision) => collision.id !== ROOT_DROP_TARGET_DROPPABLE_ID,
+          ),
         ];
       }
 
@@ -659,13 +753,17 @@ export default function TransferWorkspace({
           return;
         }
 
-        setTargetData((Array.isArray(page.content) ? page.content : []).map(mapCategoryNodeToTransferNode));
+        setTargetData(
+          (Array.isArray(page.content) ? page.content : []).map(
+            mapCategoryNodeToTransferNode,
+          ),
+        );
         setTargetExpandedKeys([]);
         setTargetLoadedKeys([]);
       } catch (error: any) {
         if (!cancelled) {
           setTargetData([]);
-          messageApi.error(getErrorMessage(error, '加载目标分类失败'));
+          messageApi.error(getErrorMessage(error, "加载目标分类失败"));
         }
       } finally {
         if (!cancelled) {
@@ -715,9 +813,11 @@ export default function TransferWorkspace({
       }
     });
 
-    if (currentActionType === 'move') {
+    if (currentActionType === "move") {
       const currentParentId =
-        virtualRelationMap[sourceNodeId]?.currentParentId ?? activeDragNode.dataRef?.parentId ?? null;
+        virtualRelationMap[sourceNodeId]?.currentParentId ??
+        activeDragNode.dataRef?.parentId ??
+        null;
 
       if (currentParentId) {
         blockedKeys.add(currentParentId);
@@ -725,7 +825,12 @@ export default function TransferWorkspace({
     }
 
     return Array.from(blockedKeys);
-  }, [activeDragNode, currentActionType, virtualRelationMap, transferNodeLookup]);
+  }, [
+    activeDragNode,
+    currentActionType,
+    virtualRelationMap,
+    transferNodeLookup,
+  ]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -733,8 +838,15 @@ export default function TransferWorkspace({
     }),
   );
 
-  const handleLoadTargetChildren = async (node: TransferTreeNode): Promise<void> => {
-    if (node.isLeaf || node.isVirtual || node.isPreviewNode || targetLoadedKeys.includes(node.key)) {
+  const handleLoadTargetChildren = async (
+    node: TransferTreeNode,
+  ): Promise<void> => {
+    if (
+      node.isLeaf ||
+      node.isVirtual ||
+      node.isPreviewNode ||
+      targetLoadedKeys.includes(node.key)
+    ) {
       return;
     }
 
@@ -746,7 +858,9 @@ export default function TransferWorkspace({
       size: TARGET_ROOT_PAGE_SIZE,
     });
 
-    const childNodes = (Array.isArray(page.content) ? page.content : []).map(mapCategoryNodeToTransferNode);
+    const childNodes = (Array.isArray(page.content) ? page.content : []).map(
+      mapCategoryNodeToTransferNode,
+    );
     setTargetData((origin) =>
       updateTransferNode(origin, node.key, (targetNode) => ({
         ...targetNode,
@@ -754,7 +868,9 @@ export default function TransferWorkspace({
         children: childNodes,
       })),
     );
-    setTargetLoadedKeys((keys) => (keys.includes(node.key) ? keys : [...keys, node.key]));
+    setTargetLoadedKeys((keys) =>
+      keys.includes(node.key) ? keys : [...keys, node.key],
+    );
   };
 
   const clearHoverTargetCommitTimer = () => {
@@ -767,12 +883,21 @@ export default function TransferWorkspace({
   const commitHoveredTarget = (key: React.Key | null, title: string) => {
     clearHoverTargetCommitTimer();
     pendingHoverTargetRef.current = { key, title };
-    setLiveHoveredTargetKey((previousKey) => (previousKey === key ? previousKey : key));
-    setHoveredTargetKey((previousKey) => (previousKey === key ? previousKey : key));
-    setHoveredTargetTitle((previousTitle) => (previousTitle === title ? previousTitle : title));
+    setLiveHoveredTargetKey((previousKey) =>
+      previousKey === key ? previousKey : key,
+    );
+    setHoveredTargetKey((previousKey) =>
+      previousKey === key ? previousKey : key,
+    );
+    setHoveredTargetTitle((previousTitle) =>
+      previousTitle === title ? previousTitle : title,
+    );
   };
 
-  const scheduleHoveredTargetCommit = (key: React.Key | null, title: string) => {
+  const scheduleHoveredTargetCommit = (
+    key: React.Key | null,
+    title: string,
+  ) => {
     const pendingHoverTarget = pendingHoverTargetRef.current;
     if (pendingHoverTarget.key === key && pendingHoverTarget.title === title) {
       return;
@@ -781,8 +906,12 @@ export default function TransferWorkspace({
     clearHoverTargetCommitTimer();
     pendingHoverTargetRef.current = { key, title };
     hoverTargetCommitTimerRef.current = setTimeout(() => {
-      setHoveredTargetKey((previousKey) => (previousKey === key ? previousKey : key));
-      setHoveredTargetTitle((previousTitle) => (previousTitle === title ? previousTitle : title));
+      setHoveredTargetKey((previousKey) =>
+        previousKey === key ? previousKey : key,
+      );
+      setHoveredTargetTitle((previousTitle) =>
+        previousTitle === title ? previousTitle : title,
+      );
       hoverTargetCommitTimerRef.current = null;
     }, HOVER_TARGET_COMMIT_DELAY);
   };
@@ -792,29 +921,34 @@ export default function TransferWorkspace({
     if (!nodeData) return;
 
     setShouldAnimateDragOverlayDropBack(true);
-    commitHoveredTarget(null, '目标分类');
+    commitHoveredTarget(null, "目标分类");
     setActiveDragNode(nodeData);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
     const overNode = event.over?.data.current as TransferTreeNode | undefined;
     if (!overNode) {
-      commitHoveredTarget(null, '目标分类');
+      commitHoveredTarget(null, "目标分类");
       return;
     }
 
     if (
       (overNode.key === ROOT_DROP_TARGET_KEY && rootDropDisabled) ||
-      (overNode.key !== ROOT_DROP_TARGET_KEY && disabledKeys.includes(overNode.key))
+      (overNode.key !== ROOT_DROP_TARGET_KEY &&
+        disabledKeys.includes(overNode.key))
     ) {
-      commitHoveredTarget(null, '目标分类');
+      commitHoveredTarget(null, "目标分类");
       return;
     }
 
-    setLiveHoveredTargetKey((previousKey) => (previousKey === overNode.key ? previousKey : overNode.key));
+    setLiveHoveredTargetKey((previousKey) =>
+      previousKey === overNode.key ? previousKey : overNode.key,
+    );
     scheduleHoveredTargetCommit(
       overNode.key,
-      overNode.key === ROOT_DROP_TARGET_KEY ? ROOT_DROP_TARGET_TITLE : overNode.title || '目标分类',
+      overNode.key === ROOT_DROP_TARGET_KEY
+        ? ROOT_DROP_TARGET_TITLE
+        : overNode.title || "目标分类",
     );
   };
 
@@ -835,12 +969,18 @@ export default function TransferWorkspace({
 
     const timer = setTimeout(() => {
       const hoveredNode = findTransferNode(targetData, hoveredTargetKey);
-      if (hoveredNode && !hoveredNode.isLeaf && !targetLoadedKeys.includes(hoveredTargetKey)) {
+      if (
+        hoveredNode &&
+        !hoveredNode.isLeaf &&
+        !targetLoadedKeys.includes(hoveredTargetKey)
+      ) {
         void handleLoadTargetChildren(hoveredNode).catch(() => {
           // 自动展开场景下的懒加载失败，保留已有结构即可。
         });
       }
-      setTargetExpandedKeys((prev) => Array.from(new Set([...prev, hoveredTargetKey])));
+      setTargetExpandedKeys((prev) =>
+        Array.from(new Set([...prev, hoveredTargetKey])),
+      );
     }, 400);
 
     return () => clearTimeout(timer);
@@ -853,70 +993,78 @@ export default function TransferWorkspace({
       !overNode ||
       !draggedNode ||
       (overNode.key === ROOT_DROP_TARGET_KEY && rootDropDisabled) ||
-      (overNode.key !== ROOT_DROP_TARGET_KEY && disabledKeys.includes(overNode.key));
+      (overNode.key !== ROOT_DROP_TARGET_KEY &&
+        disabledKeys.includes(overNode.key));
 
     setShouldAnimateDragOverlayDropBack(isInvalidDrop);
-    commitHoveredTarget(null, '目标分类');
+    commitHoveredTarget(null, "目标分类");
     setActiveDragNode(null);
 
     if (isInvalidDrop) {
       return;
     }
 
-    const resolvedTargetKey = overNode.key === ROOT_DROP_TARGET_KEY ? null : overNode.key;
+    const resolvedTargetKey =
+      overNode.key === ROOT_DROP_TARGET_KEY ? null : overNode.key;
     const nextOperation: PendingOperation = {
       sourceNode: draggedNode,
       targetKey: resolvedTargetKey,
       id: `OP_${Date.now()}_${draggedNode.key}`,
     };
-    const resolvedAction = pendingAction || initialAction || 'move';
+    const resolvedAction = pendingAction || initialAction || "move";
 
     setPendingOperations((prev) => {
-      if (resolvedAction === 'move') {
-        const next = prev.filter((item) => item.sourceNode.key !== draggedNode.key);
+      if (resolvedAction === "move") {
+        const next = prev.filter(
+          (item) => item.sourceNode.key !== draggedNode.key,
+        );
         return [...next, nextOperation];
       }
       return [...prev, nextOperation];
     });
-    if (resolvedAction === 'move') {
+    if (resolvedAction === "move") {
       setVirtualRelationMap((prev) => ({
         ...prev,
         [String(draggedNode.key)]: {
-          currentParentId: resolvedTargetKey == null ? null : String(resolvedTargetKey),
+          currentParentId:
+            resolvedTargetKey == null ? null : String(resolvedTargetKey),
           isVirtual: true,
         },
       }));
     }
     if (resolvedTargetKey) {
-      setTargetExpandedKeys((prev) => Array.from(new Set([...prev, resolvedTargetKey])));
+      setTargetExpandedKeys((prev) =>
+        Array.from(new Set([...prev, resolvedTargetKey])),
+      );
     }
 
     if (!pendingAction) {
-      setPendingAction(initialAction || 'move');
+      setPendingAction(initialAction || "move");
     }
   };
 
   const handleDragCancel = (_event: DragCancelEvent) => {
     setShouldAnimateDragOverlayDropBack(true);
-    commitHoveredTarget(null, '目标分类');
+    commitHoveredTarget(null, "目标分类");
     setActiveDragNode(null);
   };
 
   const buildBatchTransferRequest = (
-    actionType: 'copy',
+    actionType: "copy",
     dryRun: boolean,
   ): MetaCategoryBatchTransferRequestDto => {
     return {
       businessDomain,
-      action: actionType.toUpperCase() as 'MOVE' | 'COPY',
+      action: actionType.toUpperCase() as "MOVE" | "COPY",
       dryRun,
       atomic: false,
-      operator: 'admin',
-      copyOptions: actionType === 'copy' ? DEFAULT_COPY_OPTIONS : undefined,
+      operator: "admin",
+      copyOptions: actionType === "copy" ? DEFAULT_COPY_OPTIONS : undefined,
       operations: pendingOperations.map((operation) => ({
         clientOperationId: operation.id,
         sourceNodeId: String(operation.sourceNode.key),
-        targetParentId: operation.targetKey == null ? null : String(operation.targetKey),
+        targetParentId:
+          operation.targetKey == null ? null : String(operation.targetKey),
       })),
     };
   };
@@ -928,25 +1076,37 @@ export default function TransferWorkspace({
   ): MetaCategoryBatchTransferTopologyRequestDto => {
     return {
       businessDomain,
-      action: 'MOVE',
+      action: "MOVE",
       dryRun,
       atomic: true,
-      operator: 'admin',
-      planningMode: 'TOPOLOGY_AWARE',
-      orderingStrategy: 'CLIENT_ORDER',
+      operator: "admin",
+      planningMode: "TOPOLOGY_AWARE",
+      orderingStrategy: "CLIENT_ORDER",
       strictDependencyValidation: true,
-      operations: preparedOperations.map(({ operation, sourceNodeId, targetParentId, dependsOnOperationIds, originalParentId }) => ({
-        operationId: operation.id,
-        sourceNodeId,
-        targetParentId,
-        dependsOnOperationIds,
-        allowDescendantFirstSplit: true,
-        expectedSourceParentId: options?.includeExpectedSourceParentId ? originalParentId : undefined,
-      })),
+      operations: preparedOperations.map(
+        ({
+          operation,
+          sourceNodeId,
+          targetParentId,
+          dependsOnOperationIds,
+          originalParentId,
+        }) => ({
+          operationId: operation.id,
+          sourceNodeId,
+          targetParentId,
+          dependsOnOperationIds,
+          allowDescendantFirstSplit: true,
+          expectedSourceParentId: options?.includeExpectedSourceParentId
+            ? originalParentId
+            : undefined,
+        }),
+      ),
     };
   };
 
-  const getMoveOperationTitleMap = (preparedOperations: PreparedMoveOperation[]) => {
+  const getMoveOperationTitleMap = (
+    preparedOperations: PreparedMoveOperation[],
+  ) => {
     const titleMap = new Map<string, string>();
     preparedOperations.forEach(({ operation, sourceNodeId }) => {
       titleMap.set(operation.id, operation.sourceNode.title || sourceNodeId);
@@ -955,24 +1115,32 @@ export default function TransferWorkspace({
   };
 
   const executeBatchTransfer = async (
-    actionType: 'move' | 'copy',
+    actionType: "move" | "copy",
     preparedMoveOperations?: PreparedMoveOperation[],
   ) => {
     setLoading(true);
     try {
       const resolvedPreparedMoveOperations =
-        actionType === 'move'
-          ? preparedMoveOperations || preparePendingMoveOperations(pendingOperations, virtualRelationMap)
+        actionType === "move"
+          ? preparedMoveOperations ||
+            preparePendingMoveOperations(pendingOperations, virtualRelationMap)
           : undefined;
-      const response = actionType === 'move'
-        ? await metaCategoryApi.batchTransferCategoriesWithTopology(
-            buildTopologyBatchTransferRequest(resolvedPreparedMoveOperations || [], false, {
-              includeExpectedSourceParentId: true,
-            }),
-          )
-        : await metaCategoryApi.batchTransferCategories(buildBatchTransferRequest('copy', false));
+      const response =
+        actionType === "move"
+          ? await metaCategoryApi.batchTransferCategoriesWithTopology(
+              buildTopologyBatchTransferRequest(
+                resolvedPreparedMoveOperations || [],
+                false,
+                {
+                  includeExpectedSourceParentId: true,
+                },
+              ),
+            )
+          : await metaCategoryApi.batchTransferCategories(
+              buildBatchTransferRequest("copy", false),
+            );
 
-      const actionLabel = actionType === 'copy' ? '复制' : '移动';
+      const actionLabel = actionType === "copy" ? "复制" : "移动";
       const failedMessages = collectFailedTransferMessages(response);
       const rollbackTriggered = hasAtomicRollbackFailure(response);
       if (response.failureCount > 0 && response.successCount > 0) {
@@ -980,22 +1148,34 @@ export default function TransferWorkspace({
           `${actionLabel}完成，成功 ${response.successCount} 项，失败 ${response.failureCount} 项`,
         );
       } else if (response.failureCount > 0) {
-        messageApi.error(`${actionLabel}失败，共 ${response.failureCount} 项失败`);
+        messageApi.error(
+          `${actionLabel}失败，共 ${response.failureCount} 项失败`,
+        );
       } else {
-        messageApi.success(`${actionLabel}成功，共处理 ${response.successCount} 项`);
+        messageApi.success(
+          `${actionLabel}成功，共处理 ${response.successCount} 项`,
+        );
       }
 
       if (response.failureCount > 0) {
         modal.error({
-          title: rollbackTriggered ? `${actionLabel}失败，事务已回滚` : `${actionLabel}失败`,
+          title: rollbackTriggered
+            ? `${actionLabel}失败，事务已回滚`
+            : `${actionLabel}失败`,
           width: 640,
           content: (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {rollbackTriggered && <div>后端已触发 atomic rollback，SQL 可能执行过但最终未提交。</div>}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {rollbackTriggered && (
+                <div>
+                  后端已触发 atomic rollback，SQL 可能执行过但最终未提交。
+                </div>
+              )}
               {failedMessages.slice(0, 8).map((item) => (
                 <div key={item}>{item}</div>
               ))}
-              {failedMessages.length > 8 && <div>其余 {failedMessages.length - 8} 条失败结果已省略。</div>}
+              {failedMessages.length > 8 && (
+                <div>其余 {failedMessages.length - 8} 条失败结果已省略。</div>
+              )}
             </div>
           ),
         });
@@ -1011,39 +1191,55 @@ export default function TransferWorkspace({
         onComplete?.(response);
       }
     } catch (error: any) {
-      messageApi.error(getErrorMessage(error, `${actionType === 'copy' ? '复制' : '移动'}失败`));
+      messageApi.error(
+        getErrorMessage(
+          error,
+          `${actionType === "copy" ? "复制" : "移动"}失败`,
+        ),
+      );
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const handleConfirm = async (actionType: 'move' | 'copy') => {
+  const handleConfirm = async (actionType: "move" | "copy") => {
     if (!pendingOperations.length) {
       return;
     }
 
     setLoading(true);
     try {
-      const preparedMoveOperations = actionType === 'move'
-        ? preparePendingMoveOperations(pendingOperations, virtualRelationMap)
-        : null;
-      const moveDryRunRequest = actionType === 'move' && preparedMoveOperations
-        ? buildTopologyBatchTransferRequest(preparedMoveOperations, true)
-        : null;
-      const dryRunResponse = actionType === 'move'
-        ? await metaCategoryApi.batchTransferCategoriesWithTopology(moveDryRunRequest!)
-        : await metaCategoryApi.batchTransferCategories(buildBatchTransferRequest('copy', true));
-      const actionLabel = actionType === 'copy' ? '复制' : '移动';
-      const failedResults = dryRunResponse.results.filter((result) => !result.success);
+      const preparedMoveOperations =
+        actionType === "move"
+          ? preparePendingMoveOperations(pendingOperations, virtualRelationMap)
+          : null;
+      const moveDryRunRequest =
+        actionType === "move" && preparedMoveOperations
+          ? buildTopologyBatchTransferRequest(preparedMoveOperations, true)
+          : null;
+      const dryRunResponse =
+        actionType === "move"
+          ? await metaCategoryApi.batchTransferCategoriesWithTopology(
+              moveDryRunRequest!,
+            )
+          : await metaCategoryApi.batchTransferCategories(
+              buildBatchTransferRequest("copy", true),
+            );
+      const actionLabel = actionType === "copy" ? "复制" : "移动";
+      const failedResults = dryRunResponse.results.filter(
+        (result) => !result.success,
+      );
       const normalizedResults = !isTopologyTransferResponse(dryRunResponse)
-        ? dryRunResponse.results.filter((result) => result.code === 'SOURCE_OVERLAP_NORMALIZED')
+        ? dryRunResponse.results.filter(
+            (result) => result.code === "SOURCE_OVERLAP_NORMALIZED",
+          )
         : [];
       const planningWarnings = isTopologyTransferResponse(dryRunResponse)
         ? dryRunResponse.planningWarnings || []
         : dryRunResponse.warnings || [];
       const moveOperationTitleMap =
-        actionType === 'move' && preparedMoveOperations
+        actionType === "move" && preparedMoveOperations
           ? getMoveOperationTitleMap(preparedMoveOperations)
           : new Map<string, string>();
       const resolvedOrderPreview = isTopologyTransferResponse(dryRunResponse)
@@ -1055,13 +1251,17 @@ export default function TransferWorkspace({
           title: `${actionLabel}预检未通过`,
           width: 560,
           content: (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {failedResults.slice(0, 5).map((result, index) => (
                 <div key={`${result.sourceNodeId}-${index}`}>
-                  {result.message || result.code || `源节点 ${result.sourceNodeId} 预检失败`}
+                  {result.message ||
+                    result.code ||
+                    `源节点 ${result.sourceNodeId} 预检失败`}
                 </div>
               ))}
-              {failedResults.length === 0 && <div>预检未通过，请检查拖拽目标是否有效。</div>}
+              {failedResults.length === 0 && (
+                <div>预检未通过，请检查拖拽目标是否有效。</div>
+              )}
             </div>
           ),
         });
@@ -1071,39 +1271,53 @@ export default function TransferWorkspace({
       modal.confirm({
         title: `确认${actionLabel}`,
         okText: `确认${actionLabel}`,
-        cancelText: '取消',
+        cancelText: "取消",
         width: 560,
         content: (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div>预检通过，共 {dryRunResponse.total} 项操作。</div>
             <div>预计成功 {dryRunResponse.successCount} 项。</div>
-              {isTopologyTransferResponse(dryRunResponse) && (
+            {isTopologyTransferResponse(dryRunResponse) && (
+              <div>
+                服务端规划顺序 {dryRunResponse.resolvedOrder?.length || 0}{" "}
+                项，规划模式为 {dryRunResponse.planningMode || "TOPOLOGY_AWARE"}
+                。
+              </div>
+            )}
+            {resolvedOrderPreview.map((operationId) => (
+              <div key={operationId}>
+                执行顺序:{" "}
+                {moveOperationTitleMap.get(operationId) || operationId}
+              </div>
+            ))}
+            {isTopologyTransferResponse(dryRunResponse) &&
+              (dryRunResponse.finalParentMappings?.length || 0) > 0 && (
                 <div>
-                  服务端规划顺序 {dryRunResponse.resolvedOrder?.length || 0} 项，规划模式为{' '}
-                  {dryRunResponse.planningMode || 'TOPOLOGY_AWARE'}。
+                  最终父子映射已生成{" "}
+                  {dryRunResponse.finalParentMappings?.length} 条，可用于与前端
+                  virtualRelationMap 对账。
                 </div>
               )}
-              {resolvedOrderPreview.map((operationId) => (
-                <div key={operationId}>
-                  执行顺序: {moveOperationTitleMap.get(operationId) || operationId}
-                </div>
-              ))}
-              {isTopologyTransferResponse(dryRunResponse) &&
-                (dryRunResponse.finalParentMappings?.length || 0) > 0 && (
-                  <div>最终父子映射已生成 {dryRunResponse.finalParentMappings?.length} 条，可用于与前端 virtualRelationMap 对账。</div>
-                )}
             {normalizedResults.length > 0 && (
-              <div>存在 {normalizedResults.length} 项父子重叠操作，将由祖先节点自动归一化。</div>
+              <div>
+                存在 {normalizedResults.length}{" "}
+                项父子重叠操作，将由祖先节点自动归一化。
+              </div>
             )}
-              {planningWarnings.map((warning) => <div key={warning}>{warning}</div>)}
+            {planningWarnings.map((warning) => (
+              <div key={warning}>{warning}</div>
+            ))}
           </div>
         ),
         onOk: async () => {
-          await executeBatchTransfer(actionType, preparedMoveOperations || undefined);
+          await executeBatchTransfer(
+            actionType,
+            preparedMoveOperations || undefined,
+          );
         },
       });
     } catch (error: any) {
-      messageApi.error(getErrorMessage(error, '批量转移预检失败'));
+      messageApi.error(getErrorMessage(error, "批量转移预检失败"));
     } finally {
       setLoading(false);
     }
@@ -1118,18 +1332,18 @@ export default function TransferWorkspace({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         handleCancel();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const displaySourceData = useMemo(() => {
     const movedSourceKeySet = new Set<string>();
 
-    if (currentActionType === 'move') {
+    if (currentActionType === "move") {
       pendingOperations.forEach((operation) => {
         collectSubtreeKeys(operation.sourceNode, movedSourceKeySet);
       });
@@ -1139,7 +1353,7 @@ export default function TransferWorkspace({
   }, [sourceData, pendingOperations, currentActionType]);
 
   const displayTargetData = useMemo(() => {
-    if (currentActionType === 'move') {
+    if (currentActionType === "move") {
       const pendingSourceKeySet = new Set<string>(
         pendingOperations.map((operation) => String(operation.sourceNode.key)),
       );
@@ -1153,7 +1367,8 @@ export default function TransferWorkspace({
       );
 
       orderedPendingOperations.forEach((operation) => {
-        const virtualRelation = virtualRelationMap[String(operation.sourceNode.key)];
+        const virtualRelation =
+          virtualRelationMap[String(operation.sourceNode.key)];
         const currentParentId = virtualRelation
           ? virtualRelation.currentParentId
           : operation.targetKey == null
@@ -1169,7 +1384,11 @@ export default function TransferWorkspace({
           currentParentId == null,
         );
 
-        currentData = insertNodeIntoTree(currentData, currentParentId, movingNode);
+        currentData = insertNodeIntoTree(
+          currentData,
+          currentParentId,
+          movingNode,
+        );
       });
 
       return currentData;
@@ -1184,16 +1403,27 @@ export default function TransferWorkspace({
         isRootPlacement: boolean,
       ): TransferTreeNode => ({
         ...node,
-        key: isRoot ? `VIRTUAL_PENDING_${operation.id}` : `VIRTUAL_PENDING_${operation.id}_${node.key}`,
+        key: isRoot
+          ? `VIRTUAL_PENDING_${operation.id}`
+          : `VIRTUAL_PENDING_${operation.id}_${node.key}`,
         title: node.title,
         isVirtual: true,
         isPendingPlacement: isRoot && isRootPlacement,
         isPreviewRoot: isRoot,
-        children: node.children?.map((child) => createVirtualNodes(child, false, false)),
+        children: node.children?.map((child) =>
+          createVirtualNodes(child, false, false),
+        ),
       });
 
-      const virtualNode = createVirtualNodes(operation.sourceNode, true, operation.targetKey == null);
-      const insertNode = (nodes: TransferTreeNode[], targetKey: React.Key): TransferTreeNode[] => {
+      const virtualNode = createVirtualNodes(
+        operation.sourceNode,
+        true,
+        operation.targetKey == null,
+      );
+      const insertNode = (
+        nodes: TransferTreeNode[],
+        targetKey: React.Key,
+      ): TransferTreeNode[] => {
         return nodes.map((node) => {
           if (node.key === targetKey) {
             return {
@@ -1211,7 +1441,10 @@ export default function TransferWorkspace({
         });
       };
 
-      currentData = operation.targetKey == null ? [...currentData, virtualNode] : insertNode(currentData, operation.targetKey);
+      currentData =
+        operation.targetKey == null
+          ? [...currentData, virtualNode]
+          : insertNode(currentData, operation.targetKey);
     });
 
     return currentData;
@@ -1220,18 +1453,23 @@ export default function TransferWorkspace({
   const spinning = loading || externalLoading;
 
   return (
-    <Spin spinning={spinning} tip="正在处理中，请稍候..." size="large" wrapperClassName="transfer-workspace-spin">
+    <Spin
+      spinning={spinning}
+      tip="正在处理中，请稍候..."
+      size="large"
+      wrapperClassName="transfer-workspace-spin"
+    >
       <style dangerouslySetInnerHTML={{ __html: workspaceLayoutStyles }} />
       <div
         style={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
           minHeight: 0,
           background: token.colorBgContainer,
           borderRadius: 12,
           boxShadow: token.boxShadowTertiary,
-          overflow: 'hidden',
+          overflow: "hidden",
         }}
       >
         <style dangerouslySetInnerHTML={{ __html: dndTreeGlobalStyles }} />
@@ -1244,21 +1482,40 @@ export default function TransferWorkspace({
           onDragCancel={handleDragCancel}
           onDragEnd={handleDragEnd}
         >
-          <Row style={{ flex: 1, height: '100%', minHeight: 0, overflow: 'hidden' }} gutter={0}>
+          <Row
+            style={{
+              flex: 1,
+              height: "100%",
+              minHeight: 0,
+              overflow: "hidden",
+            }}
+            gutter={0}
+          >
             <Col
               span={12}
               style={{
                 borderRight: `1px solid ${token.colorBorderSecondary}`,
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100%',
+                display: "flex",
+                flexDirection: "column",
+                height: "100%",
                 minHeight: 0,
-                overflow: 'hidden',
+                overflow: "hidden",
               }}
             >
-              <div style={{ padding: '16px 24px', borderBottom: `1px solid ${token.colorSplit}` }}>
+              <div
+                style={{
+                  padding: "16px 24px",
+                  borderBottom: `1px solid ${token.colorSplit}`,
+                }}
+              >
                 <div style={{ fontWeight: 600, fontSize: 16 }}>已选源分类</div>
-                <div style={{ fontSize: 12, color: token.colorTextDescription, marginTop: 4 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: token.colorTextDescription,
+                    marginTop: 4,
+                  }}
+                >
                   基于专用子树接口加载完整源分类结构
                 </div>
               </div>
@@ -1271,7 +1528,13 @@ export default function TransferWorkspace({
                     onMovedNodeHover={setHoveredMovedSourceKey}
                   />
                 ) : (
-                  <div style={{ color: token.colorTextDisabled, textAlign: 'center', marginTop: 40 }}>
+                  <div
+                    style={{
+                      color: token.colorTextDisabled,
+                      textAlign: "center",
+                      marginTop: 40,
+                    }}
+                  >
                     (暂无源分类数据)
                   </div>
                 )}
@@ -1281,16 +1544,27 @@ export default function TransferWorkspace({
             <Col
               span={12}
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100%',
+                display: "flex",
+                flexDirection: "column",
+                height: "100%",
                 minHeight: 0,
-                overflow: 'hidden',
+                overflow: "hidden",
               }}
             >
-              <div style={{ padding: '16px 24px', borderBottom: `1px solid ${token.colorSplit}` }}>
+              <div
+                style={{
+                  padding: "16px 24px",
+                  borderBottom: `1px solid ${token.colorSplit}`,
+                }}
+              >
                 <div style={{ fontWeight: 600, fontSize: 16 }}>目标位置</div>
-                <div style={{ fontSize: 12, color: token.colorTextDescription, marginTop: 4 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: token.colorTextDescription,
+                    marginTop: 4,
+                  }}
+                >
                   使用原有节点懒加载接口，拖拽悬停可自动展开
                 </div>
               </div>
@@ -1304,7 +1578,11 @@ export default function TransferWorkspace({
                   pendingDropKeys={pendingOperations
                     .map((operation) => operation.targetKey)
                     .filter((key): key is React.Key => key != null)}
-                  rootPendingCount={pendingOperations.filter((operation) => operation.targetKey == null).length}
+                  rootPendingCount={
+                    pendingOperations.filter(
+                      (operation) => operation.targetKey == null,
+                    ).length
+                  }
                   hoveredTargetKey={liveHoveredTargetKey}
                   rootDropTargetKey={ROOT_DROP_TARGET_KEY}
                   rootDropTargetTitle={ROOT_DROP_TARGET_TITLE}
@@ -1321,18 +1599,32 @@ export default function TransferWorkspace({
             ? createPortal(
                 <DragOverlay
                   zIndex={DRAG_OVERLAY_Z_INDEX}
-                  dropAnimation={shouldAnimateDragOverlayDropBack ? DEFAULT_DRAG_OVERLAY_DROP_ANIMATION : null}
+                  dropAnimation={
+                    shouldAnimateDragOverlayDropBack
+                      ? DEFAULT_DRAG_OVERLAY_DROP_ANIMATION
+                      : null
+                  }
                 >
                   {activeDragNode ? (
                     <div style={getTransferNodeOverlayShellStyle(token)}>
                       <div style={getTransferNodeOverlayCardStyle(token)}>
-                        <div style={getTransferNodeOverlayActionStyle(token)}>{overlayActionLabel}</div>
+                        <div style={getTransferNodeOverlayActionStyle(token)}>
+                          {overlayActionLabel}
+                        </div>
                         <div style={getTransferNodeOverlayIconStyle(token)}>
                           <FolderOutlined style={{ fontSize: 12 }} />
                         </div>
-                        <div style={getTransferNodeOverlayTitleStyle(token)}>{activeDragNode.title}</div>
-                        <div style={getTransferNodeOverlayConnectorStyle(token)}>至</div>
-                        <div style={getTransferNodeOverlayTargetStyle(token)}>{hoveredTargetTitle}</div>
+                        <div style={getTransferNodeOverlayTitleStyle(token)}>
+                          {activeDragNode.title}
+                        </div>
+                        <div
+                          style={getTransferNodeOverlayConnectorStyle(token)}
+                        >
+                          至
+                        </div>
+                        <div style={getTransferNodeOverlayTargetStyle(token)}>
+                          {hoveredTargetTitle}
+                        </div>
                       </div>
                     </div>
                   ) : null}
