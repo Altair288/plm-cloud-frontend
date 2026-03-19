@@ -1618,6 +1618,7 @@ export default function TransferWorkspace({
             title: `正在${actionLabel}`,
             closable: false,
             maskClosable: false,
+            okCancel: false,
             cancelButtonProps: { style: { display: "none" } },
             okButtonProps: { style: { display: "none" } },
             content: (
@@ -1657,6 +1658,7 @@ export default function TransferWorkspace({
                 title: isFailed ? `${actionLabel}执行结果` : `${actionLabel}完成`,
                 closable: true,
                 maskClosable: true,
+                okCancel: false,
                 okText: "关闭",
                 cancelButtonProps: { style: { display: "none" } },
                 okButtonProps: { loading: false },
@@ -1700,6 +1702,7 @@ export default function TransferWorkspace({
                 title: `${actionLabel}失败`,
                 closable: true,
                 maskClosable: true,
+                okCancel: false,
                 okText: "关闭",
                 cancelButtonProps: { style: { display: "none" } },
                 okButtonProps: { loading: false },

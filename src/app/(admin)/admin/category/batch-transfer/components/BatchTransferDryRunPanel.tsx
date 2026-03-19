@@ -326,6 +326,7 @@ export default function BatchTransferDryRunPanel({
         }}
       >
         <Collapse
+          className="batch-transfer-dry-run-collapse"
           accordion
           activeKey={activeKey}
           onChange={(key) => {
@@ -341,6 +342,27 @@ export default function BatchTransferDryRunPanel({
             flex: 1,
             overflow: "hidden",
             width: "min(100%, 980px)",
+          }}
+        />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              .batch-transfer-dry-run-collapse .ant-collapse-item > .ant-collapse-header {
+                min-height: 58px;
+                display: flex;
+                align-items: center;
+              }
+              .batch-transfer-dry-run-collapse .ant-collapse-expand-icon {
+                height: 100%;
+                display: flex;
+                align-items: center;
+              }
+              .batch-transfer-dry-run-collapse .ant-collapse-header-text {
+                min-height: 28px;
+                display: flex;
+                align-items: center;
+              }
+            `,
           }}
         />
       </div>
