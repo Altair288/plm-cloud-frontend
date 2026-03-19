@@ -9,6 +9,8 @@ import VersionGraph from "@/components/VersionGraph";
 import {
   metaCategoryApi,
   MetaCategoryNodeDto,
+  type MetaCategoryBatchTransferResponseDto,
+  type MetaCategoryBatchTransferTopologyResponseDto,
   type MetaCategoryDetailDto,
 } from "@/services/metaCategory";
 import BatchDeleteModal, { type DeleteTargetNode } from "../components/BatchDeleteModal";
@@ -84,6 +86,12 @@ interface CategoryNodeRef extends MetaCategoryNodeDto {
   title?: string;
   depth?: number;
 }
+
+type BatchTransferSuccessResponse =
+  | MetaCategoryBatchTransferResponseDto
+  | MetaCategoryBatchTransferTopologyResponseDto;
+
+const CATEGORY_BUSINESS_DOMAIN = "MATERIAL";
 
 const getChildLevel = (
   level?: CategoryTreeNode["level"],
@@ -189,6 +197,7 @@ const CategoryManagementPage: React.FC = () => {
   const [previewForm] = Form.useForm();
 
   const [treeData, setTreeData] = useState<CategoryTreeNode[]>([]);
+  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
   const [loadedKeys, setLoadedKeys] = useState<React.Key[]>([]);
   const [attributeUnsavedState, setAttributeUnsavedState] = useState({
     hasUnsavedChanges: false,
@@ -293,6 +302,136 @@ const CategoryManagementPage: React.FC = () => {
     return parentMap;
   };
 
+  const mapNodeToTreeNode = (node: MetaCategoryNodeDto): CategoryTreeNode => {
+    const ref: CategoryNodeRef = {
+      ...node,
+      key: node.id,
+      title: node.name,
+      depth: (node.level ?? 1) - 1,
+    };
+
+    return {
+      title: `${node.code} - ${node.name}`,
+      key: node.id,
+      isLeaf: !node.hasChildren,
+      dataRef: ref,
+      level: getLevelByNumber(node.level),
+      icon: getStatusIcon(node.status, categoryStatusEntries),
+    };
+  };
+
+  const findNodeInTree = (
+    nodes: CategoryTreeNode[],
+    key: React.Key,
+  ): CategoryTreeNode | undefined => {
+    for (const node of nodes) {
+      if (String(node.key) === String(key)) {
+        return node;
+      }
+
+      if (node.children?.length) {
+        const found = findNodeInTree(node.children, key);
+        if (found) {
+          return found;
+        }
+      }
+    }
+
+    return undefined;
+  };
+
+  const isTopologyTransferResponse = (
+    response: BatchTransferSuccessResponse,
+  ): response is MetaCategoryBatchTransferTopologyResponseDto => {
+    return Array.isArray((response as MetaCategoryBatchTransferTopologyResponseDto).finalParentMappings);
+  };
+
+  const collectTransferAffectedNodeIds = (response: BatchTransferSuccessResponse) => {
+    const affectedNodeIds = new Set<string>();
+
+    if (isTopologyTransferResponse(response)) {
+      response.results?.forEach((result) => {
+        if (result.sourceNodeId) {
+          affectedNodeIds.add(result.sourceNodeId);
+        }
+        if (result.targetParentId) {
+          affectedNodeIds.add(result.targetParentId);
+        }
+        if (result.effectiveTargetParentId) {
+          affectedNodeIds.add(result.effectiveTargetParentId);
+        }
+      });
+
+      response.finalParentMappings?.forEach((mapping) => {
+        if (mapping.sourceNodeId) {
+          affectedNodeIds.add(mapping.sourceNodeId);
+        }
+        if (mapping.finalParentId) {
+          affectedNodeIds.add(mapping.finalParentId);
+        }
+      });
+
+      return Array.from(affectedNodeIds);
+    }
+
+    response.results?.forEach((result) => {
+      if (result.sourceNodeId) {
+        affectedNodeIds.add(result.sourceNodeId);
+      }
+      if (result.targetParentId) {
+        affectedNodeIds.add(result.targetParentId);
+      }
+      result.movedIds?.forEach((id: string) => affectedNodeIds.add(id));
+      result.createdIds?.forEach((id: string) => affectedNodeIds.add(id));
+      if (result.createdRootId) {
+        affectedNodeIds.add(result.createdRootId);
+      }
+    });
+
+    return Array.from(affectedNodeIds);
+  };
+
+  const fetchRootNodes = async () => {
+    const page = await metaCategoryApi.listNodes({
+      businessDomain: CATEGORY_BUSINESS_DOMAIN,
+      level: 1,
+      status: "ALL",
+      page: 0,
+      size: 200,
+    });
+
+    return (Array.isArray(page.content) ? page.content : []).map(mapNodeToTreeNode);
+  };
+
+  const fetchChildNodes = async (parentId: React.Key) => {
+    const page = await metaCategoryApi.listNodes({
+      businessDomain: CATEGORY_BUSINESS_DOMAIN,
+      parentId: String(parentId),
+      status: "ALL",
+      page: 0,
+      size: 200,
+    });
+
+    return (page.content || []).map(mapNodeToTreeNode);
+  };
+
+  const resolvePathKeys = async (targetNodeIds: string[]) => {
+    const uniqueIds = Array.from(new Set(targetNodeIds.map((id) => String(id).trim()).filter(Boolean)));
+    if (!uniqueIds.length) {
+      return [] as string[][];
+    }
+
+    const results = await Promise.allSettled(
+      uniqueIds.map((id) => metaCategoryApi.getNodePath(id, CATEGORY_BUSINESS_DOMAIN)),
+    );
+
+    return results
+      .filter((result): result is PromiseFulfilledResult<MetaCategoryNodeDto[]> => result.status === "fulfilled")
+      .map((result) => result.value.map((node) => String(node.id)).filter(Boolean))
+      .filter((path) => path.length > 0)
+      .sort((left, right) => left.length - right.length);
+  };
+
 
 
   const applyDeletedNodes = (deletedKeys: React.Key[]) => {
@@ -362,34 +501,19 @@ const CategoryManagementPage: React.FC = () => {
 
   // Initial Load (Segments)
   useEffect(() => {
-    loadSegments();
+    void loadSegments();
   }, []);
 
   const loadSegments = async () => {
     try {
-      const page = await metaCategoryApi.listNodes({ businessDomain: "MATERIAL", level: 1, status: "ALL", page: 0, size: 200 });
-      const nodes: CategoryTreeNode[] = (Array.isArray(page.content) ? page.content : []).map((s) => {
-        const ref: CategoryNodeRef = {
-          ...s,
-          key: s.id,
-          title: s.name,
-          depth: (s.level ?? 1) - 1,
-        };
-        const level = getLevelByNumber(s.level);
-        return {
-          title: `${s.code} - ${s.name}`,
-          key: s.id,
-          isLeaf: !s.hasChildren,
-          dataRef: ref,
-          level,
-          icon: getStatusIcon(s.status, categoryStatusEntries),
-        };
-      });
+      const nodes = await fetchRootNodes();
       setTreeData(nodes);
       setLoadedKeys([]);
+      return nodes;
     } catch (error) {
       console.error(error);
       messageApi.error("Failed to load segments");
+      return [] as CategoryTreeNode[];
     }
   };
 
@@ -398,31 +522,7 @@ const CategoryManagementPage: React.FC = () => {
     if (children && children.length > 0) return;
 
     try {
-      const page = await metaCategoryApi.listNodes({
-        businessDomain: "MATERIAL",
-        parentId: String(key),
-        status: "ALL",
-        page: 0,
-        size: 200,
-      });
-
-      const childNodes: CategoryTreeNode[] = (page.content || []).map((c) => {
-        const ref: CategoryNodeRef = {
-          ...c,
-          key: c.id,
-          title: c.name,
-          depth: (c.level ?? 1) - 1,
-        };
-        const childLevel = getLevelByNumber(c.level);
-        return {
-          title: `${c.code} - ${c.name}`,
-          key: c.id,
-          isLeaf: !c.hasChildren,
-          dataRef: ref,
-          level: childLevel,
-          icon: getStatusIcon(c.status, categoryStatusEntries),
-        };
-      });
+      const childNodes = await fetchChildNodes(key);
 
       setTreeData((origin) =>
         updateTreeData(origin, key as React.Key, childNodes),
@@ -451,6 +551,75 @@ const CategoryManagementPage: React.FC = () => {
       }
       return node;
     });
+  };
+
+  const refreshTreeAfterBatchTransfer = async (response: BatchTransferSuccessResponse) => {
+    try {
+      const preservedExpandedKeys = expandedKeys.map((key) => String(key));
+      const pathTargetIds = [
+        ...preservedExpandedKeys,
+        ...collectTransferAffectedNodeIds(response),
+        selectedKey ? String(selectedKey) : "",
+        previewNode ? String(previewNode.key) : "",
+      ].filter(Boolean);
+
+      const resolvedPaths = await resolvePathKeys(pathTargetIds);
+      const nextExpandedKeySet = new Set<React.Key>(preservedExpandedKeys);
+
+      resolvedPaths.forEach((path) => {
+        path.forEach((pathKey) => nextExpandedKeySet.add(pathKey));
+      });
+
+      let nextTreeData = await fetchRootNodes();
+      const nextLoadedKeySet = new Set<React.Key>();
+
+      for (const path of resolvedPaths) {
+        for (const pathKey of path) {
+          const currentNode = findNodeInTree(nextTreeData, pathKey);
+          if (!currentNode?.dataRef?.hasChildren || nextLoadedKeySet.has(pathKey)) {
+            continue;
+          }
+
+          const childNodes = await fetchChildNodes(pathKey);
+          nextTreeData = updateTreeData(nextTreeData, pathKey, childNodes);
+          nextLoadedKeySet.add(pathKey);
+        }
+      }
+
+      setTreeData(nextTreeData);
+      setLoadedKeys(Array.from(nextLoadedKeySet));
+      setExpandedKeys(Array.from(nextExpandedKeySet));
+
+      if (selectedKey) {
+        const refreshedSelectedNode = findNodeInTree(nextTreeData, selectedKey);
+        if (refreshedSelectedNode) {
+          setSelectedNode(refreshedSelectedNode);
+        } else {
+          setSelectedKey("");
+          setSelectedNode(undefined);
+        }
+      }
+
+      if (previewNode) {
+        const refreshedPreviewNode = findNodeInTree(nextTreeData, previewNode.key);
+        if (refreshedPreviewNode) {
+          setPreviewNode(refreshedPreviewNode);
+        } else {
+          setDrawerVisible(false);
+          setPreviewNode(undefined);
+          setPreviewDetail(null);
+          setPreviewEditing(false);
+          setRenameGuidedEdit(false);
+          setPreviewEditBaseline("");
+          setPreviewEditCurrent("");
+          setPendingPreviewFormValues(null);
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      messageApi.error("批量移动/复制完成，但分类树状态恢复失败，已回退为全量刷新");
+      await loadSegments();
+    }
   };
 
   const requestCategorySelection = (
@@ -1015,13 +1184,15 @@ const CategoryManagementPage: React.FC = () => {
             onSelect={onSelect}
             treeData={treeData}
             selectedKeys={selectedKey ? [selectedKey] : []}
+            expandedKeys={expandedKeys}
+            onExpandedKeysChange={setExpandedKeys}
             loadData={onLoadData}
             loadedKeys={loadedKeys}
             onLoad={(keys) => setLoadedKeys(keys as React.Key[])}
             onMenuClick={handleMenuClick}
             onBatchDelete={(nodes) => openDeleteModal(nodes as CategoryTreeNode[])}
-            onTransferSuccess={() => {
-              void loadSegments();
+            onTransferSuccess={(response) => {
+              void refreshTreeAfterBatchTransfer(response);
             }}
             onCategoryCreated={handleCategoryCreated}
           />

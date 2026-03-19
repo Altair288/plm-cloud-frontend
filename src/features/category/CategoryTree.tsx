@@ -23,6 +23,8 @@ export interface CategoryTreeProps {
   loadedKeys?: React.Key[];
   onLoad?: TreeProps['onLoad'];
   initialExpandedKeys?: React.Key[];
+  expandedKeys?: React.Key[];
+  onExpandedKeysChange?: (keys: React.Key[]) => void;
   defaultSelectedKeys?: React.Key[];
   selectedKeys?: React.Key[];
   defaultCheckedKeys?: React.Key[];
@@ -41,6 +43,8 @@ const CategoryTree = forwardRef<HTMLDivElement, CategoryTreeProps>(({
   loadedKeys,
   onLoad,
   initialExpandedKeys = [],
+  expandedKeys: controlledExpandedKeys,
+  onExpandedKeysChange,
   defaultSelectedKeys = [],
   selectedKeys,
   defaultCheckedKeys = [],
@@ -51,13 +55,30 @@ const CategoryTree = forwardRef<HTMLDivElement, CategoryTreeProps>(({
   defaultCheckable = false,
   showCheckableToggle = true,
 }, ref) => {
-  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>(initialExpandedKeys);
+  const [expandedKeysState, setExpandedKeysState] = useState<React.Key[]>(initialExpandedKeys);
   const [searchValue, setSearchValue] = useState('');
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [autoExpandParent, setAutoExpandParent] = useState(true);
   const [checkableEnabled, setCheckableEnabled] = useState(defaultCheckable);
   const [checkedKeys, setCheckedKeys] = useState<React.Key[]>(defaultCheckedKeys);
   const expandedKeysBeforeSearchRef = useRef<React.Key[]>(initialExpandedKeys);
+  const expandedKeys = controlledExpandedKeys ?? expandedKeysState;
+
+  useEffect(() => {
+    if (!controlledExpandedKeys) {
+      return;
+    }
+
+    setExpandedKeysState(controlledExpandedKeys);
+    if (!searchValue) {
+      expandedKeysBeforeSearchRef.current = controlledExpandedKeys;
+    }
+  }, [controlledExpandedKeys, searchValue]);
+
+  const applyExpandedKeys = (nextExpandedKeys: React.Key[]) => {
+    setExpandedKeysState(nextExpandedKeys);
+    onExpandedKeysChange?.(nextExpandedKeys);
+  };
 
   const validTreeKeys = useMemo(() => {
     const keys = new Set<React.Key>();
@@ -85,7 +106,7 @@ const CategoryTree = forwardRef<HTMLDivElement, CategoryTreeProps>(({
   }, [checkedKeys, sanitizedCheckedKeys]);
 
   const onExpand = (newExpandedKeys: React.Key[]) => {
-    setExpandedKeys(newExpandedKeys);
+    applyExpandedKeys(newExpandedKeys);
     setAutoExpandParent(false);
     if (!searchValue) {
       expandedKeysBeforeSearchRef.current = newExpandedKeys;
@@ -104,7 +125,7 @@ const CategoryTree = forwardRef<HTMLDivElement, CategoryTreeProps>(({
       ? expandedKeysBeforeSearchRef.current
       : expandedKeys;
     setSearchValue('');
-    setExpandedKeys(nextExpandedKeys);
+    applyExpandedKeys(nextExpandedKeys);
     setAutoExpandParent(false);
     setSearchExpanded(false);
   };
@@ -127,7 +148,7 @@ const CategoryTree = forwardRef<HTMLDivElement, CategoryTreeProps>(({
     }
 
     if (!value) {
-      setExpandedKeys(expandedKeysBeforeSearchRef.current);
+      applyExpandedKeys(expandedKeysBeforeSearchRef.current);
       setSearchValue('');
       setAutoExpandParent(false);
       return;
@@ -141,7 +162,7 @@ const CategoryTree = forwardRef<HTMLDivElement, CategoryTreeProps>(({
         return null;
       })
       .filter((item, i, self) => item && self.indexOf(item) === i);
-    setExpandedKeys(newExpandedKeys as React.Key[]);
+    applyExpandedKeys(newExpandedKeys as React.Key[]);
     setSearchValue(value);
     setAutoExpandParent(true);
   };

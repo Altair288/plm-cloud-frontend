@@ -2,7 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { App } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import DraggableModal from '@/components/DraggableModal';
-import { metaCategoryApi } from '@/services/metaCategory';
+import {
+  metaCategoryApi,
+  type MetaCategoryBatchTransferResponseDto,
+  type MetaCategoryBatchTransferTopologyResponseDto,
+} from '@/services/metaCategory';
 import type { MetaCategoryTreeNodeDto } from '@/models/metaCategory';
 import TransferWorkspace, { type TransferTreeNode } from '../batch-transfer/components/TransferWorkspace';
 
@@ -12,7 +16,7 @@ interface BatchTransferModalProps {
   checkedKeys: React.Key[];
   fullTreeData: DataNode[];
   onCancel: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (response: MetaCategoryBatchTransferResponseDto | MetaCategoryBatchTransferTopologyResponseDto) => void;
 }
 
 const formatNodeTitle = (code?: string | null, name?: string | null, fallback?: string) => {
@@ -282,8 +286,10 @@ export default function BatchTransferModal({
           sourceNodesData={sourceNodesData}
           externalLoading={sourceLoading}
           onCancelWorkspace={onCancel}
-          onComplete={() => {
-            onSuccess?.();
+          onComplete={(response) => {
+            if (response) {
+              onSuccess?.(response);
+            }
             onCancel();
           }}
         />

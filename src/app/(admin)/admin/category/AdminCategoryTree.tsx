@@ -32,13 +32,18 @@ import {
 import FloatingContextMenu from "@/components/ContextMenu/FloatingContextMenu";
 import CreateCategoryModal from "./components/CreateCategoryModal";
 import BatchTransferModal from "./components/BatchTransferModal";
-import { metaCategoryApi, type MetaCategoryDetailDto } from "@/services/metaCategory";
+import {
+  metaCategoryApi,
+  type MetaCategoryBatchTransferResponseDto,
+  type MetaCategoryBatchTransferTopologyResponseDto,
+  type MetaCategoryDetailDto,
+} from "@/services/metaCategory";
 import { semanticStatusColors } from "@/styles/colors";
 
 interface AdminCategoryTreeProps extends CategoryTreeProps {
   onMenuClick?: (key: string, node: DataNode) => void;
   onBatchDelete?: (nodes: DataNode[]) => void;
-  onTransferSuccess?: () => void;
+  onTransferSuccess?: (response: MetaCategoryBatchTransferResponseDto | MetaCategoryBatchTransferTopologyResponseDto) => void;
   onCategoryCreated?: (
     created: MetaCategoryDetailDto,
     parent?: {
@@ -570,8 +575,8 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
         checkedKeys={transferCheckedKeys}
         fullTreeData={props.treeData}
         onCancel={() => setTransferModalVisible(false)}
-        onSuccess={() => {
-          onTransferSuccess?.();
+        onSuccess={(response) => {
+          onTransferSuccess?.(response);
           messageApi.success("批量移动/复制已完成，分类树已刷新");
         }}
       />
