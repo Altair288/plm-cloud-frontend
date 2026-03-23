@@ -105,11 +105,53 @@ const CategoryTree = forwardRef<HTMLDivElement, CategoryTreeProps>(({
     setCheckedKeys(sanitizedCheckedKeys);
   }, [checkedKeys, sanitizedCheckedKeys]);
 
+  const collectDescendantKeys = (parentKey: React.Key, nodes: DataNode[]): React.Key[] => {
+    const result: React.Key[] = [];
+
+    const visit = (items: DataNode[]): boolean => {
+      for (const item of items) {
+        if (item.key === parentKey) {
+          const collectChildren = (children: DataNode[] = []) => {
+            children.forEach((child) => {
+              result.push(child.key);
+              if (child.children?.length) {
+                collectChildren(child.children);
+              }
+            });
+          };
+
+          collectChildren(item.children);
+          return true;
+        }
+
+        if (item.children?.length && visit(item.children)) {
+          return true;
+        }
+      }
+
+      return false;
+    };
+
+    visit(nodes);
+    return result;
+  };
+
   const onExpand = (newExpandedKeys: React.Key[]) => {
-    applyExpandedKeys(newExpandedKeys);
+    const collapsedKeys = expandedKeys.filter((key) => !newExpandedKeys.includes(key));
+    const normalizedExpandedKeys = new Set(newExpandedKeys);
+
+    collapsedKeys.forEach((collapsedKey) => {
+      collectDescendantKeys(collapsedKey, treeData).forEach((descendantKey) => {
+        normalizedExpandedKeys.delete(descendantKey);
+      });
+    });
+
+    const nextExpandedKeys = Array.from(normalizedExpandedKeys);
+
+    applyExpandedKeys(nextExpandedKeys);
     setAutoExpandParent(false);
     if (!searchValue) {
-      expandedKeysBeforeSearchRef.current = newExpandedKeys;
+      expandedKeysBeforeSearchRef.current = nextExpandedKeys;
     }
   };
 
