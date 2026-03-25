@@ -6,10 +6,9 @@ import {
   DashboardOutlined, 
   SafetyCertificateOutlined,
   AppstoreOutlined,
-  TagOutlined
+  CodeOutlined
 } from '@ant-design/icons';
 import UnifiedLayout, { MenuItem } from "@/layouts/UnifiedLayout";
-import path from 'node:path';
 
 const adminMenuData: MenuItem[] = [
   {
@@ -44,6 +43,13 @@ const adminMenuData: MenuItem[] = [
     path: '/admin/settings',
     name: '系统设置',
     icon: <SettingOutlined />,
+    children: [
+      {
+        path: '/admin/settings/code-config',
+        name: '编码配置',
+        icon: <CodeOutlined />,
+      },
+    ],
   },
 ];
 

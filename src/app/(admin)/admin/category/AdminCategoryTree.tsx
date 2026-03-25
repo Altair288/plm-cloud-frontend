@@ -1,18 +1,11 @@
 import React, { useRef, useEffect, useState } from "react";
-import { App, Button, Dropdown, Input, Tooltip, theme } from "antd";
+import { App } from "antd";
 import type { MenuProps } from "antd";
 import type { DataNode, TreeProps } from "antd/es/tree";
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  CopyOutlined,
-  UnorderedListOutlined,
-  SearchOutlined,
-  CloseOutlined,
-  ImportOutlined,
-  ExportOutlined,
-  MoreOutlined,
   SettingOutlined,
   InfoCircleOutlined,
   SwapOutlined,
@@ -21,17 +14,10 @@ import CategoryTree, {
   CategoryTreeToolbarState,
   CategoryTreeProps,
 } from "@/features/category/CategoryTree";
-import {
-  TOOLBAR_ACTIONS_EXPANDED_WIDTH,
-  TOOLBAR_CONTROL_GAP,
-  TOOLBAR_SEARCH_CLOSE_BUTTON_SIZE,
-  TOOLBAR_SEARCH_EXPANDED_WIDTH,
-  createCircleButtonStyle,
-  createToolbarPillStyle,
-} from "./components/toolbarStyles";
 import FloatingContextMenu from "@/components/ContextMenu/FloatingContextMenu";
 import CreateCategoryModal from "./components/CreateCategoryModal";
 import BatchTransferModal from "./components/BatchTransferModal";
+import AdminCategoryTreeToolbar from "./components/AdminCategoryTreeToolbar";
 import {
   metaCategoryApi,
   type MetaCategoryBatchTransferResponseDto,
@@ -71,192 +57,6 @@ const statusActionLabel: Record<CategorySemanticStatus, string> = {
   INVALID: "转失效",
 };
 
-/* ── Toolbar 子组件：状态驱动按钮区 ── */
-interface ToolbarActionsProps {
-  token: ReturnType<typeof theme.useToken>["token"];
-  searchPlaceholder?: string;
-  showCheckableToggle?: boolean;
-  hasCheckedNodes: boolean;
-  onAdd: () => void;
-  onDelete: () => void;
-  onCut: () => void;
-  onCopy: () => void;
-  toolbarState: CategoryTreeToolbarState;
-}
-
-const ToolbarActions: React.FC<ToolbarActionsProps> = ({
-  token,
-  searchPlaceholder,
-  showCheckableToggle,
-  hasCheckedNodes,
-  onAdd,
-  onDelete,
-  onCut,
-  onCopy,
-  toolbarState,
-}) => {
-  const moreMenuItems: MenuProps["items"] = [
-    { key: "import", label: "导入", icon: <ImportOutlined /> },
-    { key: "export", label: "导出", icon: <ExportOutlined /> },
-  ];
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 12,
-        width: "100%",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: TOOLBAR_CONTROL_GAP,
-          flexShrink: 0,
-        }}
-      >
-        <Tooltip title="新增子分类" mouseEnterDelay={0.4}>
-          <Button
-            type="default"
-            size="small"
-            icon={<PlusOutlined />}
-            style={createCircleButtonStyle(token, "primary")}
-            onClick={onAdd}
-          />
-        </Tooltip>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            overflow: "hidden",
-            maxWidth: hasCheckedNodes ? TOOLBAR_ACTIONS_EXPANDED_WIDTH : 0,
-            opacity: hasCheckedNodes ? 1 : 0,
-            transition: "max-width 0.25s ease, opacity 0.2s ease",
-            gap: TOOLBAR_CONTROL_GAP,
-          }}
-        >
-          <Tooltip title="删除" mouseEnterDelay={0.4}>
-            <Button
-              type="default"
-              size="small"
-              icon={<DeleteOutlined />}
-              style={createCircleButtonStyle(token, "danger")}
-              onClick={onDelete}
-            />
-          </Tooltip>
-          <Tooltip title="移动" mouseEnterDelay={0.4}>
-            <Button
-              type="default"
-              size="small"
-              icon={<SwapOutlined />}
-              style={createCircleButtonStyle(token, "neutral")}
-              onClick={onCut}
-            />
-          </Tooltip>
-          <Tooltip title="复制" mouseEnterDelay={0.4}>
-            <Button
-              type="default"
-              size="small"
-              icon={<CopyOutlined />}
-              style={createCircleButtonStyle(token, "neutral")}
-              onClick={onCopy}
-            />
-          </Tooltip>
-        </div>
-
-        <Dropdown menu={{ items: moreMenuItems }} trigger={["click"]}>
-          <Tooltip title="更多操作" mouseEnterDelay={0.4}>
-            <Button
-              type="default"
-              size="small"
-              icon={<MoreOutlined />}
-              style={createCircleButtonStyle(token, "neutral")}
-            />
-          </Tooltip>
-        </Dropdown>
-      </div>
-
-      <div
-        style={{
-          marginLeft: "auto",
-          display: "flex",
-          alignItems: "center",
-          gap: TOOLBAR_CONTROL_GAP,
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={createToolbarPillStyle(token, toolbarState.searchExpanded || !!toolbarState.searchValue)}
-        >
-          {(toolbarState.searchExpanded || toolbarState.searchValue) && (
-            <SearchOutlined style={{ color: token.colorTextTertiary, fontSize: 13 }} />
-          )}
-          <div
-            style={{
-              width: toolbarState.searchExpanded || toolbarState.searchValue ? TOOLBAR_SEARCH_EXPANDED_WIDTH : 0,
-              opacity: toolbarState.searchExpanded || toolbarState.searchValue ? 1 : 0,
-              transition: "width 0.2s ease, opacity 0.2s ease",
-              overflow: "hidden",
-            }}
-          >
-            <Input
-              size="small"
-              variant="borderless"
-              placeholder={searchPlaceholder || "搜索分类"}
-              value={toolbarState.searchValue}
-              onChange={toolbarState.onSearchChange}
-              onBlur={() => {
-                if (!toolbarState.searchValue) {
-                  toolbarState.onSearchVisibilityChange(false);
-                }
-              }}
-              style={{ paddingInline: 0, background: "transparent" }}
-            />
-          </div>
-          <Button
-            size="small"
-            type="default"
-            icon={toolbarState.searchExpanded || toolbarState.searchValue ? <CloseOutlined /> : <SearchOutlined />}
-            aria-label="切换搜索"
-            onClick={() => {
-              if (toolbarState.searchExpanded || toolbarState.searchValue) {
-                toolbarState.onSearchClear();
-                return;
-              }
-              toolbarState.onSearchVisibilityChange(true);
-            }}
-            style={createCircleButtonStyle(
-              token,
-              toolbarState.searchExpanded || !!toolbarState.searchValue ? "primary" : "neutral",
-              toolbarState.searchExpanded || !!toolbarState.searchValue
-                ? TOOLBAR_SEARCH_CLOSE_BUTTON_SIZE
-                : undefined,
-            )}
-          />
-        </div>
-
-        {showCheckableToggle && (
-          <Button
-            size="small"
-            type="default"
-            icon={<UnorderedListOutlined />}
-            aria-label="切换复选框"
-            onClick={toolbarState.onCheckableToggle}
-            style={createCircleButtonStyle(
-              token,
-              toolbarState.checkableEnabled ? "primary" : "neutral",
-            )}
-          />
-        )}
-      </div>
-    </div>
-  );
-};
-
 const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
   onMenuClick,
   onBatchDelete,
@@ -264,7 +64,6 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
   onCategoryCreated,
   ...props
 }) => {
-  const { token } = theme.useToken();
   const { message: messageApi } = App.useApp();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -473,8 +272,7 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
           const hasCheckedNodes = checkableEnabled && checkedKeys.length > 0;
 
           return (
-            <ToolbarActions
-              token={token}
+            <AdminCategoryTreeToolbar
               searchPlaceholder={props.searchPlaceholder}
               showCheckableToggle={props.showCheckableToggle !== false}
               hasCheckedNodes={hasCheckedNodes}
