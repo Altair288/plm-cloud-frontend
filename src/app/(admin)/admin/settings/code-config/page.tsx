@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback, useRef } from 'react';
-import { Splitter, theme, Flex, Typography, Button, Input, List, Empty, Tag, Card, Space, Form, Select, InputNumber, Divider, Table } from 'antd';
+import { Splitter, theme, Flex, Typography, Button, Input, Empty, Tag, Card, Space, Form, Select, InputNumber, Divider, Table } from 'antd';
 import type { TableColumnsType } from 'antd';
 import { PlusOutlined, EditOutlined, SaveOutlined, DeleteOutlined, SettingOutlined, FontColorsOutlined, NumberOutlined, CalendarOutlined } from '@ant-design/icons';
 import BaseTreeToolbar from '@/components/TreeToolbar/BaseTreeToolbar';
@@ -81,7 +81,7 @@ export interface CodeSegment {
   value?: string;           // 用于 STRING 类型
   dateFormat?: string;      // 用于 DATE 类型
   length?: number;          // 用于 SEQUENCE 类型
-  resetRule?: 'NEVER' | 'DAILY' | 'YEARLY'; // 重置规则
+  resetRule?: 'NEVER' | 'DAILY' | 'MONTHLY' | 'YEARLY'; // 重置规则
 }
 
 export interface CodeRule {
@@ -122,7 +122,51 @@ const mockRules: CodeRule[] = [
 ];
 
 const CHECKBOX_COL_WIDTH = 48;
+const CODE_SEGMENT_CARD_HEIGHT = 160;
 const COLUMN_KEYS: ColumnKey[] = ['name', 'code', 'scope'];
+const SEGMENT_TYPE_OPTIONS: Array<{ type: CodeSegment['type']; label: string }> = [
+  { type: 'STRING', label: '固定字符' },
+  { type: 'DATE', label: '日期段' },
+  { type: 'SEQUENCE', label: '流水号' },
+];
+
+const createDefaultSegment = (type: CodeSegment['type']): CodeSegment => {
+  const id = `segment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  if (type === 'STRING') {
+    return { id, type, value: 'NEW-' };
+  }
+
+  if (type === 'DATE') {
+    return { id, type, dateFormat: 'YYYYMMDD' };
+  }
+
+  return { id, type, length: 4, resetRule: 'YEARLY' };
+};
+
+const getSegmentDescriptionLabel = (type: CodeSegment['type']) => {
+  if (type === 'STRING') return '固定前缀';
+  if (type === 'DATE') return '日期格式';
+  return '流水号规则';
+};
+
+const getSegmentTitle = (type: CodeSegment['type']) => {
+  if (type === 'STRING') return '固定字符';
+  if (type === 'DATE') return '日期段';
+  return '流水号';
+};
+
+const getSegmentSummary = (segment: CodeSegment) => {
+  if (segment.type === 'STRING') {
+    return segment.value?.trim() ? `固定前缀：${segment.value}` : '未填写固定字符';
+  }
+
+  if (segment.type === 'DATE') {
+    return `日期格式：${segment.dateFormat || '未设置'}`;
+  }
+
+  return `长度 ${segment.length || 4} 位${segment.resetRule ? `，${segment.resetRule} 重置` : ''}`;
+};
 
 const distributeDeltaAcrossColumns = (
   currentShares: ColumnShareMap,
@@ -511,141 +555,10 @@ const CodeRuleList = ({
 // ================= 右侧：设计工作区组件 =================
 const CodeRuleWorkspace = ({ rule }: { rule: CodeRule }) => {
   const { token } = theme.useToken();
-  const [isEditing, setIsEditing] = useState(false);
-  const [segments, setSegments] = useState<CodeSegment[]>(rule.segments);
-
-  // 当外部选中的 rule 变化时，重置本地状态
-  React.useEffect(() => {
-    setSegments(rule.segments);
-    setIsEditing(false);
-  }, [rule]);
-
-  // 动态生成预览编码
-  const previewCode = useMemo(() => {
-    return segments.map(seg => {
-      if (seg.type === 'STRING') return seg.value || '';
-      if (seg.type === 'DATE') {
-        const d = new Date();
-        const yyyy = d.getFullYear().toString();
-        const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-        const dd = d.getDate().toString().padStart(2, '0');
-        if (seg.dateFormat === 'YYYYMMDD') return `${yyyy}${mm}${dd}`;
-        if (seg.dateFormat === 'YYYYMM') return `${yyyy}${mm}`;
-        if (seg.dateFormat === 'YYYY') return yyyy;
-        return 'DATE';
-      }
-      if (seg.type === 'SEQUENCE') {
-        return '0'.repeat((seg.length || 4) - 1) + '1';
-      }
-      return '';
-    }).join('');
-  }, [segments]);
-
-  const renderSegmentIcon = (type: string) => {
-    if (type === 'STRING') return <FontColorsOutlined style={{ color: '#1890ff' }} />;
-    if (type === 'DATE') return <CalendarOutlined style={{ color: '#fa8c16' }} />;
-    if (type === 'SEQUENCE') return <NumberOutlined style={{ color: '#52c41a' }} />;
-    return <SettingOutlined />;
-  };
 
   return (
     <Flex vertical style={{ height: '100%', background: token.colorBgContainer }}>
-      {/* 顶部 Header Toolbar */}
-      <Flex align="center" justify="space-between" style={{ padding: '8px 16px', borderBottom: `1px solid ${token.colorBorderSecondary}`, height: 48 }}>
-        <Space size={12}>
-          <Title level={5} style={{ margin: 0 }}>{rule.name}</Title>
-          <Tag color="blue">{rule.code}</Tag>
-        </Space>
-        <Space size="small">
-          {!isEditing ? (
-            <Button type="text" size="small" icon={<EditOutlined />} onClick={() => setIsEditing(true)}>编辑设计</Button>
-          ) : (
-            <>
-              <Button size="small" onClick={() => { setIsEditing(false); setSegments(rule.segments); }}>取消</Button>
-              <Button type="primary" size="small" icon={<SaveOutlined />} onClick={() => setIsEditing(false)}>保存</Button>
-            </>
-          )}
-        </Space>
-      </Flex>
-
-      <div className="code-rule-workspace-scroll" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: 24 }}>
-        <Flex vertical gap="large">
-          {/* 实时预览区 */}
-          <Card size="small" style={{ backgroundColor: token.colorInfoBg, borderColor: token.colorInfoBorder, borderRadius: token.borderRadiusLG }}>
-            <Flex vertical gap="small">
-              <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>编码规则实时预览区</Text>
-              <div style={{ fontSize: 24, fontWeight: 'bold', fontFamily: 'monospace', color: token.colorPrimary, letterSpacing: 2 }}>
-                {previewCode || '-'}
-              </div>
-            </Flex>
-          </Card>
-
-          {/* 规则分段配置区 */}
-          <Card size="small" title="分段设计" extra={isEditing && <Button type="dashed" size="small" icon={<PlusOutlined />}>添加段</Button>}>
-            <List
-              dataSource={segments}
-              renderItem={(seg, index) => (
-                <List.Item
-                  actions={isEditing ? [
-                    <Button key="del" type="text" danger icon={<DeleteOutlined />} size="small" />
-                  ] : undefined}
-                >
-                  <List.Item.Meta
-                    avatar={<div style={{ fontSize: 20, marginTop: 4 }}>{renderSegmentIcon(seg.type)}</div>}
-                    title={<Text strong>{seg.type === 'STRING' ? '固定字符' : seg.type === 'DATE' ? '当前时间' : '自增流水号'}</Text>}
-                    description={
-                      isEditing ? (
-                        <Space style={{ marginTop: 8 }} wrap>
-                          {seg.type === 'STRING' && (
-                            <Input placeholder="输入字符" value={seg.value} onChange={e => {
-                              const newSegs = [...segments];
-                              newSegs[index].value = e.target.value;
-                              setSegments(newSegs);
-                            }} />
-                          )}
-                          {seg.type === 'DATE' && (
-                            <Select value={seg.dateFormat} style={{ width: 150 }} onChange={val => {
-                              const newSegs = [...segments];
-                              newSegs[index].dateFormat = val;
-                              setSegments(newSegs);
-                            }}>
-                              <Select.Option value="YYYY">YYYY(年)</Select.Option>
-                              <Select.Option value="YYYYMM">YYYYMM(年月)</Select.Option>
-                              <Select.Option value="YYYYMMDD">YYYYMMDD(年月日)</Select.Option>
-                            </Select>
-                          )}
-                          {seg.type === 'SEQUENCE' && (
-                            <>
-                              <InputNumber addonBefore="位数" value={seg.length} min={1} max={10} onChange={val => {
-                                const newSegs = [...segments];
-                                newSegs[index].length = val || 4;
-                                setSegments(newSegs);
-                              }} />
-                              <Select value={seg.resetRule} style={{ width: 120 }}>
-                                <Select.Option value="NEVER">不重置</Select.Option>
-                                <Select.Option value="YEARLY">按年重置</Select.Option>
-                                <Select.Option value="MONTHLY">按月重置</Select.Option>
-                                <Select.Option value="DAILY">按天重置</Select.Option>
-                              </Select>
-                            </>
-                          )}
-                        </Space>
-                      ) : (
-                        <Space style={{ marginTop: 4 }}>
-                          {seg.type === 'STRING' && <Tag>{seg.value}</Tag>}
-                          {seg.type === 'DATE' && <Tag>{seg.dateFormat}</Tag>}
-                          {seg.type === 'SEQUENCE' && <Tag>长度: {seg.length}</Tag>}
-                          {seg.type === 'SEQUENCE' && seg.resetRule && <Tag color="default">重置: {seg.resetRule}</Tag>}
-                        </Space>
-                      )
-                    }
-                  />
-                </List.Item>
-              )}
-            />
-          </Card>
-        </Flex>
-      </div>
+      <div style={{ flex: 1, minHeight: 0, background: token.colorBgContainer }} />
     </Flex>
   );
 };
