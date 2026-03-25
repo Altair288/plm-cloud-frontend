@@ -679,7 +679,7 @@ export default function CodeSettingPage() {
           overflow: "hidden",
         }}
       >
-        <Splitter.Panel defaultSize={350} min={250} max={500} collapsible={{ end: true, showCollapsibleIcon: leftCollapsed ? true : "auto" }}>
+        <Splitter.Panel defaultSize={450} min={350} max={550} collapsible={{ end: true, showCollapsibleIcon: leftCollapsed ? true : "auto" }}>
           <CodeRuleList rules={rules} activeId={activeRuleId} onSelect={setActiveRuleId} />
         </Splitter.Panel>
         
