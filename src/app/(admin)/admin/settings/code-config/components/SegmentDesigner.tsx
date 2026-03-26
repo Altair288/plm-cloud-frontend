@@ -35,31 +35,23 @@ const SegmentDesigner: React.FC<SegmentDesignerProps> = ({
   const preview = previewOverride ?? rawPreview;
 
   return (
-    <>
-      {/* 区域标题 */}
+    <Flex vertical gap={14}>
       {title && (
-        <Flex
-          align="center"
-          style={{
-            padding: '8px 16px',
-            background: token.colorFillQuaternary,
-            borderBottom: `1px solid ${token.colorBorderSecondary}`,
-          }}
-        >
-          <Text strong style={{ fontSize: 13, color: token.colorTextSecondary }}>{title}</Text>
+        <Flex vertical gap={4}>
+          <Text strong style={{ fontSize: 14, color: token.colorText }}>{title}</Text>
         </Flex>
       )}
 
-      {/* 编码预览条 */}
       <div
         style={{
-          padding: '10px 16px',
-          borderBottom: `1px solid ${token.colorBorderSecondary}`,
+          padding: '10px 14px',
+          borderRadius: token.borderRadiusLG,
           background: token.colorInfoBg,
+          borderInlineStart: `3px solid ${token.colorInfo}`,
         }}
       >
         <Flex align="center" gap={8}>
-          <Text type="secondary" style={{ fontSize: 12, flexShrink: 0 }}>编码示例</Text>
+          <Text type="secondary" style={{ fontSize: 12, flexShrink: 0 }}>编码预览</Text>
           <Text
             strong
             style={{
@@ -74,39 +66,46 @@ const SegmentDesigner: React.FC<SegmentDesignerProps> = ({
         </Flex>
       </div>
 
-      {/* 编码段列表 */}
-      <div style={{ padding: 16 }}>
-        <Flex vertical gap={12}>
-          {config.segments.map((segment, idx) => (
-            <SegmentCard
-              key={segment.id}
-              segment={segment}
-              index={idx}
-              total={config.segments.length}
-              onChange={onUpdateSegment}
-              onRemove={onRemoveSegment}
-              onMoveUp={(id) => onMoveSegment(id, 'up')}
-              onMoveDown={(id) => onMoveSegment(id, 'down')}
-            />
-          ))}
+      <Flex vertical gap={12}>
+        {config.segments.length > 0 && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+              gap: 12,
+            }}
+          >
+            {config.segments.map((segment, idx) => (
+              <SegmentCard
+                key={segment.id}
+                segment={segment}
+                index={idx}
+                total={config.segments.length}
+                onChange={onUpdateSegment}
+                onRemove={onRemoveSegment}
+                onMoveUp={(id) => onMoveSegment(id, 'up')}
+                onMoveDown={(id) => onMoveSegment(id, 'down')}
+              />
+            ))}
+          </div>
+        )}
 
-          {config.segments.length === 0 && (
-            <Flex
-              justify="center"
-              align="center"
-              style={{
-                padding: 32,
-                border: `1px dashed ${token.colorBorderSecondary}`,
-                borderRadius: token.borderRadiusLG,
-              }}
-            >
-              <Text type="secondary">暂无编码段，请点击「新增片段」添加</Text>
-            </Flex>
-          )}
-        </Flex>
+        {config.segments.length === 0 && (
+          <Flex
+            justify="center"
+            align="center"
+            style={{
+              padding: 28,
+              border: `1px dashed ${token.colorBorderSecondary}`,
+              borderRadius: token.borderRadiusLG,
+              background: token.colorFillQuaternary,
+            }}
+          >
+            <Text type="secondary">暂无编码段，请点击“新增片段”开始配置</Text>
+          </Flex>
+        )}
 
-        {/* 底部新增按钮 */}
-        <Flex justify="center" style={{ marginTop: 12 }}>
+        <Flex justify="flex-start">
           <Button
             size="small"
             type="dashed"
@@ -116,8 +115,8 @@ const SegmentDesigner: React.FC<SegmentDesignerProps> = ({
             新增片段
           </Button>
         </Flex>
-      </div>
-    </>
+      </Flex>
+    </Flex>
   );
 };
 

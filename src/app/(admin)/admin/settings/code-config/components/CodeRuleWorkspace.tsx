@@ -229,6 +229,21 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
     });
   }, [hasChanges, initialRule, modal]);
 
+  const basicInfoFieldStyle: React.CSSProperties = {
+    minWidth: 0,
+    display: 'grid',
+    gridTemplateRows: 'minmax(20px, auto) 32px',
+    rowGap: 4,
+    alignContent: 'start',
+  };
+
+  const basicInfoLabelStyle: React.CSSProperties = {
+    fontSize: 12,
+    lineHeight: '30px',
+    display: 'block',
+    margin: 0,
+  };
+
   return (
     <Flex vertical style={{ height: '100%', background: token.colorBgContainer }}>
       {/* ===== 顶部操作栏 ===== */}
@@ -243,7 +258,7 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
         }}
       >
         <Flex align="center" gap={8}>
-          <Text strong style={{ fontSize: 14 }}>{editingRule.name}</Text>
+          <Text strong style={{ fontSize: 16 }}>{editingRule.name}</Text>
           <Tag
             color={
               editingRule.status === 'ACTIVE' ? 'success'
@@ -280,231 +295,185 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
       {/* ===== 可滚动内容区 ===== */}
       <div
         className="code-rule-workspace-scroll"
-        style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 16 }}
+        style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 24px 28px' }}
       >
-        {/* ── 基本信息 ── */}
-        <div
-          style={{
-            background: token.colorFillAlter,
-            borderRadius: token.borderRadiusLG,
-            border: `1px solid ${token.colorBorderSecondary}`,
-            padding: 16,
-            marginBottom: 16,
-          }}
-        >
-          <Text strong style={{ fontSize: 14, color: token.colorText, display: 'block', marginBottom: 12 }}>
-            基本信息
-          </Text>
-
-          {/* 第一行：业务对象 / 规则编码 / 规则名称 */}
-          <Flex gap={12} style={{ marginBottom: 10 }}>
-            <Flex vertical gap={4} style={{ flex: 1 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                业务对象 <Text type="danger">*</Text>
+        <Flex vertical gap={20}>
+          <div>
+            <Flex vertical gap={4} style={{ marginBottom: 16 }}>
+              <Text strong style={{ fontSize: 16, color: token.colorText }}>
+                基本信息
               </Text>
-              <Select
-                size="small"
-                showSearch
-                placeholder="选择业务对象"
-                value={editingRule.businessObject || undefined}
-                onChange={(v) => updateField('businessObject', v)}
-                options={BUSINESS_OBJECT_OPTIONS.map(o => ({ value: o, label: o }))}
-                style={{ width: '100%' }}
-              />
             </Flex>
-            <Flex vertical gap={4} style={{ flex: 1 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                规则编码 <Text type="danger">*</Text>
-              </Text>
-              <Input
-                size="small"
-                placeholder="输入规则编码"
-                value={editingRule.code}
-                onChange={(e) => updateField('code', e.target.value)}
-              />
-            </Flex>
-            <Flex vertical gap={4} style={{ flex: 1 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                规则名称 <Text type="danger">*</Text>
-              </Text>
-              <Input
-                size="small"
-                placeholder="输入规则名称"
-                value={editingRule.name}
-                onChange={(e) => updateField('name', e.target.value)}
-              />
-            </Flex>
-          </Flex>
 
-          {/* 第二行：分隔符 / 使用状态 / 描述 */}
-          <Flex gap={12} style={{ marginBottom: 10 }}>
-            <Flex vertical gap={4} style={{ flex: 1 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                默认段间分隔符 <Text type="danger">*</Text>
-              </Text>
-              <Select
-                size="small"
-                value={editingRule.separator}
-                onChange={(v) => updateField('separator', v)}
-                options={SEPARATOR_OPTIONS}
-                style={{ width: '100%' }}
-              />
-            </Flex>
-            <Flex vertical gap={4} style={{ flex: 1 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>使用状态</Text>
-              <Select
-                size="small"
-                value={editingRule.status}
-                onChange={(v) => updateField('status', v)}
-                options={STATUS_OPTIONS}
-                style={{ width: '100%' }}
-              />
-            </Flex>
-            <Flex vertical gap={4} style={{ flex: 1 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>描述</Text>
-              <Input
-                size="small"
-                placeholder="编码规则描述"
-                value={editingRule.description}
-                onChange={(e) => updateField('description', e.target.value)}
-              />
-            </Flex>
-          </Flex>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                gap: 16,
+                alignItems: 'start',
+              }}
+            >
+              <div style={{ ...basicInfoFieldStyle, gridColumn: 'span 2' }}>
+                <Text type="secondary" style={basicInfoLabelStyle}>
+                  业务对象 <Text type="danger">*</Text>
+                </Text>
+                <Select
+                  size="middle"
+                  showSearch
+                  placeholder="选择业务对象"
+                  value={editingRule.businessObject || undefined}
+                  onChange={(v) => updateField('businessObject', v)}
+                  options={BUSINESS_OBJECT_OPTIONS.map(o => ({ value: o, label: o }))}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div style={{ ...basicInfoFieldStyle, gridColumn: 'span 2' }}>
+                <Text type="secondary" style={basicInfoLabelStyle}>
+                  规则编码 <Text type="danger">*</Text>
+                </Text>
+                <Input
+                  size="middle"
+                  placeholder="输入规则编码"
+                  value={editingRule.code}
+                  onChange={(e) => updateField('code', e.target.value)}
+                />
+              </div>
+              <div style={{ ...basicInfoFieldStyle, gridColumn: 'span 2' }}>
+                <Text type="secondary" style={basicInfoLabelStyle}>
+                  规则名称 <Text type="danger">*</Text>
+                </Text>
+                <Input
+                  size="middle"
+                  placeholder="输入规则名称"
+                  value={editingRule.name}
+                  onChange={(e) => updateField('name', e.target.value)}
+                />
+              </div>
+              
+              <div style={{ ...basicInfoFieldStyle, gridColumn: 'span 2' }}>
+                <Text type="secondary" style={basicInfoLabelStyle}>
+                  默认段间分隔符 <Text type="danger">*</Text>
+                </Text>
+                <Select
+                  size="middle"
+                  value={editingRule.separator}
+                  onChange={(v) => updateField('separator', v)}
+                  options={SEPARATOR_OPTIONS}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div style={{ ...basicInfoFieldStyle, gridColumn: 'span 3' }}>
+                <Text type="secondary" style={basicInfoLabelStyle}>描述</Text>
+                <Input
+                  size="middle"
+                  placeholder="编码规则描述"
+                  value={editingRule.description}
+                  onChange={(e) => updateField('description', e.target.value)}
+                />
+              </div>
+              <div style={{ ...basicInfoFieldStyle, gridColumn: 'span 1' }}>
+                <Text type="secondary" style={basicInfoLabelStyle}>使用状态</Text>
+                <Select
+                  size="middle"
+                  value={editingRule.status}
+                  onChange={(v) => updateField('status', v)}
+                  options={STATUS_OPTIONS}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <Flex vertical gap={6} style={{ gridColumn: 'span 3', minWidth: 0 }}>
+                <Text type="secondary" style={basicInfoLabelStyle}>层级规则</Text>
+              <Flex
+                align="center"
+                justify="space-between"
+                style={{
+                  padding: '0px 12px',
+                  borderRadius: token.borderRadius,
+                  background: token.colorFillQuaternary,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ fontSize: 12 }}>开启层级派生</Text>
+                <Switch
+                  size="small"
+                  checked={editingRule.inheritParentPrefix}
+                  onChange={(v) => updateField('inheritParentPrefix', v)}
+                />
+              </Flex>
+              </Flex>
+            </div>
+          </div>
 
-          {/* 行为开关 */}
-          <Divider style={{ margin: '10px 0' }} />
-          <Flex wrap gap={0} style={{ rowGap: 6 }}>
-            <Flex align="center" gap={8} style={{ minWidth: 160, marginRight: 24 }}>
-              <Text style={{ fontSize: 12, whiteSpace: 'nowrap' }}>校验编码格式</Text>
-              <Switch
-                size="small"
-                checked={editingRule.validateFormat}
-                onChange={(v) => updateField('validateFormat', v)}
-              />
-            </Flex>
-            <Flex align="center" gap={8} style={{ minWidth: 160, marginRight: 24 }}>
-              <Text style={{ fontSize: 12, whiteSpace: 'nowrap' }}>修改时更新编码</Text>
-              <Switch
-                size="small"
-                checked={editingRule.updateOnModify}
-                onChange={(v) => updateField('updateOnModify', v)}
-              />
-            </Flex>
-            <Flex align="center" gap={8} style={{ minWidth: 120, marginRight: 24 }}>
-              <Text style={{ fontSize: 12, whiteSpace: 'nowrap' }}>新增显示</Text>
-              <Switch
-                size="small"
-                checked={editingRule.showOnCreate}
-                onChange={(v) => updateField('showOnCreate', v)}
-              />
-            </Flex>
-            <Flex align="center" gap={8} style={{ minWidth: 160, marginRight: 24 }}>
-              <Text style={{ fontSize: 12, whiteSpace: 'nowrap' }}>允许手动修改</Text>
-              <Switch
-                size="small"
-                checked={editingRule.allowManualEdit}
-                onChange={(v) => updateField('allowManualEdit', v)}
-              />
-            </Flex>
-            <Flex align="center" gap={8} style={{ minWidth: 160 }}>
-              <Text style={{ fontSize: 12, whiteSpace: 'nowrap' }}>开启层级派生</Text>
-              <Switch
-                size="small"
-                checked={editingRule.inheritParentPrefix}
-                onChange={(v) => updateField('inheritParentPrefix', v)}
-              />
-            </Flex>
-          </Flex>
-        </div>
-
-        {/* ── 编码设置 ── */}
-        <div
-          style={{
-            background: token.colorBgContainer,
-            borderRadius: token.borderRadiusLG,
-            border: `1px solid ${token.colorBorderSecondary}`,
-            overflow: 'hidden',
-          }}
-        >
-          {/* 区域标题 */}
-          <Flex
-            align="center"
+          <Divider
             style={{
-              padding: '10px 16px',
-              borderBottom: `1px solid ${token.colorBorderSecondary}`,
-              background: token.colorFillAlter,
+              margin: '4px -24px 0',
+              width: 'calc(100% + 48px)',
+              minWidth: 'calc(100% + 48px)',
             }}
-          >
-            <Text strong style={{ fontSize: 14, color: token.colorPrimary }}>编码设置</Text>
-          </Flex>
+          />
 
-          {isCategory ? (
-            /* ===== 分类对象：Tabs 多套编码 ===== */
-            <Tabs
-              activeKey={activeTab}
-              onChange={(key) => setActiveTab(key as SubRuleKey)}
-              size="small"
-              style={{ margin: '0 16px' }}
-              items={SUB_RULE_TABS.map(tab => {
-                const subRule = editingRule.subRules?.[tab.key] ?? { separator: '-', segments: [] };
-                const showHierarchy = tab.key === 'category' && editingRule.inheritParentPrefix;
+          <div>
+            <Flex vertical gap={4} style={{ marginBottom: 16 }}>
+              <Text strong style={{ fontSize: 16, color: token.colorText }}>
+                编码设计
+              </Text>
+            </Flex>
 
-                if (showHierarchy) {
-                  // 分类编码 + 层级继承模式：根 + 子级双区域
-                  const rootPreview = generateSubRulePreview(subRule);
-                  const childPreview = generateChildPreview(rootPreview, subRule);
-                  const childConfig: SubRuleConfig = {
-                    separator: subRule.separator,
-                    segments: subRule.childSegments ?? [],
-                  };
+            {isCategory ? (
+              <Tabs
+                activeKey={activeTab}
+                onChange={(key) => setActiveTab(key as SubRuleKey)}
+                size="small"
+                items={SUB_RULE_TABS.map(tab => {
+                  const subRule = editingRule.subRules?.[tab.key] ?? { separator: '-', segments: [] };
+                  const showHierarchy = tab.key === 'category' && editingRule.inheritParentPrefix;
 
-                  return {
-                    key: tab.key,
-                    label: tab.label,
-                    children: (
-                      <>
-                        {/* 层级编码合并预览 */}
-                        <div
-                          style={{
-                            padding: '10px 16px',
-                            background: token.colorPrimaryBg,
-                            borderRadius: token.borderRadiusLG,
-                            border: `1px solid ${token.colorPrimaryBorder}`,
-                            marginBottom: 12,
-                          }}
-                        >
-                          <Flex align="center" gap={12} wrap>
-                            <Flex align="center" gap={6}>
-                              <Tag color="blue" style={{ margin: 0 }}>根节点</Tag>
-                              <Text
-                                strong
-                                style={{ fontFamily: 'monospace', fontSize: 14, color: token.colorPrimary }}
-                              >
-                                {rootPreview}
-                              </Text>
+                  if (showHierarchy) {
+                    const rootPreview = generateSubRulePreview(subRule);
+                    const childPreview = generateChildPreview(rootPreview, subRule);
+                    const childConfig: SubRuleConfig = {
+                      separator: subRule.separator,
+                      segments: subRule.childSegments ?? [],
+                    };
+
+                    return {
+                      key: tab.key,
+                      label: tab.label,
+                      children: (
+                        <Flex vertical gap={18} style={{ paddingTop: 8 }}>
+                          <div
+                            style={{
+                              padding: '12px 14px',
+                              background: token.colorPrimaryBg,
+                              borderRadius: token.borderRadiusLG,
+                              borderInlineStart: `3px solid ${token.colorPrimary}`,
+                            }}
+                          >
+                            <Flex align="center" gap={12} wrap>
+                              <Flex align="center" gap={6}>
+                                <Tag color="blue" style={{ margin: 0 }}>根节点</Tag>
+                                <Text
+                                  strong
+                                  style={{ fontFamily: 'monospace', fontSize: 14, color: token.colorPrimary }}
+                                >
+                                  {rootPreview}
+                                </Text>
+                              </Flex>
+                              <Text type="secondary" style={{ fontSize: 16 }}>→</Text>
+                              <Flex align="center" gap={6}>
+                                <Tag color="cyan" style={{ margin: 0 }}>子级</Tag>
+                                <Text
+                                  strong
+                                  style={{ fontFamily: 'monospace', fontSize: 14, color: token.colorPrimary }}
+                                >
+                                  {childPreview}
+                                </Text>
+                              </Flex>
                             </Flex>
-                            <Text type="secondary" style={{ fontSize: 16 }}>→</Text>
-                            <Flex align="center" gap={6}>
-                              <Tag color="cyan" style={{ margin: 0 }}>子级</Tag>
-                              <Text
-                                strong
-                                style={{ fontFamily: 'monospace', fontSize: 14, color: token.colorPrimary }}
-                              >
-                                {childPreview}
-                              </Text>
-                            </Flex>
-                          </Flex>
-                        </div>
+                          </div>
 
-                        {/* 根节点编码规则 */}
-                        <div
-                          style={{
-                            border: `1px solid ${token.colorBorderSecondary}`,
-                            borderRadius: token.borderRadiusLG,
-                            overflow: 'hidden',
-                            marginBottom: 12,
-                          }}
-                        >
                           <SegmentDesigner
                             title="根节点编码规则"
                             config={subRule}
@@ -513,16 +482,7 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
                             onUpdateSegment={handleUpdateSegment}
                             onMoveSegment={handleMoveSegment}
                           />
-                        </div>
 
-                        {/* 子级派生规则 */}
-                        <div
-                          style={{
-                            border: `1px solid ${token.colorBorderSecondary}`,
-                            borderRadius: token.borderRadiusLG,
-                            overflow: 'hidden',
-                          }}
-                        >
                           <SegmentDesigner
                             title="子级派生规则"
                             config={childConfig}
@@ -532,39 +492,39 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
                             onUpdateSegment={handleUpdateChildSegment}
                             onMoveSegment={handleMoveChildSegment}
                           />
-                        </div>
-                      </>
+                        </Flex>
+                      ),
+                    };
+                  }
+
+                  return {
+                    key: tab.key,
+                    label: tab.label,
+                    children: (
+                      <div style={{ paddingTop: 8 }}>
+                        <SegmentDesigner
+                          config={subRule}
+                          onAddSegment={handleAddSegment}
+                          onRemoveSegment={handleRemoveSegment}
+                          onUpdateSegment={handleUpdateSegment}
+                          onMoveSegment={handleMoveSegment}
+                        />
+                      </div>
                     ),
                   };
-                }
-
-                // 普通模式：单一编码段列表
-                return {
-                  key: tab.key,
-                  label: tab.label,
-                  children: (
-                    <SegmentDesigner
-                      config={subRule}
-                      onAddSegment={handleAddSegment}
-                      onRemoveSegment={handleRemoveSegment}
-                      onUpdateSegment={handleUpdateSegment}
-                      onMoveSegment={handleMoveSegment}
-                    />
-                  ),
-                };
-              })}
-            />
-          ) : (
-            /* ===== 非分类对象：单一编码段列表 ===== */
-            <SegmentDesigner
-              config={{ separator: editingRule.separator, segments: editingRule.segments }}
-              onAddSegment={handleAddSegment}
-              onRemoveSegment={handleRemoveSegment}
-              onUpdateSegment={handleUpdateSegment}
-              onMoveSegment={handleMoveSegment}
-            />
-          )}
-        </div>
+                })}
+              />
+            ) : (
+              <SegmentDesigner
+                config={{ separator: editingRule.separator, segments: editingRule.segments }}
+                onAddSegment={handleAddSegment}
+                onRemoveSegment={handleRemoveSegment}
+                onUpdateSegment={handleUpdateSegment}
+                onMoveSegment={handleMoveSegment}
+              />
+            )}
+          </div>
+        </Flex>
       </div>
     </Flex>
   );

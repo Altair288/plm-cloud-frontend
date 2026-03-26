@@ -165,71 +165,68 @@ const SegmentCard: React.FC<SegmentCardProps> = ({
       style={{
         border: `1px solid ${token.colorBorderSecondary}`,
         borderRadius: token.borderRadiusLG,
-        background: token.colorBgContainer,
-        overflow: 'hidden',
+        background: token.colorBgElevated,
+        padding: '14px 16px',
+        height: '100%',
       }}
     >
-      {/* 卡片头部 */}
-      <Flex
-        align="center"
-        justify="space-between"
-        style={{
-          padding: '8px 12px',
-          background: token.colorFillAlter,
-          borderBottom: `1px solid ${token.colorBorderSecondary}`,
-        }}
-      >
-        <Flex align="center" gap={12}>
-          <Text strong style={{ fontSize: 13, color: token.colorText, whiteSpace: 'nowrap' }}>
-            编码第 {index + 1} 段
-          </Text>
-          <Select
-            size="small"
-            value={segment.type}
-            onChange={handleTypeChange}
-            options={SEGMENT_TYPE_OPTIONS}
-            style={{ width: 120 }}
-            variant="borderless"
-          />
+      <Flex vertical gap={12}>
+        <Flex align="center" justify="space-between" wrap gap={12}>
+          <Flex align="center" gap={12} wrap>
+            <Text strong style={{ fontSize: 13, color: token.colorText, whiteSpace: 'nowrap' }}>
+              编码第 {index + 1} 段
+            </Text>
+            <Select
+              size="small"
+              value={segment.type}
+              onChange={handleTypeChange}
+              options={SEGMENT_TYPE_OPTIONS}
+              style={{ width: 128 }}
+            />
+          </Flex>
+          <Flex align="center" gap={2}>
+            <Tooltip title="上移">
+              <Button
+                type="text"
+                size="small"
+                icon={<ArrowUpOutlined style={{ fontSize: 12 }} />}
+                disabled={index === 0}
+                onClick={() => onMoveUp(segment.id)}
+                style={{ width: 24, height: 24, color: token.colorTextSecondary }}
+              />
+            </Tooltip>
+            <Tooltip title="下移">
+              <Button
+                type="text"
+                size="small"
+                icon={<ArrowDownOutlined style={{ fontSize: 12 }} />}
+                disabled={index === total - 1}
+                onClick={() => onMoveDown(segment.id)}
+                style={{ width: 24, height: 24, color: token.colorTextSecondary }}
+              />
+            </Tooltip>
+            <Tooltip title="删除此段">
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<DeleteOutlined style={{ fontSize: 12 }} />}
+                onClick={() => onRemove(segment.id)}
+                style={{ width: 24, height: 24 }}
+              />
+            </Tooltip>
+          </Flex>
         </Flex>
-        <Flex align="center" gap={2}>
-          <Tooltip title="上移">
-            <Button
-              type="text"
-              size="small"
-              icon={<ArrowUpOutlined style={{ fontSize: 12 }} />}
-              disabled={index === 0}
-              onClick={() => onMoveUp(segment.id)}
-              style={{ width: 24, height: 24, color: token.colorTextSecondary }}
-            />
-          </Tooltip>
-          <Tooltip title="下移">
-            <Button
-              type="text"
-              size="small"
-              icon={<ArrowDownOutlined style={{ fontSize: 12 }} />}
-              disabled={index === total - 1}
-              onClick={() => onMoveDown(segment.id)}
-              style={{ width: 24, height: 24, color: token.colorTextSecondary }}
-            />
-          </Tooltip>
-          <Tooltip title="删除此段">
-            <Button
-              type="text"
-              size="small"
-              danger
-              icon={<DeleteOutlined style={{ fontSize: 12 }} />}
-              onClick={() => onRemove(segment.id)}
-              style={{ width: 24, height: 24 }}
-            />
-          </Tooltip>
-        </Flex>
-      </Flex>
 
-      {/* 卡片内容 */}
-      <div style={{ padding: '12px 16px' }}>
-        {renderTypeFields()}
-      </div>
+        <div
+          style={{
+            paddingTop: 12,
+            borderTop: `1px dashed ${token.colorBorderSecondary}`,
+          }}
+        >
+          {renderTypeFields()}
+        </div>
+      </Flex>
     </div>
   );
 };
