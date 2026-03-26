@@ -1,188 +1,188 @@
-import type { CSSProperties } from 'react';
-import { theme } from 'antd';
+import type { CSSProperties } from "react";
+import { theme } from "antd";
 
-type CodeConfigToken = ReturnType<typeof theme.useToken>['token'];
+type CodeConfigToken = ReturnType<typeof theme.useToken>["token"];
 
 export const CODE_CONFIG_CLASS_NAMES = {
-  listScroll: 'code-rule-list-scroll',
-  workspaceScroll: 'code-rule-workspace-scroll',
-  listTable: 'code-rule-list-table',
-  listTableCheckable: 'code-rule-list-table--checkable',
-  resizeHandle: 'code-rule-resize-handle',
-  row: 'code-rule-row',
-  rowActive: 'code-rule-row-active',
-  workspaceCollapse: 'code-rule-workspace-collapse',
-  editorSurface: 'code-rule-editor-surface',
+    listScroll: "code-rule-list-scroll",
+    workspaceScroll: "code-rule-workspace-scroll",
+    listTable: "code-rule-list-table",
+    listTableCheckable: "code-rule-list-table--checkable",
+    resizeHandle: "code-rule-resize-handle",
+    row: "code-rule-row",
+    rowActive: "code-rule-row-active",
+    workspaceCollapse: "code-rule-workspace-collapse",
+    editorSurface: "code-rule-editor-surface",
 } as const;
 
 export const getResizableHeaderCellStyle = (
-  width?: string,
-  style?: CSSProperties,
+    width?: string,
+    style?: CSSProperties,
 ): CSSProperties => ({
-  ...style,
-  width,
-  position: 'relative',
+    ...style,
+    width,
+    position: "relative",
 });
 
 export const getListRuleNameStyle = (
-  token: CodeConfigToken,
-  active: boolean,
+    token: CodeConfigToken,
+    active: boolean,
 ): CSSProperties => ({
-  display: 'block',
-  width: '100%',
-  textAlign: 'center',
-  color: active ? token.colorPrimary : token.colorText,
+    display: "block",
+    width: "100%",
+    textAlign: "center",
+    color: active ? token.colorPrimary : token.colorText,
 });
 
 export const getCodeConfigStyles = (token: CodeConfigToken) => ({
-  titleReset: {
-    margin: 0,
-  } satisfies CSSProperties,
-  pageContainer: {
-    height: 'calc(100vh - 163px)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 16,
-    overflow: 'hidden',
-  } satisfies CSSProperties,
-  splitter: {
-    flex: 1,
-    minHeight: 0,
-    background: 'var(--ant-color-bg-container, #fff)',
-    borderRadius: 8,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    boxShadow: '0 0 10px rgba(0, 0, 0, 0.05)',
-    overflow: 'hidden',
-  } satisfies CSSProperties,
-  splitterPanelContent: {
-    position: 'relative',
-    height: '100%',
-    overflow: 'hidden',
-  } satisfies CSSProperties,
-  emptyState: {
-    height: '100%',
-    background: token.colorBgLayout,
-  } satisfies CSSProperties,
-  listContainer: {
-    height: '100%',
-    background: token.colorBgContainer,
-  } satisfies CSSProperties,
-  listToolbar: {
-    padding: '0 16px',
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-    height: 48,
-  } satisfies CSSProperties,
-  listScroll: {
-    flex: 1,
-    minHeight: 0,
-    overflowY: 'auto',
-    overflowX: 'hidden',
-  } satisfies CSSProperties,
-  listFooter: {
-    padding: 8,
-    borderTop: `1px solid ${token.colorBorderSecondary}`,
-    background: token.colorBgLayout,
-    textAlign: 'center',
-    fontSize: 12,
-    color: token.colorTextQuaternary,
-  } satisfies CSSProperties,
-  listSecondaryText: {
-    display: 'block',
-    width: '100%',
-    textAlign: 'center',
-  } satisfies CSSProperties,
-  listMonoText: {
-    display: 'block',
-    width: '100%',
-    textAlign: 'center',
-    fontSize: 12,
-    fontFamily: 'monospace',
-  } satisfies CSSProperties,
-  workspaceContainer: {
-    height: '100%',
-    background: token.colorBgContainer,
-  } satisfies CSSProperties,
-  workspaceHeader: {
-    padding: '8px 16px',
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-    height: 48,
-    background: token.colorBgContainer,
-  } satisfies CSSProperties,
-  activeRuleCode: {
-    fontSize: 12,
-  } satisfies CSSProperties,
-  workspaceCollapse: {
-    flex: 1,
-    minHeight: 0,
-    overflowY: 'auto',
-    background: token.colorBgLayout,
-  } satisfies CSSProperties,
-  collapseHeader: {
-    alignItems: 'center',
-    padding: '10px 16px',
-    background: token.colorBgContainer,
-  } satisfies CSSProperties,
-  collapseBody: {
-    padding: 0,
-    background: token.colorBgContainer,
-  } satisfies CSSProperties,
-  editorSurface: {
-    minHeight: 'calc(100vh - 353px)',
-    width: '100%',
-    padding: 16,
-  } satisfies CSSProperties,
-  editorContent: {
-    height: '100%',
-  } satisfies CSSProperties,
-  editorHead: {
-    alignItems: 'flex-start',
-    gap: 16,
-  } satisfies CSSProperties,
-  editorTitle: {
-    color: token.colorPrimary,
-    fontSize: 18,
-  } satisfies CSSProperties,
-  previewCode: {
-    fontSize: 20,
-    fontFamily: 'monospace',
-  } satisfies CSSProperties,
-  segmentTypeSelect: {
-    width: 180,
-  } satisfies CSSProperties,
-  segmentCard: {
-    minHeight: 220,
-    borderColor: token.colorBorderSecondary,
-    borderRadius: token.borderRadiusLG,
-    overflow: 'hidden',
-  } satisfies CSSProperties,
-  segmentCardHeader: {
-    minHeight: 44,
-    padding: '8px 16px',
-    background: token.colorFillAlter,
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-  } satisfies CSSProperties,
-  segmentCardBody: {
-    padding: 12,
-  } satisfies CSSProperties,
-  fullWidthField: {
-    width: '100%',
-  } satisfies CSSProperties,
-  switchRow: {
-    minHeight: 32,
-  } satisfies CSSProperties,
-  placeholderPanel: {
-    minHeight: 'calc(100vh - 353px)',
-    width: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  } satisfies CSSProperties,
+    titleReset: {
+        margin: 0,
+    } satisfies CSSProperties,
+    pageContainer: {
+        height: "calc(100vh - 163px)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+        overflow: "hidden",
+    } satisfies CSSProperties,
+    splitter: {
+        flex: 1,
+        minHeight: 0,
+        background: "var(--ant-color-bg-container, #fff)",
+        borderRadius: 8,
+        border: `1px solid ${token.colorBorderSecondary}`,
+        boxShadow: "0 0 10px rgba(0, 0, 0, 0.05)",
+        overflow: "hidden",
+    } satisfies CSSProperties,
+    splitterPanelContent: {
+        position: "relative",
+        height: "100%",
+        overflow: "hidden",
+    } satisfies CSSProperties,
+    emptyState: {
+        height: "100%",
+        background: token.colorBgLayout,
+    } satisfies CSSProperties,
+    listContainer: {
+        height: "100%",
+        background: token.colorBgContainer,
+    } satisfies CSSProperties,
+    listToolbar: {
+        padding: "0 16px",
+        borderBottom: `1px solid ${token.colorBorderSecondary}`,
+        height: 48,
+    } satisfies CSSProperties,
+    listScroll: {
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        overflowX: "hidden",
+    } satisfies CSSProperties,
+    listFooter: {
+        padding: 8,
+        borderTop: `1px solid ${token.colorBorderSecondary}`,
+        background: token.colorBgLayout,
+        textAlign: "center",
+        fontSize: 12,
+        color: token.colorTextQuaternary,
+    } satisfies CSSProperties,
+    listSecondaryText: {
+        display: "block",
+        width: "100%",
+        textAlign: "center",
+    } satisfies CSSProperties,
+    listMonoText: {
+        display: "block",
+        width: "100%",
+        textAlign: "center",
+        fontSize: 12,
+        fontFamily: "monospace",
+    } satisfies CSSProperties,
+    workspaceContainer: {
+        height: "100%",
+        background: token.colorBgContainer,
+    } satisfies CSSProperties,
+    workspaceHeader: {
+        padding: "8px 16px",
+        borderBottom: `1px solid ${token.colorBorderSecondary}`,
+        height: 48,
+        background: token.colorBgContainer,
+    } satisfies CSSProperties,
+    activeRuleCode: {
+        fontSize: 12,
+    } satisfies CSSProperties,
+    workspaceCollapse: {
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        background: token.colorBgLayout,
+    } satisfies CSSProperties,
+    collapseHeader: {
+        alignItems: "center",
+        padding: "10px 16px",
+        background: token.colorBgContainer,
+    } satisfies CSSProperties,
+    collapseBody: {
+        padding: 0,
+        background: token.colorBgContainer,
+    } satisfies CSSProperties,
+    editorSurface: {
+        minHeight: "calc(100vh - 353px)",
+        width: "100%",
+        padding: 16,
+    } satisfies CSSProperties,
+    editorContent: {
+        height: "100%",
+    } satisfies CSSProperties,
+    editorHead: {
+        alignItems: "flex-start",
+        gap: 16,
+    } satisfies CSSProperties,
+    editorTitle: {
+        color: token.colorPrimary,
+        fontSize: 18,
+    } satisfies CSSProperties,
+    previewCode: {
+        fontSize: 20,
+        fontFamily: "monospace",
+    } satisfies CSSProperties,
+    segmentTypeSelect: {
+        width: 180,
+    } satisfies CSSProperties,
+    segmentCard: {
+        minHeight: 220,
+        borderColor: token.colorBorderSecondary,
+        borderRadius: token.borderRadiusLG,
+        overflow: "hidden",
+    } satisfies CSSProperties,
+    segmentCardHeader: {
+        minHeight: 44,
+        padding: "8px 16px",
+        background: token.colorFillAlter,
+        borderBottom: `1px solid ${token.colorBorderSecondary}`,
+    } satisfies CSSProperties,
+    segmentCardBody: {
+        padding: 12,
+    } satisfies CSSProperties,
+    fullWidthField: {
+        width: "100%",
+    } satisfies CSSProperties,
+    switchRow: {
+        minHeight: 32,
+    } satisfies CSSProperties,
+    placeholderPanel: {
+        minHeight: "calc(100vh - 353px)",
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+    } satisfies CSSProperties,
 });
 
 export const createCodeConfigGlobalStyles = (
-  token: CodeConfigToken,
-  checkboxColWidth: number,
+    token: CodeConfigToken,
+    checkboxColWidth: number,
 ) => `
   .${CODE_CONFIG_CLASS_NAMES.listScroll},
   .${CODE_CONFIG_CLASS_NAMES.workspaceScroll} {
