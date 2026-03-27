@@ -212,21 +212,26 @@ export const generateSubRulePreview = (config: SubRuleConfig): string => {
     .join(config.separator);
 };
 
-/** 生成子级派生编码预览，将 PARENT_CODE 变量替换为根节点预览 */
+/** 生成子级派生编码预览。开启层级派生后，父级编码会自动作为前缀拼接。 */
 export const generateChildPreview = (
   rootPreview: string,
   config: SubRuleConfig,
 ): string => {
   const childSegs = config.childSegments;
   if (!childSegs || childSegs.length === 0) return '（未配置子级规则）';
-  return childSegs
-    .map(s => {
-      if (s.type === 'VARIABLE' && s.variableKey === 'PARENT_CODE') {
-        return rootPreview;
-      }
-      return generateSegmentPreview(s);
-    })
+  const derivedSuffixSegments = childSegs.filter(
+    (segment) => !(segment.type === 'VARIABLE' && segment.variableKey === 'PARENT_CODE'),
+  );
+
+  if (derivedSuffixSegments.length === 0) {
+    return rootPreview;
+  }
+
+  const childSuffixPreview = derivedSuffixSegments
+    .map((segment) => generateSegmentPreview(segment))
     .join(config.separator);
+
+  return [rootPreview, childSuffixPreview].filter(Boolean).join(config.separator);
 };
 
 export const getSegmentTypeLabel = (type: SegmentType): string => {
@@ -327,7 +332,6 @@ export const mockRules: CodeRule[] = [
           { id: 'mc2', type: 'SEQUENCE', length: 3, startValue: 1, step: 1, resetRule: 'NEVER' },
         ],
         childSegments: [
-          { id: 'mc_c1', type: 'VARIABLE', variableKey: 'PARENT_CODE' },
           { id: 'mc_c2', type: 'SEQUENCE', length: 3, startValue: 1, step: 1, resetRule: 'PER_PARENT' },
         ],
       },
@@ -396,8 +400,7 @@ export const mockRules: CodeRule[] = [
           { id: 'pc3', type: 'SEQUENCE', length: 3, startValue: 1, step: 1, resetRule: 'NEVER' },
         ],
         childSegments: [
-          { id: 'pc_c1', type: 'VARIABLE', variableKey: 'PARENT_CODE' },
-          { id: 'pc_c2', type: 'SEQUENCE', length: 3, startValue: 1, step: 1, resetRule: 'PER_PARENT' },
+          { id: 'pc_c2', type: 'SEQUENCE', length: 2, startValue: 1, step: 1, resetRule: 'PER_PARENT' },
         ],
       },
       attribute: {

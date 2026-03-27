@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Flex, Typography, Button, Input, Select, Switch, Divider, Tag, Tabs, App, theme } from 'antd';
-import { SaveOutlined, UndoOutlined } from '@ant-design/icons';
+import { EyeInvisibleOutlined, EyeOutlined, SaveOutlined, UndoOutlined } from '@ant-design/icons';
 import type { CodeRule, CodeSegment, SegmentType, SubRuleKey, SubRuleConfig } from './types';
 import {
   SEPARATOR_OPTIONS,
   STATUS_OPTIONS,
   BUSINESS_OBJECT_OPTIONS,
   SUB_RULE_TABS,
+  VARIABLE_KEY_OPTIONS,
   isCategoryObject,
   createDefaultSegment,
   createDefaultSubRules,
@@ -14,8 +15,11 @@ import {
   generateChildPreview,
 } from './types';
 import SegmentDesigner from './SegmentDesigner';
+import CodeRulePreviewPanel from './CodeRulePreviewPanel';
 
 const { Text } = Typography;
+
+const CHILD_SUFFIX_VARIABLE_OPTIONS = VARIABLE_KEY_OPTIONS.filter((option) => option.value !== 'PARENT_CODE');
 
 interface CodeRuleWorkspaceProps {
   rule: CodeRule;
@@ -28,6 +32,7 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
   const [editingRule, setEditingRule] = useState<CodeRule>(initialRule);
   const [hasChanges, setHasChanges] = useState(false);
   const [activeTab, setActiveTab] = useState<SubRuleKey>('category');
+  const [previewPanelVisible, setPreviewPanelVisible] = useState(true);
 
   const isCategory = useMemo(() => isCategoryObject(editingRule.businessObject), [editingRule.businessObject]);
 
@@ -292,6 +297,13 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
 
         <Flex align="center" gap={8}>
           <Button
+            size="small"
+            icon={previewPanelVisible ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+            onClick={() => setPreviewPanelVisible((prev) => !prev)}
+          >
+            {previewPanelVisible ? '隐藏预览' : '显示预览'}
+          </Button>
+          <Button
             type="primary"
             size="small"
             icon={<SaveOutlined />}
@@ -312,11 +324,12 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
       </Flex>
 
       {/* ===== 可滚动内容区 ===== */}
-      <div
-        className="code-rule-workspace-scroll"
-        style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 24px 28px' }}
-      >
-        <Flex vertical gap={20}>
+      <Flex style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        <div
+          className="code-rule-workspace-scroll"
+          style={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: 'auto', padding: '20px 24px 28px' }}
+        >
+          <Flex vertical gap={20}>
           <div>
             <Flex vertical gap={4} style={{ marginBottom: 16 }}>
               <Text strong style={{ fontSize: 16, color: token.colorText }}>
@@ -334,12 +347,12 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
             >
               <div style={{ ...basicInfoFieldStyle, gridColumn: 'span 2' }}>
                 <Text type="secondary" style={basicInfoLabelStyle}>
-                  业务对象 <Text type="danger">*</Text>
+                  应用对象 <Text type="danger">*</Text>
                 </Text>
                 <Select
                   size="middle"
                   showSearch
-                  placeholder="选择业务对象"
+                  placeholder="选择应用对象"
                   value={editingRule.businessObject || undefined}
                   onChange={(v) => updateField('businessObject', v)}
                   options={BUSINESS_OBJECT_OPTIONS.map(o => ({ value: o, label: o }))}
@@ -519,6 +532,7 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
                               title="子级派生规则"
                               config={childConfig}
                               previewOverride={childPreview}
+                              variableOptions={CHILD_SUFFIX_VARIABLE_OPTIONS}
                               onAddSegment={handleAddChildSegment}
                               onRemoveSegment={handleRemoveChildSegment}
                               onUpdateSegment={handleUpdateChildSegment}
@@ -557,8 +571,23 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
               />
             )}
           </div>
-        </Flex>
-      </div>
+          </Flex>
+        </div>
+
+        <div
+          style={{
+            width: previewPanelVisible ? 360 : 0,
+            minWidth: previewPanelVisible ? 360 : 0,
+            borderLeft: previewPanelVisible ? `1px solid ${token.colorBorderSecondary}` : 'none',
+            transition: 'width 0.2s ease, min-width 0.2s ease',
+            overflow: 'hidden',
+            flexShrink: 0,
+            background: token.colorBgLayout,
+          }}
+        >
+          {previewPanelVisible ? <CodeRulePreviewPanel rule={editingRule} activeTab={activeTab} /> : null}
+        </div>
+      </Flex>
     </Flex>
   );
 };

@@ -15,6 +15,7 @@ interface SegmentCardProps {
   segment: CodeSegment;
   index: number;
   total: number;
+  variableOptions?: Array<{ value: string; label: string }>;
   onChange: (id: string, updates: Partial<CodeSegment>) => void;
   onRemove: (id: string) => void;
   onMoveUp: (id: string) => void;
@@ -25,12 +26,14 @@ const SegmentCard: React.FC<SegmentCardProps> = ({
   segment,
   index,
   total,
+  variableOptions,
   onChange,
   onRemove,
   onMoveUp,
   onMoveDown,
 }) => {
   const { token } = theme.useToken();
+  const availableVariableOptions = variableOptions ?? VARIABLE_KEY_OPTIONS;
 
   const handleTypeChange = (type: SegmentType) => {
     const base: Partial<CodeSegment> = {
@@ -51,7 +54,7 @@ const SegmentCard: React.FC<SegmentCardProps> = ({
         onChange(segment.id, { ...base, dateFormat: 'YYYYMM' });
         break;
       case 'VARIABLE':
-        onChange(segment.id, { ...base, variableKey: 'PARENT_CODE' });
+        onChange(segment.id, { ...base, variableKey: availableVariableOptions[0]?.value ?? 'PARENT_CODE' });
         break;
       case 'SEQUENCE':
         onChange(segment.id, { ...base, length: 4, startValue: 1, step: 1, resetRule: 'YEARLY' });
@@ -103,7 +106,7 @@ const SegmentCard: React.FC<SegmentCardProps> = ({
               size="middle"
               value={segment.variableKey}
               onChange={(v) => onChange(segment.id, { variableKey: v })}
-              options={VARIABLE_KEY_OPTIONS}
+              options={availableVariableOptions}
               style={{ maxWidth: 280 }}
             />
           </Flex>
