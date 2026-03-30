@@ -147,6 +147,11 @@ const toEditorSubRule = (subRule?: CodeRuleSubRuleDto): SubRuleConfig => ({
   childSegments: subRule?.childSegments?.map(mapSegmentDtoToEditor),
 });
 
+const resolveRuleSetSeparator = (...separators: Array<string | undefined>) => {
+  const matched = separators.find((separator) => separator !== undefined);
+  return matched ?? '-';
+};
+
 const createRuleMetadata = (detail?: CodeRuleDetailDto): CodeRuleBackendMeta | undefined => {
   if (!detail) {
     return undefined;
@@ -278,33 +283,6 @@ const createDefaultRuleMetadata = (
   },
 });
 
-const createDefaultSubRulesForRuleSet = (): Record<SubRuleKey, SubRuleConfig> => ({
-  category: {
-    separator: '-',
-    segments: [
-      { id: `seg_${Date.now()}_cat_var`, type: 'VARIABLE', variableKey: 'BUSINESS_DOMAIN' },
-      { id: `seg_${Date.now()}_cat_seq`, type: 'SEQUENCE', length: 4, startValue: 1, step: 1, resetRule: 'NEVER' },
-    ],
-    childSegments: [],
-  },
-  attribute: {
-    separator: '-',
-    segments: [
-      { id: `seg_${Date.now()}_attr_str`, type: 'STRING', value: 'ATTR' },
-      { id: `seg_${Date.now()}_attr_var`, type: 'VARIABLE', variableKey: 'CATEGORY_CODE' },
-      { id: `seg_${Date.now()}_attr_seq`, type: 'SEQUENCE', length: 6, startValue: 1, step: 1, resetRule: 'PER_PARENT' },
-    ],
-  },
-  enum: {
-    separator: '-',
-    segments: [
-      { id: `seg_${Date.now()}_lov_str`, type: 'STRING', value: 'ENUM' },
-      { id: `seg_${Date.now()}_lov_var`, type: 'VARIABLE', variableKey: 'ATTRIBUTE_CODE' },
-      { id: `seg_${Date.now()}_lov_seq`, type: 'SEQUENCE', length: 2, startValue: 1, step: 1, resetRule: 'PER_PARENT' },
-    ],
-  },
-});
-
 export const mapRuleSetSummaryToEditor = (summary: CodeRuleSetSummaryDto): CodeRule => ({
   id: summary.businessDomain,
   name: summary.name,
@@ -340,7 +318,11 @@ export const mapRuleSetDetailToEditor = (detail: CodeRuleSetDetailDto): CodeRule
   const categorySubRule = toEditorSubRule(categoryRule?.latestRuleJson?.subRules?.category);
   const attributeSubRule = toEditorSubRule(attributeRule?.latestRuleJson?.subRules?.attribute);
   const enumSubRule = toEditorSubRule(lovRule?.latestRuleJson?.subRules?.enum);
-  const separator = categorySubRule.separator || attributeSubRule.separator || enumSubRule.separator || '-';
+  const separator = resolveRuleSetSeparator(
+    categoryRule?.latestRuleJson?.subRules?.category?.separator,
+    attributeRule?.latestRuleJson?.subRules?.attribute?.separator,
+    lovRule?.latestRuleJson?.subRules?.enum?.separator,
+  );
 
   return {
     id: detail.businessDomain,
@@ -447,7 +429,7 @@ export const createDraftRuleSetEditor = (params: {
     allowManualEdit: true,
     inheritParentPrefix: false,
     segments: [],
-    subRules: createDefaultSubRulesForRuleSet(),
+    subRules: createDefaultSubRules(),
     ruleSetMeta: {
       businessDomain,
       remark: params.remark || '',

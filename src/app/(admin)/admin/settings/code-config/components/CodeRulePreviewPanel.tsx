@@ -319,9 +319,33 @@ const CodeRulePreviewPanel: React.FC<CodeRulePreviewPanelProps> = ({ rule, activ
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const usesSubRules = Boolean(rule.ruleSetMeta) || isCategoryObject(rule.businessObject);
+  const previewRequestKey = useMemo(() => {
+    const businessDomain = String(rule.businessDomain || rule.ruleSetMeta?.businessDomain || rule.code || '').trim().toUpperCase();
+
+    return JSON.stringify({
+      businessDomain,
+      activeTab,
+      isNew: Boolean(rule.isNew),
+      hasUnsavedChanges,
+      categoryRuleCode: rule.ruleMetadata?.category?.ruleCode || '',
+      attributeRuleCode: rule.ruleMetadata?.attribute?.ruleCode || '',
+      enumRuleCode: rule.ruleMetadata?.enum?.ruleCode || '',
+    });
+  }, [
+    activeTab,
+    hasUnsavedChanges,
+    rule.businessDomain,
+    rule.code,
+    rule.isNew,
+    rule.ruleMetadata?.attribute?.ruleCode,
+    rule.ruleMetadata?.category?.ruleCode,
+    rule.ruleMetadata?.enum?.ruleCode,
+    rule.ruleSetMeta?.businessDomain,
+  ]);
+  const previewRule = useMemo(() => rule, [previewRequestKey]);
 
   useEffect(() => {
-    if (!rule.ruleMetadata || rule.isNew) {
+    if (!previewRule.ruleMetadata || previewRule.isNew) {
       setBackendPreview(null);
       setPreviewError(null);
       setPreviewLoading(false);
@@ -342,7 +366,7 @@ const CodeRulePreviewPanel: React.FC<CodeRulePreviewPanelProps> = ({ rule, activ
       setPreviewLoading(true);
       setPreviewError(null);
       try {
-        const result = await buildPreviewContext(rule, activeTab);
+        const result = await buildPreviewContext(previewRule, activeTab);
         if (!cancelled) {
           setBackendPreview(result);
         }
@@ -366,7 +390,7 @@ const CodeRulePreviewPanel: React.FC<CodeRulePreviewPanelProps> = ({ rule, activ
     return () => {
       cancelled = true;
     };
-  }, [activeTab, hasUnsavedChanges, rule]);
+  }, [activeTab, hasUnsavedChanges, previewRequestKey, previewRule]);
 
   const treeData = useMemo<TreeDataNode[]>(() => {
     const backendPreviewNode = buildBackendPreviewNode({

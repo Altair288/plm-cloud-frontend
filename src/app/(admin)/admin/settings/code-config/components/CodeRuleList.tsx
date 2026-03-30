@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
-import { Flex, Typography, Button, Table, theme } from 'antd';
+import { Empty, Flex, Typography, Table, theme } from 'antd';
 import type { TableColumnsType } from 'antd';
 import { PlusOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
 import BaseTreeToolbar from '@/components/TreeToolbar/BaseTreeToolbar';
@@ -215,6 +215,8 @@ const CodeRuleList: React.FC<CodeRuleListProps> = ({
       }
     : undefined;
 
+  const isEmpty = !loading && filteredRules.length === 0;
+
   return (
     <Flex vertical style={{ height: '100%', background: token.colorBgContainer }}>
       {/* 列表工具栏 */}
@@ -261,26 +263,38 @@ const CodeRuleList: React.FC<CodeRuleListProps> = ({
 
       {/* 列表主体 */}
       <div className="code-rule-list-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
-        <Table<CodeRule>
-          className={`code-rule-list-table ${checkableEnabled ? 'code-rule-list-table--checkable' : ''}`}
-          rowKey="id"
-          size="small"
-          tableLayout="fixed"
-          components={{ header: { cell: ResizableHeaderCell } }}
-          pagination={false}
-          loading={loading}
-          dataSource={filteredRules}
-          columns={columns}
-          rowSelection={rowSelection}
-          onRow={(record) => ({
-            onClick: (event) => {
-              const target = event.target as HTMLElement;
-              if (target.closest('.ant-checkbox-wrapper') || target.closest('.ant-checkbox')) return;
-              onSelect(record.id);
-            },
-          })}
-          rowClassName={(record) => (record.id === activeId ? 'code-rule-row-active' : 'code-rule-row')}
-        />
+        <div className="code-rule-list-table-shell">
+          <Table<CodeRule>
+            className={`code-rule-list-table ${checkableEnabled ? 'code-rule-list-table--checkable' : ''} ${isEmpty ? 'code-rule-list-table--empty' : ''}`}
+            rowKey="id"
+            size="small"
+            tableLayout="fixed"
+            components={{ header: { cell: ResizableHeaderCell } }}
+            style={{ height: '99%' }}
+            pagination={false}
+            loading={loading}
+            dataSource={filteredRules}
+            columns={columns}
+            locale={{ emptyText: null }}
+            rowSelection={rowSelection}
+            onRow={(record) => ({
+              onClick: (event) => {
+                const target = event.target as HTMLElement;
+                if (target.closest('.ant-checkbox-wrapper') || target.closest('.ant-checkbox')) return;
+                onSelect(record.id);
+              },
+            })}
+            rowClassName={(record) => (record.id === activeId ? 'code-rule-row-active' : 'code-rule-row')}
+          />
+          {isEmpty ? (
+            <div className="code-rule-list-empty-state" aria-hidden="true">
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="暂无数据"
+              />
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {/* 底部统计 */}
@@ -297,6 +311,11 @@ const CodeRuleList: React.FC<CodeRuleListProps> = ({
 
       {/* 全局样式 */}
       <style jsx global>{`
+        .code-rule-list-table-shell {
+          position: relative;
+          height: 100%;
+          min-height: 0;
+        }
         .code-rule-list-scroll,
         .code-rule-workspace-scroll {
           scrollbar-width: thin;
@@ -330,6 +349,28 @@ const CodeRuleList: React.FC<CodeRuleListProps> = ({
           background: ${token.colorBgContainer};
           width: 100%;
         }
+        .code-rule-list-table,
+        .code-rule-list-table .ant-spin-nested-loading,
+        .code-rule-list-table .ant-spin-container,
+        .code-rule-list-table .ant-table,
+        .code-rule-list-table .ant-table-container,
+        .code-rule-list-table .ant-table-content {
+          height: 100%;
+        }
+        .code-rule-list-table--empty .ant-table-placeholder {
+          display: none;
+        }
+        .code-rule-list-empty-state {
+          position: absolute;
+          top: 46px;
+          right: 0;
+          bottom: 0;
+          left: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: ${token.colorBgContainer};
+        }
         .code-rule-list-table table {
           width: 100% !important;
         }
@@ -339,6 +380,9 @@ const CodeRuleList: React.FC<CodeRuleListProps> = ({
           padding-bottom: 12px;
         }
         .code-rule-list-table .ant-table-thead > tr > th {
+          height: 46px;
+          padding-top: 0;
+          padding-bottom: 0;
           background: ${token.colorFillAlter};
           color: ${token.colorTextSecondary};
           font-size: 12px;
@@ -347,6 +391,13 @@ const CodeRuleList: React.FC<CodeRuleListProps> = ({
           position: sticky;
           top: 0;
           z-index: 2;
+          vertical-align: middle;
+        }
+        .code-rule-list-table .ant-table-thead > tr > th.ant-table-selection-column,
+        .code-rule-list-table .ant-table-tbody > tr > td.ant-table-selection-column {
+          padding-top: 0 !important;
+          padding-bottom: 0 !important;
+          vertical-align: middle;
         }
         .code-rule-list-table:not(.code-rule-list-table--checkable) .ant-table-thead > tr > th:first-child,
         .code-rule-list-table:not(.code-rule-list-table--checkable) .ant-table-tbody > tr > td:first-child {

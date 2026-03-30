@@ -164,9 +164,9 @@ export const MIN_COLUMN_SHARE: ColumnShareMap = {
 };
 
 export const DEFAULT_COLUMN_SHARES: ColumnShareMap = {
-  name: 42,
-  code: 29,
-  businessObject: 29,
+  name: 33.34,
+  code: 33.33,
+  businessObject: 33.33,
 };
 
 export const CHECKBOX_COL_WIDTH = 48;

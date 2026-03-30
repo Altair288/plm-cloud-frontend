@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Splitter, theme, Flex, Empty, App, Spin } from 'antd';
 import { useDictionary } from '@/contexts/DictionaryContext';
 import {
@@ -51,6 +51,16 @@ export default function CodeSettingPage() {
   const [creating, setCreating] = useState(false);
 
   const businessDomainEntries = getEntries(CATEGORY_BUSINESS_DOMAIN_DICT_CODE);
+  const messageRef = useRef(message);
+  const businessDomainEntriesRef = useRef(businessDomainEntries);
+
+  useEffect(() => {
+    messageRef.current = message;
+  }, [message]);
+
+  useEffect(() => {
+    businessDomainEntriesRef.current = businessDomainEntries;
+  }, [businessDomainEntries]);
   const availableBusinessDomains = useMemo(() => {
     const existingDomains = new Set(rules.map((rule) => String(rule.businessDomain || rule.code).trim().toUpperCase()));
     return getCategoryBusinessDomainConfigs(businessDomainEntries)
@@ -59,6 +69,13 @@ export default function CodeSettingPage() {
   }, [businessDomainEntries, rules]);
 
   const activeRule = useMemo(() => rules.find(r => r.id === activeRuleId), [rules, activeRuleId]);
+  const activeBusinessDomain = useMemo(() => {
+    if (!activeRuleId || !activeRule || activeRule.isNew) {
+      return null;
+    }
+
+    return activeRule.businessDomain || activeRule.ruleSetMeta?.businessDomain || activeRule.code || activeRuleId;
+  }, [activeRule, activeRuleId]);
   const activeRuleSaveDisabledReason = useMemo(() => {
     if (!activeRule?.ruleMetadata) {
       return undefined;
@@ -90,11 +107,15 @@ export default function CodeSettingPage() {
   const decorateBusinessObject = useCallback((rule: CodeRule): CodeRule => ({
     ...rule,
     businessObject: getCategoryBusinessDomainLabel(
-      businessDomainEntries,
+      businessDomainEntriesRef.current,
       rule.businessDomain || rule.ruleSetMeta?.businessDomain || rule.code,
       rule.businessObject,
     ),
-  }), [businessDomainEntries]);
+  }), []);
+
+  const showErrorMessage = useCallback((error: unknown, fallback: string) => {
+    messageRef.current.error(getErrorMessage(error, fallback));
+  }, []);
 
   const hydrateRuleSetDetail = useCallback(async (businessDomain: string) => {
     const detail = await codeRuleApi.getRuleSetDetail(businessDomain);
@@ -137,26 +158,42 @@ export default function CodeSettingPage() {
         return mappedRules[0]?.id || null;
       });
     } catch (error) {
-      message.error(getErrorMessage(error, '加载编码规则集失败'));
+      showErrorMessage(error, '加载编码规则集失败');
     } finally {
       setListLoading(false);
     }
-  }, [decorateBusinessObject, message]);
+  }, [decorateBusinessObject, showErrorMessage]);
 
   useEffect(() => {
     void ensureBatch([CATEGORY_BUSINESS_DOMAIN_DICT_CODE]);
   }, [ensureBatch]);
 
   useEffect(() => {
-    setRules((prev) => prev.map(decorateBusinessObject));
-  }, [decorateBusinessObject]);
+    setRules((prev) => {
+      if (prev.length === 0) {
+        return prev;
+      }
+
+      let changed = false;
+      const nextRules = prev.map((rule) => {
+        const decoratedRule = decorateBusinessObject(rule);
+        if (decoratedRule.businessObject !== rule.businessObject) {
+          changed = true;
+          return decoratedRule;
+        }
+        return rule;
+      });
+
+      return changed ? nextRules : prev;
+    });
+  }, [businessDomainEntries, decorateBusinessObject]);
 
   useEffect(() => {
     void loadRuleSets();
   }, [loadRuleSets]);
 
   useEffect(() => {
-    if (!activeRuleId) {
+    if (!activeBusinessDomain) {
       return;
     }
 
@@ -165,7 +202,7 @@ export default function CodeSettingPage() {
     const loadRuleSetDetail = async () => {
       setDetailLoading(true);
       try {
-        const detail = await hydrateRuleSetDetail(activeRuleId);
+        const detail = await hydrateRuleSetDetail(activeBusinessDomain);
         if (cancelled) {
           return;
         }
@@ -180,7 +217,7 @@ export default function CodeSettingPage() {
         });
       } catch (error) {
         if (!cancelled) {
-          message.error(getErrorMessage(error, '加载编码规则详情失败'));
+          showErrorMessage(error, '加载编码规则详情失败');
         }
       } finally {
         if (!cancelled) {
@@ -194,7 +231,7 @@ export default function CodeSettingPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeRuleId, decorateBusinessObject, hydrateRuleSetDetail, message]);
+  }, [activeBusinessDomain, decorateBusinessObject, hydrateRuleSetDetail, showErrorMessage]);
 
   const handleSaveRule = useCallback(async (updatedRule: CodeRule) => {
     const ruleRequests = buildRuleSaveRequestsFromEditor(updatedRule);
