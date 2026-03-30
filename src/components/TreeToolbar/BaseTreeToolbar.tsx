@@ -184,6 +184,7 @@ const BaseTreeToolbar: React.FC<BaseTreeToolbarProps> = ({
             onClick={() => {
               if (toolbarState.searchExpanded || toolbarState.searchValue) {
                 toolbarState.onSearchClear();
+                toolbarState.onSearchVisibilityChange(false);
                 return;
               }
               toolbarState.onSearchVisibilityChange(true);
