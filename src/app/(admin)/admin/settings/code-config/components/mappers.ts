@@ -21,6 +21,7 @@ import { createDefaultSubRules } from './types';
 const CATEGORY_BUSINESS_OBJECT_SUFFIX = '分类';
 const DEFAULT_RULE_REGEX = '^[A-Z][A-Z0-9_-]{0,63}$';
 const DEFAULT_RULE_MAX_LENGTH = 64;
+type DraftRuleMetadata = Record<SubRuleKey, CodeRuleBackendMeta>;
 
 const SUB_RULE_TO_TARGET_TYPE: Record<SubRuleKey, CodeRuleTargetTypeDto> = {
   category: 'category',
@@ -226,7 +227,7 @@ const buildDefaultRuleCode = (prefix: 'CATEGORY' | 'ATTRIBUTE' | 'LOV', business
 const createDefaultRuleMetadata = (
   businessDomain: string,
   label: string,
-): Required<CodeRule['ruleMetadata']> => ({
+): DraftRuleMetadata => ({
   category: {
     ruleCode: buildDefaultRuleCode('CATEGORY', businessDomain),
     name: `${label}分类编码规则`,

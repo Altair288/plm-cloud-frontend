@@ -673,7 +673,13 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({
             background: token.colorBgLayout,
           }}
         >
-          {previewPanelVisible ? <CodeRulePreviewPanel rule={editingRule} activeTab={activeTab} /> : null}
+          {previewPanelVisible ? (
+            <CodeRulePreviewPanel
+              rule={editingRule}
+              activeTab={activeTab}
+              hasUnsavedChanges={hasChanges}
+            />
+          ) : null}
         </div>
       </Flex>
     </Flex>
