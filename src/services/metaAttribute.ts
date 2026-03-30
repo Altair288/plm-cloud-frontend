@@ -1,5 +1,7 @@
 import request from './request';
 import type {
+  CreateAttributeCodePreviewRequestDto,
+  CreateAttributeCodePreviewResponseDto,
   MetaAttributeDefListItemDto,
   MetaAttributeDefDetailDto,
   MetaAttributeVersionSummaryDto,
@@ -64,6 +66,19 @@ export const metaAttributeApi = {
   ): Promise<MetaAttributeDefDetailDto> => {
     return request.post('/api/meta/attribute-defs', data, {
       params: { categoryCode, createdBy }
+    });
+  },
+
+  /**
+   * 属性创建编码预览
+   * POST /api/meta/attribute-defs/code-preview
+   */
+  previewCreateCode: (
+    categoryCode: string,
+    data: CreateAttributeCodePreviewRequestDto
+  ): Promise<CreateAttributeCodePreviewResponseDto> => {
+    return request.post('/api/meta/attribute-defs/code-preview', data, {
+      params: { categoryCode }
     });
   },
 

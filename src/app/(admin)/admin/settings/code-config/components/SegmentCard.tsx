@@ -16,6 +16,7 @@ interface SegmentCardProps {
   index: number;
   total: number;
   variableOptions?: Array<{ value: string; label: string }>;
+  disabled?: boolean;
   onChange: (id: string, updates: Partial<CodeSegment>) => void;
   onRemove: (id: string) => void;
   onMoveUp: (id: string) => void;
@@ -27,6 +28,7 @@ const SegmentCard: React.FC<SegmentCardProps> = ({
   index,
   total,
   variableOptions,
+  disabled = false,
   onChange,
   onRemove,
   onMoveUp,
@@ -74,6 +76,7 @@ const SegmentCard: React.FC<SegmentCardProps> = ({
               size="middle"
               placeholder="输入固定字符，如 MAT-"
               value={segment.value}
+              disabled={disabled}
               onChange={(e) => onChange(segment.id, { value: e.target.value })}
               style={{ maxWidth: 280 }}
             />
@@ -89,6 +92,7 @@ const SegmentCard: React.FC<SegmentCardProps> = ({
             <Select
               size="middle"
               value={segment.dateFormat}
+              disabled={disabled}
               onChange={(v) => onChange(segment.id, { dateFormat: v })}
               options={DATE_FORMAT_OPTIONS}
               style={{ maxWidth: 280 }}
@@ -105,6 +109,7 @@ const SegmentCard: React.FC<SegmentCardProps> = ({
             <Select
               size="middle"
               value={segment.variableKey}
+              disabled={disabled}
               onChange={(v) => onChange(segment.id, { variableKey: v })}
               options={availableVariableOptions}
               style={{ maxWidth: 280 }}
@@ -124,6 +129,7 @@ const SegmentCard: React.FC<SegmentCardProps> = ({
                 min={1}
                 max={12}
                 value={segment.length}
+                disabled={disabled}
                 onChange={(v) => onChange(segment.id, { length: v ?? 4 })}
                 style={{ width: 100 }}
               />
@@ -134,6 +140,7 @@ const SegmentCard: React.FC<SegmentCardProps> = ({
                 size="middle"
                 min={0}
                 value={segment.startValue}
+                disabled={disabled}
                 onChange={(v) => onChange(segment.id, { startValue: v ?? 1 })}
                 style={{ width: 100 }}
               />
@@ -144,6 +151,7 @@ const SegmentCard: React.FC<SegmentCardProps> = ({
                 size="middle"
                 min={1}
                 value={segment.step}
+                disabled={disabled}
                 onChange={(v) => onChange(segment.id, { step: v ?? 1 })}
                 style={{ width: 100 }}
               />
@@ -153,6 +161,7 @@ const SegmentCard: React.FC<SegmentCardProps> = ({
               <Select
                 size="middle"
                 value={segment.resetRule}
+                disabled={disabled}
                 onChange={(v) => onChange(segment.id, { resetRule: v })}
                 options={RESET_RULE_OPTIONS}
                 style={{ width: 140 }}
@@ -182,6 +191,7 @@ const SegmentCard: React.FC<SegmentCardProps> = ({
             <Select
               size="middle"
               value={segment.type}
+              disabled={disabled}
               onChange={handleTypeChange}
               options={SEGMENT_TYPE_OPTIONS}
               style={{ width: 128 }}
@@ -193,7 +203,7 @@ const SegmentCard: React.FC<SegmentCardProps> = ({
                 type="text"
                 size="middle"
                 icon={<ArrowUpOutlined style={{ fontSize: 12 }} />}
-                disabled={index === 0}
+                disabled={disabled || index === 0}
                 onClick={() => onMoveUp(segment.id)}
                 style={{ width: 24, height: 24, color: token.colorTextSecondary }}
               />
@@ -203,7 +213,7 @@ const SegmentCard: React.FC<SegmentCardProps> = ({
                 type="text"
                 size="middle"
                 icon={<ArrowDownOutlined style={{ fontSize: 12 }} />}
-                disabled={index === total - 1}
+                disabled={disabled || index === total - 1}
                 onClick={() => onMoveDown(segment.id)}
                 style={{ width: 24, height: 24, color: token.colorTextSecondary }}
               />
@@ -214,6 +224,7 @@ const SegmentCard: React.FC<SegmentCardProps> = ({
                 size="middle"
                 danger
                 icon={<DeleteOutlined style={{ fontSize: 12 }} />}
+                disabled={disabled}
                 onClick={() => onRemove(segment.id)}
                 style={{ width: 24, height: 24 }}
               />

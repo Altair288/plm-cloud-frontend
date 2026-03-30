@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { Flex, Typography, Button, Table, theme } from 'antd';
 import type { TableColumnsType } from 'antd';
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
 import BaseTreeToolbar from '@/components/TreeToolbar/BaseTreeToolbar';
 import type {
   CodeRule,
@@ -77,16 +77,22 @@ const ResizableHeaderCell: React.FC<ResizableHeaderCellProps> = ({
 // ================= Props =================
 interface CodeRuleListProps {
   rules: CodeRule[];
+  loading?: boolean;
+  allowMutations?: boolean;
   activeId: string | null;
   onSelect: (id: string) => void;
-  onAdd: () => void;
-  onBatchDelete: (ids: React.Key[]) => void;
+  onRefresh?: () => void;
+  onAdd?: () => void;
+  onBatchDelete?: (ids: React.Key[]) => void;
 }
 
 const CodeRuleList: React.FC<CodeRuleListProps> = ({
   rules,
+  loading = false,
+  allowMutations = true,
   activeId,
   onSelect,
+  onRefresh,
   onAdd,
   onBatchDelete,
 }) => {
@@ -98,7 +104,15 @@ const CodeRuleList: React.FC<CodeRuleListProps> = ({
   const [columnShares, setColumnShares] = useState<ColumnShareMap>(DEFAULT_COLUMN_SHARES);
 
   const filteredRules = useMemo(
-    () => rules.filter(r => r.name.includes(searchText) || r.code.includes(searchText)),
+    () => rules.filter((rule) => {
+      const keyword = searchText.trim();
+      if (!keyword) {
+        return true;
+      }
+
+      return [rule.name, rule.code, rule.businessObject]
+        .some((value) => value?.includes(keyword));
+    }),
     [rules, searchText],
   );
 
@@ -126,7 +140,7 @@ const CodeRuleList: React.FC<CodeRuleListProps> = ({
 
   const columns: TableColumnsType<CodeRule> = [
     {
-      title: '编码名称',
+      title: '规则集名称',
       dataIndex: 'name',
       key: 'name',
       align: 'center',
@@ -152,7 +166,7 @@ const CodeRuleList: React.FC<CodeRuleListProps> = ({
       ),
     },
     {
-      title: '编码 Code',
+      title: '业务域编码',
       dataIndex: 'code',
       key: 'code',
       align: 'center',
@@ -174,7 +188,7 @@ const CodeRuleList: React.FC<CodeRuleListProps> = ({
       ),
     },
     {
-      title: '业务对象',
+      title: '业务领域',
       dataIndex: 'businessObject',
       key: 'businessObject',
       align: 'center',
@@ -207,9 +221,10 @@ const CodeRuleList: React.FC<CodeRuleListProps> = ({
       <Flex align="center" style={{ padding: '0 16px', borderBottom: `1px solid ${token.colorBorderSecondary}`, height: 48 }}>
         <BaseTreeToolbar
           toolbarState={toolbarState}
-          searchPlaceholder="搜索规则"
-          batchActionsVisible={checkedKeys.length > 0}
-          primaryActions={[
+          searchPlaceholder="搜索规则集"
+          showCheckableToggle={allowMutations}
+          batchActionsVisible={allowMutations && checkedKeys.length > 0}
+          primaryActions={allowMutations && onAdd ? [
             {
               key: 'add',
               icon: <PlusOutlined />,
@@ -217,8 +232,8 @@ const CodeRuleList: React.FC<CodeRuleListProps> = ({
               variant: 'primary',
               onClick: onAdd,
             },
-          ]}
-          batchActions={[
+          ] : []}
+          batchActions={allowMutations && onBatchDelete ? [
             {
               key: 'delete',
               icon: <DeleteOutlined />,
@@ -230,7 +245,17 @@ const CodeRuleList: React.FC<CodeRuleListProps> = ({
                 setCheckableEnabled(false);
               },
             },
-          ]}
+          ] : []}
+          trailingActions={onRefresh ? [
+            {
+              key: 'refresh',
+              icon: <ReloadOutlined />,
+              tooltip: '刷新规则集',
+              onClick: onRefresh,
+              variant: 'neutral',
+              disabled: loading,
+            },
+          ] : []}
         />
       </Flex>
 
@@ -243,6 +268,7 @@ const CodeRuleList: React.FC<CodeRuleListProps> = ({
           tableLayout="fixed"
           components={{ header: { cell: ResizableHeaderCell } }}
           pagination={false}
+          loading={loading}
           dataSource={filteredRules}
           columns={columns}
           rowSelection={rowSelection}

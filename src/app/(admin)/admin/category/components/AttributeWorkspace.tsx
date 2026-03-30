@@ -70,6 +70,10 @@ interface AttributeWorkspaceProps {
   onUpdate: (key: string, value: any) => void;
   enumOptions: EnumOptionItem[];
   setEnumOptions: (data: EnumOptionItem[]) => void;
+  previewLoading?: boolean;
+  previewWarnings?: string[];
+  allowManualCodeOverride?: boolean;
+  allowManualEnumCodeOverride?: boolean;
   onDiscard?: (id: string) => void;
   onSave?: (attribute: AttributeItem) => Promise<void>;
   onSaveAndNext?: (attribute: AttributeItem) => Promise<void>;
@@ -88,6 +92,10 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
   onUpdate,
   enumOptions,
   setEnumOptions,
+  previewLoading = false,
+  previewWarnings = [],
+  allowManualCodeOverride = false,
+  allowManualEnumCodeOverride = false,
   onDiscard,
   onSave,
   onSaveAndNext,
@@ -451,6 +459,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
     attribute.type === "enum" ||
     attribute.type === "multi-enum" ||
     (attribute.type === "number" && attribute.constraintMode === "list");
+  const isNewAttribute = attribute.id.startsWith("new_attr_");
 
   // --- Render Sections ---
 
@@ -689,7 +698,11 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
                         name="code"
                         rules={[{ required: true }]}
                       >
-                        <Input disabled={!attribute.isLatest} size="middle" />
+                        <Input
+                          disabled={!attribute.isLatest}
+                          size="middle"
+                          placeholder={isNewAttribute ? "系统会先自动建议编码，你也可以直接改写" : undefined}
+                        />
                       </Form.Item>
                     </Col>
                     <Col xs={24} sm={12} md={12} lg={12} xl={6}>
@@ -1086,7 +1099,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
         if (gridRef.current && gridRef.current.api) {
           const lastIndex = newOptions.length - 1;
           gridRef.current.api.ensureIndexVisible(lastIndex, "bottom");
-          gridRef.current.api.setFocusedCell(lastIndex, "code");
+          gridRef.current.api.setFocusedCell(lastIndex, "value");
         }
       }, 100);
     };

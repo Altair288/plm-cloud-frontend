@@ -16,6 +16,7 @@ interface SegmentDesignerProps {
   /** 覆盖预览文本（用于层级继承模式下的组合预览） */
   previewOverride?: string;
   variableOptions?: Array<{ value: string; label: string }>;
+  disabled?: boolean;
   onAddSegment: (type: SegmentType) => void;
   onRemoveSegment: (id: string) => void;
   onUpdateSegment: (id: string, updates: Partial<CodeSegment>) => void;
@@ -27,6 +28,7 @@ const SegmentDesigner: React.FC<SegmentDesignerProps> = ({
   title,
   previewOverride,
   variableOptions,
+  disabled = false,
   onAddSegment,
   onRemoveSegment,
   onUpdateSegment,
@@ -83,6 +85,7 @@ const SegmentDesigner: React.FC<SegmentDesignerProps> = ({
                 index={idx}
                 total={config.segments.length}
                 variableOptions={variableOptions}
+                disabled={disabled}
                 onChange={onUpdateSegment}
                 onRemove={onRemoveSegment}
                 onMoveUp={(id) => onMoveSegment(id, 'up')}
@@ -112,6 +115,7 @@ const SegmentDesigner: React.FC<SegmentDesignerProps> = ({
             size="small"
             type="dashed"
             icon={<PlusOutlined />}
+            disabled={disabled}
             onClick={() => onAddSegment('STRING')}
           >
             新增片段

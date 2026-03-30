@@ -18,7 +18,7 @@ export interface CodeSegment {
 }
 
 // ================= 编码规则 =================
-export type RuleStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE';
+export type RuleStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
 
 // 子规则：分类业务对象下的多套编码配置
 export type SubRuleKey = 'category' | 'attribute' | 'enum';
@@ -29,11 +29,40 @@ export interface SubRuleConfig {
   childSegments?: CodeSegment[];    // 子级派生编码段（启用层级继承时）
 }
 
+export interface CodeRuleSetMeta {
+  businessDomain: string;
+  remark?: string;
+  active: boolean;
+  categoryRuleCode: string;
+  attributeRuleCode: string;
+  lovRuleCode: string;
+}
+
+export interface CodeRuleBackendMeta {
+  ruleCode: string;
+  name: string;
+  targetType: 'category' | 'attribute' | 'lov';
+  scopeType?: string | null;
+  scopeValue?: string | null;
+  pattern?: string | null;
+  allowManualOverride?: boolean;
+  regexPattern?: string | null;
+  maxLength?: number | null;
+  latestVersionNo?: number;
+  supportedVariableKeys?: string[];
+  supportsHierarchy?: boolean;
+  supportsScopedSequence?: boolean;
+  status?: RuleStatus;
+  active?: boolean;
+}
+
 export interface CodeRule {
   id: string;
   name: string;
   code: string;
   businessObject: string;        // 业务对象（物料分类、产品、BOM 等）
+  businessDomain?: string;
+  isNew?: boolean;
   description?: string;
   separator: string;             // 默认段间分隔符
   status: RuleStatus;
@@ -47,6 +76,8 @@ export interface CodeRule {
   segments: CodeSegment[];       // 非分类对象的编码段
   // 分类对象专用：多套编码配置
   subRules?: Record<SubRuleKey, SubRuleConfig>;
+  ruleSetMeta?: CodeRuleSetMeta;
+  ruleMetadata?: Partial<Record<SubRuleKey, CodeRuleBackendMeta>>;
 }
 
 // ================= 选项常量 =================
@@ -75,6 +106,7 @@ export const RESET_RULE_OPTIONS = [
 ];
 
 export const VARIABLE_KEY_OPTIONS = [
+  { value: 'BUSINESS_DOMAIN', label: '业务域' },
   { value: 'PARENT_CODE', label: '父级编码' },
   { value: 'CATEGORY_CODE', label: '分类编码' },
   { value: 'ATTRIBUTE_CODE', label: '属性编码' },
@@ -93,6 +125,7 @@ export const STATUS_OPTIONS: Array<{ value: RuleStatus; label: string }> = [
   { value: 'DRAFT', label: '草稿' },
   { value: 'ACTIVE', label: '启用' },
   { value: 'INACTIVE', label: '停用' },
+  { value: 'ARCHIVED', label: '归档' },
 ];
 
 export const BUSINESS_OBJECT_OPTIONS = [

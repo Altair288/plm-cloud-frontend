@@ -3,6 +3,8 @@ export type AttributeType = "string" | "number" | "boolean" | "date" | "enum" | 
 export interface AttributeItem {
   id: string;
   code: string;
+  suggestedCode?: string;
+  freezeKey?: boolean;
   name: string;
   attributeField?: string;
   type: AttributeType;
@@ -53,6 +55,7 @@ export interface AttributeItem {
 export interface EnumOptionItem {
   id: string;
   code: string;
+  suggestedCode?: string;
   value: string;
   label: string;
   color?: string;

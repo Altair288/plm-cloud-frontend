@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   App,
   Space,
@@ -13,10 +13,26 @@ import AttributeList from "./components/AttributeList";
 import AttributeWorkspace from "./components/AttributeWorkspace";
 import { AttributeItem, EnumOptionItem } from "./components/types";
 import { metaAttributeApi } from "@/services/metaAttribute";
-import { MetaAttributeUpsertRequestDto, MetaAttributeDefListItemDto, MetaAttributeDefDetailDto } from "@/models/metaAttribute";
+import {
+  CreateAttributeCodePreviewRequestDto,
+  MetaAttributeUpsertRequestDto,
+  MetaAttributeDefListItemDto,
+  MetaAttributeDefDetailDto,
+} from "@/models/metaAttribute";
 import dayjs from "dayjs";
 
 const isNewAttributeId = (id?: string | null) => !!id && id.startsWith("new_attr_");
+const isEnumLikeType = (type?: string | null) => type === "enum" || type === "multi-enum";
+const mapAttributeTypeToBackend = (type?: string | null) => (type === "boolean" ? "bool" : type) as any;
+const normalizeCode = (value?: string | null) => String(value || "").trim();
+const isManualCodeOverride = (value?: string | null, suggestedValue?: string | null) => {
+  const normalizedValue = normalizeCode(value);
+  if (!normalizedValue) {
+    return false;
+  }
+  const normalizedSuggestedValue = normalizeCode(suggestedValue);
+  return !normalizedSuggestedValue || normalizedValue !== normalizedSuggestedValue;
+};
 
 const normalizeAttributeForCompare = (attribute: AttributeItem | null) => {
   if (!attribute) return null;
@@ -83,11 +99,18 @@ const AttributeDesigner: React.FC<Props> = ({
     useState<AttributeItem | null>(null);
   const [enumOptions, setEnumOptions] = useState<EnumOptionItem[]>([]);
   const [baselineEnumOptions, setBaselineEnumOptions] = useState<EnumOptionItem[]>([]);
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewRequestIdRef = useRef(0);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewWarnings, setPreviewWarnings] = useState<string[]>([]);
+  const [allowManualCodeOverride, setAllowManualCodeOverride] = useState(false);
+  const [allowManualEnumCodeOverride, setAllowManualEnumCodeOverride] = useState(false);
 
   // Helper: Map Backend DTO List Item to Frontend AttributeItem
   const mapListItemToAttributeItem = (dto: MetaAttributeDefListItemDto): AttributeItem => ({
     id: dto.key,
     code: dto.key,
+    suggestedCode: dto.key,
     name: dto.displayName,
     attributeField: dto.attributeField || undefined,
     type: (dto.dataType === 'bool' ? 'boolean' : dto.dataType) as any,
@@ -106,6 +129,7 @@ const AttributeDesigner: React.FC<Props> = ({
    const mapDetailToAttributeItem = (dto: MetaAttributeDefDetailDto): AttributeItem => ({
     id: dto.key,
     code: dto.key,
+    suggestedCode: dto.key,
     name: dto.latestVersion.displayName,
       attributeField: dto.latestVersion.attributeField || undefined,
     type: (dto.latestVersion.dataType === 'bool' ? 'boolean' : dto.latestVersion.dataType) as any,
@@ -209,6 +233,7 @@ const AttributeDesigner: React.FC<Props> = ({
              const mappedOptions = detail.lovValues.map((v: any, index: number) => ({
                id: `enum_${index}`,
                code: v.code,
+               suggestedCode: v.code,
                value: v.value, // Backend detail DTO uses `value`
                label: v.label || '',
                order: index
@@ -257,6 +282,172 @@ const AttributeDesigner: React.FC<Props> = ({
   useEffect(() => {
     setHasUnsavedChanges(computedDirty);
   }, [computedDirty]);
+
+  const enumPreviewSignature = useMemo(() => {
+    if (!currentAttribute || !isEnumLikeType(currentAttribute.type)) {
+      return "";
+    }
+    return JSON.stringify(
+      enumOptions.map((item) => ({
+        id: item.id,
+        value: item.value || "",
+        label: item.label || "",
+        code: item.code || "",
+        suggestedCode: item.suggestedCode || "",
+      })),
+    );
+  }, [currentAttribute?.id, currentAttribute?.type, enumOptions]);
+
+  useEffect(() => {
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = null;
+    }
+
+    const categoryCode = currentNode?.code;
+
+    if (!currentAttribute || !categoryCode || !isNewAttributeId(currentAttribute.id)) {
+      setPreviewLoading(false);
+      setPreviewWarnings([]);
+      setAllowManualCodeOverride(false);
+      setAllowManualEnumCodeOverride(false);
+      return;
+    }
+
+    const attributeManualOverride = isManualCodeOverride(currentAttribute.code, currentAttribute.suggestedCode);
+    const manualCode = attributeManualOverride ? normalizeCode(currentAttribute.code) : "";
+    const enumLike = isEnumLikeType(currentAttribute.type);
+    const previewLovValues: NonNullable<CreateAttributeCodePreviewRequestDto["lovValues"]> = enumLike
+      ? enumOptions
+          .map((item) => ({
+            code: isManualCodeOverride(item.code, item.suggestedCode) ? normalizeCode(item.code) || undefined : undefined,
+            name: item.value?.trim() || undefined,
+            label: item.label?.trim() || undefined,
+          }))
+          .filter((item) => item.code || item.name || item.label)
+      : [];
+    const hasPendingManualAttributeCode = attributeManualOverride && !manualCode;
+    const hasPendingManualEnumCode =
+      enumLike &&
+      enumOptions.some((item) => {
+        const hasContent = normalizeCode(item.value) || normalizeCode(item.label);
+        return !!hasContent && isManualCodeOverride(item.code, item.suggestedCode) && !normalizeCode(item.code);
+      });
+
+    if (hasPendingManualAttributeCode) {
+      setPreviewLoading(false);
+      setPreviewWarnings([]);
+      return;
+    }
+
+    previewTimerRef.current = setTimeout(async () => {
+      const requestId = ++previewRequestIdRef.current;
+      setPreviewLoading(true);
+
+      try {
+        const preview = await metaAttributeApi.previewCreateCode(categoryCode, {
+          manualKey: attributeManualOverride ? manualCode : undefined,
+          dataType: mapAttributeTypeToBackend(currentAttribute.type),
+          count: 1,
+          lovValues: hasPendingManualEnumCode ? undefined : previewLovValues,
+        });
+
+        if (requestId !== previewRequestIdRef.current) {
+          return;
+        }
+
+        setAllowManualCodeOverride(Boolean(preview.allowManualOverride));
+        setAllowManualEnumCodeOverride(Boolean(preview.allowLovValueManualOverride));
+        setPreviewWarnings([...(preview.warnings || []), ...(preview.lovWarnings || [])]);
+
+        if (!attributeManualOverride) {
+          setCurrentAttribute((prev) => {
+            if (!prev || prev.id !== currentAttribute.id) {
+              return prev;
+            }
+            const suggestedCode = preview.suggestedCode || "";
+            if (prev.code === suggestedCode && prev.suggestedCode === suggestedCode) {
+              return prev;
+            }
+            return { ...prev, code: suggestedCode, suggestedCode };
+          });
+        } else if (!preview.allowManualOverride) {
+          setCurrentAttribute((prev) => {
+            if (!prev || prev.id !== currentAttribute.id) {
+              return prev;
+            }
+            const suggestedCode = prev.suggestedCode || preview.suggestedCode || "";
+            return {
+              ...prev,
+              code: suggestedCode,
+              suggestedCode,
+            };
+          });
+        }
+
+        if (!enumLike) {
+          setAllowManualEnumCodeOverride(false);
+          return;
+        }
+
+        const previewCodeByIndex = new Map(
+          (preview.lovValuePreviews || []).map((item) => [item.index, item.suggestedCode || ""]),
+        );
+
+        setEnumOptions((prev) =>
+          prev.map((item, index) => {
+            const suggestedCode = previewCodeByIndex.get(index);
+            if (suggestedCode == null) {
+              return item;
+            }
+            const manualEnumOverride = isManualCodeOverride(item.code, item.suggestedCode);
+            if (manualEnumOverride && preview.allowLovValueManualOverride) {
+              return item;
+            }
+            if (item.code === suggestedCode && item.suggestedCode === suggestedCode) {
+              return item;
+            }
+            return { ...item, code: suggestedCode, suggestedCode };
+          }),
+        );
+      } catch (e: any) {
+        if (requestId !== previewRequestIdRef.current) {
+          return;
+        }
+
+        setPreviewWarnings([e?.message || e?.error || "属性编码预计算失败"]);
+
+        if (!attributeManualOverride) {
+          setCurrentAttribute((prev) => {
+            if (!prev || prev.id !== currentAttribute.id || !prev.code) {
+              return prev;
+            }
+            return { ...prev, code: "", suggestedCode: "" };
+          });
+        }
+
+        if (enumLike) {
+          setEnumOptions((prev) => prev.map((item) => {
+            if (isManualCodeOverride(item.code, item.suggestedCode)) {
+              return item;
+            }
+            return item.code || item.suggestedCode ? { ...item, code: "", suggestedCode: "" } : item;
+          }));
+        }
+      } finally {
+        if (requestId === previewRequestIdRef.current) {
+          setPreviewLoading(false);
+        }
+      }
+    }, attributeManualOverride || hasPendingManualEnumCode ? 300 : 0);
+
+    return () => {
+      if (previewTimerRef.current) {
+        clearTimeout(previewTimerRef.current);
+        previewTimerRef.current = null;
+      }
+    };
+  }, [currentAttribute?.id, currentAttribute?.type, currentAttribute?.code, currentAttribute?.suggestedCode, enumPreviewSignature, currentNode?.code]);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -318,7 +509,9 @@ const AttributeDesigner: React.FC<Props> = ({
     const timestamp = Date.now();
     const newAttr: AttributeItem = {
       id: `new_attr_${timestamp}`,
-      code: `ATTR_${timestamp}`, 
+      code: "",
+      suggestedCode: "",
+      freezeKey: false,
       name: "",
       type: "enum",
       version: 1,
@@ -336,7 +529,9 @@ const AttributeDesigner: React.FC<Props> = ({
     const duplicate: AttributeItem = {
       ...source,
       id: `new_attr_${timestamp}`,
-      code: `ATTR_${timestamp}`,
+      code: "",
+      suggestedCode: "",
+      freezeKey: false,
       name: source.name ? `${source.name}_COPY` : "",
       version: 1,
       isLatest: true,
@@ -353,6 +548,7 @@ const AttributeDesigner: React.FC<Props> = ({
       if (!currentNode?.code) return;
       
       const isNew = attribute.id.startsWith("new_attr_");
+      const attributeManualOverride = isNew && allowManualCodeOverride && isManualCodeOverride(attribute.code, attribute.suggestedCode);
       const unsavedNewItems = dataSource.filter((item) => isNewAttributeId(item.id));
       const currentNewIndex = unsavedNewItems.findIndex((item) => item.id === attribute.id);
       const nextUnsavedNewId =
@@ -362,10 +558,12 @@ const AttributeDesigner: React.FC<Props> = ({
 
       // Use the modified code if not new, or the new code
       const dto: MetaAttributeUpsertRequestDto = {
-          key: attribute.code,
+          key: isNew && !attributeManualOverride ? undefined : attribute.code,
+          generationMode: isNew && attributeManualOverride ? "MANUAL" : undefined,
+          freezeKey: isNew ? Boolean(attribute.freezeKey) : undefined,
           displayName: attribute.name,
           attributeField: attribute.attributeField,
-          dataType: (attribute.type === 'boolean' ? 'bool' : attribute.type) as any,
+          dataType: mapAttributeTypeToBackend(attribute.type),
           unit: attribute.unit,
           defaultValue: attribute.defaultValue ? String(attribute.defaultValue) : undefined,
           required: attribute.required,
@@ -384,7 +582,7 @@ const AttributeDesigner: React.FC<Props> = ({
           falseLabel: attribute.falseLabel,
           lovValues: attribute.type === 'enum' || attribute.type === 'multi-enum' 
             ? enumOptions.map(opt => ({
-                code: opt.code,
+              code: isNew && !(allowManualEnumCodeOverride && isManualCodeOverride(opt.code, opt.suggestedCode)) ? undefined : opt.code,
                 name: opt.value, // Using value as name for now
                 label: opt.label
               }))
@@ -392,11 +590,12 @@ const AttributeDesigner: React.FC<Props> = ({
       };
 
       try {
+            let savedDetail: MetaAttributeDefDetailDto;
           if (isNew) {
-              await metaAttributeApi.createAttribute(currentNode.code, dto);
+              savedDetail = await metaAttributeApi.createAttribute(currentNode.code, dto);
               messageApi.success("Created successfully");
           } else {
-              await metaAttributeApi.updateAttribute(attribute.code, currentNode.code, dto);
+              savedDetail = await metaAttributeApi.updateAttribute(attribute.code, currentNode.code, dto);
               messageApi.success("Updated successfully");
           }
 
@@ -404,7 +603,7 @@ const AttributeDesigner: React.FC<Props> = ({
             (item) => !isNewAttributeId(item.id) || item.id !== attribute.id,
           );
 
-          const targetId = nextUnsavedNewId || attribute.code;
+          const targetId = nextUnsavedNewId || savedDetail.key;
           await loadAttributes(currentNode.code, targetId, remainingUnsavedItems.filter((item) => isNewAttributeId(item.id)));
 
           if (nextUnsavedNewId) {
@@ -591,6 +790,10 @@ const AttributeDesigner: React.FC<Props> = ({
             onUpdate={handleAttributeUpdate}
             enumOptions={enumOptions}
             setEnumOptions={setEnumOptions}
+            previewLoading={previewLoading}
+            previewWarnings={previewWarnings}
+            allowManualCodeOverride={allowManualCodeOverride}
+            allowManualEnumCodeOverride={allowManualEnumCodeOverride}
             onSave={(attribute) => handleSingleSave(attribute, { saveAndNext: false })}
             onSaveAndNext={(attribute) => handleSingleSave(attribute, { saveAndNext: true })}
             showSaveAndNext={hasNextUnsavedNew}

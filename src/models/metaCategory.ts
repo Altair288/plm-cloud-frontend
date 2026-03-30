@@ -58,13 +58,36 @@ export interface MetaCategoryChildrenBatchRequestDto {
 }
 
 export interface CreateCategoryRequestDto {
-  code: string;
+  code?: string;
+  generationMode?: 'AUTO' | 'MANUAL';
+  freezeCode?: boolean;
   name: string;
   businessDomain: string;
   parentId?: string | null;
   status: 'CREATED' | 'EFFECTIVE' | 'INVALID';
   description?: string;
   sort?: number;
+}
+
+export interface CreateCategoryCodePreviewRequestDto {
+  businessDomain: string;
+  parentId?: string | null;
+  manualCode?: string | null;
+  count?: number;
+}
+
+export interface CreateCategoryCodePreviewResponseDto {
+  businessDomain: string;
+  ruleCode: string;
+  generationMode: 'AUTO' | 'MANUAL';
+  allowManualOverride: boolean;
+  suggestedCode?: string | null;
+  examples: string[];
+  warnings: string[];
+  resolvedContext: Record<string, string>;
+  resolvedSequenceScope?: string | null;
+  resolvedPeriodKey?: string | null;
+  previewStale: boolean;
 }
 
 export interface UpdateCategoryRequestDto {

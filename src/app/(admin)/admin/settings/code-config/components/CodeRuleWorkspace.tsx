@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Flex, Typography, Button, Input, Select, Switch, Divider, Tag, Tabs, App, theme } from 'antd';
-import { EyeInvisibleOutlined, EyeOutlined, SaveOutlined, UndoOutlined } from '@ant-design/icons';
+import { EyeInvisibleOutlined, EyeOutlined, SaveOutlined, UndoOutlined, CloudUploadOutlined } from '@ant-design/icons';
 import type { CodeRule, CodeSegment, SegmentType, SubRuleKey, SubRuleConfig } from './types';
 import {
   SEPARATOR_OPTIONS,
@@ -23,10 +23,23 @@ const CHILD_SUFFIX_VARIABLE_OPTIONS = VARIABLE_KEY_OPTIONS.filter((option) => op
 
 interface CodeRuleWorkspaceProps {
   rule: CodeRule;
-  onSave: (rule: CodeRule) => void;
+  saving?: boolean;
+  publishing?: boolean;
+  saveDisabledReason?: string;
+  publishDisabledReason?: string;
+  onSave: (rule: CodeRule) => Promise<void> | void;
+  onPublish?: (rule: CodeRule) => Promise<void> | void;
 }
 
-const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule, onSave }) => {
+const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({
+  rule: initialRule,
+  saving = false,
+  publishing = false,
+  saveDisabledReason,
+  publishDisabledReason,
+  onSave,
+  onPublish,
+}) => {
   const { token } = theme.useToken();
   const { modal, message } = App.useApp();
   const [editingRule, setEditingRule] = useState<CodeRule>(initialRule);
@@ -34,21 +47,39 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
   const [activeTab, setActiveTab] = useState<SubRuleKey>('category');
   const [previewPanelVisible, setPreviewPanelVisible] = useState(true);
 
-  const isCategory = useMemo(() => isCategoryObject(editingRule.businessObject), [editingRule.businessObject]);
+  const isBackendManaged = useMemo(() => Boolean(editingRule.ruleSetMeta), [editingRule.ruleSetMeta]);
+  const usesSubRules = useMemo(
+    () => isBackendManaged || isCategoryObject(editingRule.businessObject),
+    [editingRule.businessObject, isBackendManaged],
+  );
+  const isReadOnly = saving || Boolean(saveDisabledReason);
+  const isPublishDisabled = publishing || hasChanges || Boolean(publishDisabledReason) || !onPublish;
+  const activeVariableOptions = useMemo(() => {
+    const allowedKeys = editingRule.ruleMetadata?.[activeTab]?.supportedVariableKeys;
+    if (!allowedKeys?.length) {
+      return VARIABLE_KEY_OPTIONS;
+    }
+
+    return VARIABLE_KEY_OPTIONS.filter((option) => allowedKeys.includes(option.value));
+  }, [activeTab, editingRule.ruleMetadata]);
+  const childVariableOptions = useMemo(
+    () => activeVariableOptions.filter((option) => option.value !== 'PARENT_CODE'),
+    [activeVariableOptions],
+  );
 
   // 规则切换时重置编辑状态
   React.useEffect(() => {
     setEditingRule(initialRule);
     setHasChanges(false);
     setActiveTab('category');
-  }, [initialRule.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialRule]);
 
   // 业务对象变更时，确保分类对象拥有 subRules
   React.useEffect(() => {
-    if (isCategoryObject(editingRule.businessObject) && !editingRule.subRules) {
+    if (usesSubRules && !editingRule.subRules) {
       setEditingRule(prev => ({ ...prev, subRules: createDefaultSubRules() }));
     }
-  }, [editingRule.businessObject, editingRule.subRules]);
+  }, [editingRule.businessObject, editingRule.subRules, usesSubRules]);
 
   const updateField = useCallback(<K extends keyof CodeRule>(key: K, value: CodeRule[K]) => {
     setEditingRule(prev => {
@@ -92,7 +123,7 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
   // ===== 通用片段操作（委托到对应 subRule）=====
   const handleAddSegment = useCallback((type: SegmentType = 'STRING') => {
     const newSegment = createDefaultSegment(type);
-    if (isCategory) {
+    if (usesSubRules) {
       updateSubRule(activeTab, prev => ({
         ...prev,
         segments: [...prev.segments, newSegment],
@@ -104,7 +135,7 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
       }));
       setHasChanges(true);
     }
-  }, [isCategory, activeTab, updateSubRule]);
+  }, [usesSubRules, activeTab, updateSubRule]);
 
   const handleRemoveSegment = useCallback((id: string) => {
     modal.confirm({
@@ -114,7 +145,7 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
       okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: () => {
-        if (isCategory) {
+        if (usesSubRules) {
           updateSubRule(activeTab, prev => ({
             ...prev,
             segments: prev.segments.filter(s => s.id !== id),
@@ -128,10 +159,10 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
         }
       },
     });
-  }, [modal, isCategory, activeTab, updateSubRule]);
+  }, [modal, usesSubRules, activeTab, updateSubRule]);
 
   const handleUpdateSegment = useCallback((id: string, updates: Partial<CodeSegment>) => {
-    if (isCategory) {
+    if (usesSubRules) {
       updateSubRule(activeTab, prev => ({
         ...prev,
         segments: prev.segments.map(s => s.id === id ? { ...s, ...updates } : s),
@@ -143,7 +174,7 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
       }));
       setHasChanges(true);
     }
-  }, [isCategory, activeTab, updateSubRule]);
+  }, [usesSubRules, activeTab, updateSubRule]);
 
   const handleMoveSegment = useCallback((id: string, direction: 'up' | 'down') => {
     const doMove = (segments: CodeSegment[]): CodeSegment[] => {
@@ -155,13 +186,13 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
       [next[idx], next[targetIdx]] = [next[targetIdx], next[idx]];
       return next;
     };
-    if (isCategory) {
+    if (usesSubRules) {
       updateSubRule(activeTab, prev => ({ ...prev, segments: doMove(prev.segments) }));
     } else {
       setEditingRule(prev => ({ ...prev, segments: doMove(prev.segments) }));
       setHasChanges(true);
     }
-  }, [isCategory, activeTab, updateSubRule]);
+  }, [usesSubRules, activeTab, updateSubRule]);
 
   // ===== 子级派生编码段操作（仅分类编码 Tab + inheritParentPrefix ON） =====
   const handleAddChildSegment = useCallback((type: SegmentType = 'STRING') => {
@@ -207,21 +238,24 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
   }, [updateSubRule]);
 
   // ===== 保存 =====
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
+    if (saveDisabledReason) {
+      message.warning(saveDisabledReason);
+      return;
+    }
     if (!editingRule.name.trim()) {
       message.error('请填写规则名称');
       return;
     }
     if (!editingRule.code.trim()) {
-      message.error('请填写规则编码');
+      message.error(isBackendManaged ? '业务域编码不能为空' : '请填写规则编码');
       return;
     }
     if (!editingRule.businessObject) {
-      message.error('请选择业务对象');
+      message.error(isBackendManaged ? '业务领域不能为空' : '请选择业务对象');
       return;
     }
-    // 分类对象验证 subRules，非分类验证 segments
-    if (isCategoryObject(editingRule.businessObject)) {
+    if (usesSubRules) {
       const sub = editingRule.subRules;
       const hasAnySegment = sub && Object.values(sub).some(cfg => cfg.segments.length > 0);
       if (!hasAnySegment) {
@@ -232,10 +266,22 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
       message.error('至少添加一个编码段');
       return;
     }
-    onSave(editingRule);
-    setHasChanges(false);
-    message.success('保存成功');
-  }, [editingRule, onSave, message]);
+    try {
+      await onSave(editingRule);
+      setHasChanges(false);
+    } catch {
+      // 错误提示由页面层统一处理
+    }
+  }, [editingRule, isBackendManaged, message, onSave, saveDisabledReason, usesSubRules]);
+
+  const basicLabels = useMemo(() => ({
+    businessObject: isBackendManaged ? '业务领域' : '应用对象',
+    code: isBackendManaged ? '业务域编码' : '规则编码',
+    name: isBackendManaged ? '规则集名称' : '规则名称',
+    description: isBackendManaged ? '备注' : '描述',
+    status: isBackendManaged ? '规则集状态' : '使用状态',
+    sectionTitle: isBackendManaged ? '规则集信息' : '基本信息',
+  }), [isBackendManaged]);
 
   // ===== 撤销 =====
   const handleReset = useCallback(() => {
@@ -293,6 +339,7 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
             {STATUS_OPTIONS.find(o => o.value === editingRule.status)?.label}
           </Tag>
           {hasChanges && <Tag color="orange">未保存</Tag>}
+          {saveDisabledReason ? <Tag color="default">只读</Tag> : null}
         </Flex>
 
         <Flex align="center" gap={8}>
@@ -304,11 +351,21 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
             {previewPanelVisible ? '隐藏预览' : '显示预览'}
           </Button>
           <Button
+            size="small"
+            icon={<CloudUploadOutlined />}
+            loading={publishing}
+            disabled={isPublishDisabled}
+            onClick={() => void onPublish?.(editingRule)}
+          >
+            发布
+          </Button>
+          <Button
             type="primary"
             size="small"
             icon={<SaveOutlined />}
             onClick={handleSave}
-            disabled={!hasChanges}
+            loading={saving}
+            disabled={!hasChanges || isReadOnly}
           >
             保存
           </Button>
@@ -316,7 +373,7 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
             size="small"
             icon={<UndoOutlined />}
             onClick={handleReset}
-            disabled={!hasChanges}
+            disabled={!hasChanges || saving}
           >
             取消
           </Button>
@@ -333,7 +390,7 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
           <div>
             <Flex vertical gap={4} style={{ marginBottom: 16 }}>
               <Text strong style={{ fontSize: 16, color: token.colorText }}>
-                基本信息
+                {basicLabels.sectionTitle}
               </Text>
             </Flex>
 
@@ -347,37 +404,48 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
             >
               <div style={{ ...basicInfoFieldStyle, gridColumn: 'span 2' }}>
                 <Text type="secondary" style={basicInfoLabelStyle}>
-                  应用对象 <Text type="danger">*</Text>
+                  {basicLabels.businessObject} <Text type="danger">*</Text>
                 </Text>
-                <Select
-                  size="middle"
-                  showSearch
-                  placeholder="选择应用对象"
-                  value={editingRule.businessObject || undefined}
-                  onChange={(v) => updateField('businessObject', v)}
-                  options={BUSINESS_OBJECT_OPTIONS.map(o => ({ value: o, label: o }))}
-                  style={{ width: '100%' }}
-                />
+                {isBackendManaged ? (
+                  <Input
+                    size="middle"
+                    value={editingRule.businessObject}
+                    disabled
+                  />
+                ) : (
+                  <Select
+                    size="middle"
+                    showSearch
+                    placeholder="选择应用对象"
+                    value={editingRule.businessObject || undefined}
+                    disabled={isReadOnly}
+                    onChange={(v) => updateField('businessObject', v)}
+                    options={BUSINESS_OBJECT_OPTIONS.map(o => ({ value: o, label: o }))}
+                    style={{ width: '100%' }}
+                  />
+                )}
               </div>
               <div style={{ ...basicInfoFieldStyle, gridColumn: 'span 2' }}>
                 <Text type="secondary" style={basicInfoLabelStyle}>
-                  规则编码 <Text type="danger">*</Text>
+                  {basicLabels.code} <Text type="danger">*</Text>
                 </Text>
                 <Input
                   size="middle"
-                  placeholder="输入规则编码"
+                  placeholder={isBackendManaged ? '业务域编码' : '输入规则编码'}
                   value={editingRule.code}
+                  disabled={isBackendManaged || isReadOnly}
                   onChange={(e) => updateField('code', e.target.value)}
                 />
               </div>
               <div style={{ ...basicInfoFieldStyle, gridColumn: 'span 2' }}>
                 <Text type="secondary" style={basicInfoLabelStyle}>
-                  规则名称 <Text type="danger">*</Text>
+                  {basicLabels.name} <Text type="danger">*</Text>
                 </Text>
                 <Input
                   size="middle"
-                  placeholder="输入规则名称"
+                  placeholder={isBackendManaged ? '输入规则集名称' : '输入规则名称'}
                   value={editingRule.name}
+                  disabled={isReadOnly}
                   onChange={(e) => updateField('name', e.target.value)}
                 />
               </div>
@@ -389,25 +457,28 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
                 <Select
                   size="middle"
                   value={editingRule.separator}
+                  disabled={isReadOnly}
                   onChange={(v) => updateField('separator', v)}
                   options={SEPARATOR_OPTIONS}
                   style={{ width: '100%' }}
                 />
               </div>
               <div style={{ ...basicInfoFieldStyle, gridColumn: 'span 3' }}>
-                <Text type="secondary" style={basicInfoLabelStyle}>描述</Text>
+                <Text type="secondary" style={basicInfoLabelStyle}>{basicLabels.description}</Text>
                 <Input
                   size="middle"
-                  placeholder="编码规则描述"
+                  placeholder={isBackendManaged ? '规则集备注' : '编码规则描述'}
                   value={editingRule.description}
+                  disabled={isReadOnly}
                   onChange={(e) => updateField('description', e.target.value)}
                 />
               </div>
               <div style={{ ...basicInfoFieldStyle, gridColumn: 'span 1' }}>
-                <Text type="secondary" style={basicInfoLabelStyle}>使用状态</Text>
+                <Text type="secondary" style={basicInfoLabelStyle}>{basicLabels.status}</Text>
                 <Select
                   size="middle"
                   value={editingRule.status}
+                  disabled={isBackendManaged || isReadOnly}
                   onChange={(v) => updateField('status', v)}
                   options={STATUS_OPTIONS}
                   style={{ width: '100%' }}
@@ -431,11 +502,22 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
                 <Switch
                   size="small"
                   checked={editingRule.inheritParentPrefix}
+                  disabled={isReadOnly}
                   onChange={(v) => updateField('inheritParentPrefix', v)}
                 />
               </Flex>
               </Flex>
             </div>
+            {saveDisabledReason ? (
+              <Text type="secondary" style={{ display: 'block', marginTop: 12, fontSize: 12 }}>
+                {saveDisabledReason}
+              </Text>
+            ) : null}
+            {publishDisabledReason ? (
+              <Text type="secondary" style={{ display: 'block', marginTop: 4, fontSize: 12 }}>
+                {publishDisabledReason}
+              </Text>
+            ) : null}
           </div>
 
           <Divider
@@ -453,7 +535,7 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
               </Text>
             </Flex>
 
-            {isCategory ? (
+            {usesSubRules ? (
               <Tabs
                 activeKey={activeTab}
                 onChange={(key) => setActiveTab(key as SubRuleKey)}
@@ -516,6 +598,8 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
                           <SegmentDesigner
                             title="根节点编码规则"
                             config={subRule}
+                            disabled={isReadOnly}
+                            variableOptions={activeVariableOptions}
                             onAddSegment={handleAddSegment}
                             onRemoveSegment={handleRemoveSegment}
                             onUpdateSegment={handleUpdateSegment}
@@ -532,7 +616,8 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
                               title="子级派生规则"
                               config={childConfig}
                               previewOverride={childPreview}
-                              variableOptions={CHILD_SUFFIX_VARIABLE_OPTIONS}
+                              disabled={isReadOnly}
+                              variableOptions={childVariableOptions.length > 0 ? childVariableOptions : CHILD_SUFFIX_VARIABLE_OPTIONS}
                               onAddSegment={handleAddChildSegment}
                               onRemoveSegment={handleRemoveChildSegment}
                               onUpdateSegment={handleUpdateChildSegment}
@@ -551,6 +636,8 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
                       <div style={{ paddingTop: 8 }}>
                         <SegmentDesigner
                           config={subRule}
+                          disabled={isReadOnly}
+                          variableOptions={activeVariableOptions}
                           onAddSegment={handleAddSegment}
                           onRemoveSegment={handleRemoveSegment}
                           onUpdateSegment={handleUpdateSegment}
@@ -564,6 +651,7 @@ const CodeRuleWorkspace: React.FC<CodeRuleWorkspaceProps> = ({ rule: initialRule
             ) : (
               <SegmentDesigner
                 config={{ separator: editingRule.separator, segments: editingRule.segments }}
+                disabled={isReadOnly}
                 onAddSegment={handleAddSegment}
                 onRemoveSegment={handleRemoveSegment}
                 onUpdateSegment={handleUpdateSegment}

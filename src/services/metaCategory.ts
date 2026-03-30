@@ -1,5 +1,7 @@
 import request from './request';
 import type {
+  CreateCategoryCodePreviewRequestDto,
+  CreateCategoryCodePreviewResponseDto,
   CreateCategoryRequestDto,
   DeleteCategoryResponseDto,
   MetaCategoryBatchDeleteRequestDto,
@@ -22,6 +24,8 @@ import type {
 } from '@/models/metaCategory';
 
 export type {
+  CreateCategoryCodePreviewRequestDto,
+  CreateCategoryCodePreviewResponseDto,
   CreateCategoryRequestDto,
   DeleteCategoryResponseDto,
   MetaCategoryBatchDeleteRequestDto,
@@ -95,6 +99,12 @@ export const metaCategoryApi = {
         operator: options?.operator || 'admin',
       },
     });
+  },
+
+  previewCreateCode(
+    data: CreateCategoryCodePreviewRequestDto,
+  ): Promise<CreateCategoryCodePreviewResponseDto> {
+    return request.post(`${CATEGORY_BASE}/code-preview`, data);
   },
 
   getCategoryDetail(id: string): Promise<MetaCategoryDetailDto> {

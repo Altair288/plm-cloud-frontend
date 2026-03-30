@@ -350,6 +350,7 @@ const AdminCategoryTree: React.FC<AdminCategoryTreeProps> = ({
             const created = await metaCategoryApi.createCategory(
               {
                 code: values.code,
+                generationMode: values.generationMode,
                 name: values.name,
                 businessDomain: values.businessDomain,
                 parentId: values.parentId || undefined,

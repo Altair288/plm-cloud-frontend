@@ -6,7 +6,7 @@ export interface MetaAttributeDefListItemDto {
   latestVersionNo: number;
   displayName: string;
   attributeField?: string | null;
-  dataType: 'string' | 'number' | 'bool' | 'enum' | 'date'; // 根据常规推断
+  dataType: 'string' | 'number' | 'bool' | 'enum' | 'multi-enum' | 'date'; // 根据常规推断
   unit: string | null;
   hasLov: boolean;
   createdAt: string;
@@ -33,7 +33,7 @@ export interface MetaAttributeLatestVersionDto {
   displayName: string;
   attributeField?: string | null;
   description: string | null;
-  dataType: 'string' | 'number' | 'bool' | 'enum' | 'date';
+  dataType: 'string' | 'number' | 'bool' | 'enum' | 'multi-enum' | 'date';
   unit: string | null;
   defaultValue: string | null;
   required: boolean;
@@ -71,10 +71,12 @@ export interface MetaAttributeDefDetailDto {
 
 export interface MetaAttributeUpsertRequestDto {
   key?: string; // 更新时通常不需要传key在body中，但创建时可能需要，或者path参数
+  generationMode?: 'AUTO' | 'MANUAL';
+  freezeKey?: boolean;
   displayName: string;
   attributeField?: string;
   description?: string;
-  dataType: 'string' | 'number' | 'bool' | 'enum' | 'date';
+  dataType: 'string' | 'number' | 'bool' | 'enum' | 'multi-enum' | 'date';
   unit?: string;
   defaultValue?: string;
   required?: boolean;
@@ -83,6 +85,8 @@ export interface MetaAttributeUpsertRequestDto {
   readOnly?: boolean;
   searchable?: boolean;
   lovKey?: string;
+  lovGenerationMode?: 'AUTO' | 'MANUAL';
+  freezeLovKey?: boolean;
   
   // Extended value configurations
   minValue?: number;
@@ -92,9 +96,48 @@ export interface MetaAttributeUpsertRequestDto {
   trueLabel?: string;
   falseLabel?: string;
   lovValues?: {
-    code: string;
-    name: string;
+    code?: string;
+    name?: string;
     label?: string;
+  }[];
+}
+
+export interface CreateAttributeCodePreviewRequestDto {
+  manualKey?: string;
+  dataType?: 'string' | 'number' | 'bool' | 'enum' | 'multi-enum' | 'date';
+  count?: number;
+  lovValues?: {
+    code?: string;
+    name?: string;
+    label?: string;
+  }[];
+}
+
+export interface CreateAttributeCodePreviewResponseDto {
+  businessDomain: string;
+  categoryCode: string;
+  attributeRuleCode: string;
+  generationMode: 'AUTO' | 'MANUAL';
+  allowManualOverride: boolean;
+  suggestedCode: string | null;
+  examples: string[];
+  warnings: string[];
+  resolvedContext: Record<string, string> | null;
+  resolvedSequenceScope: string | null;
+  resolvedPeriodKey: string | null;
+  previewStale: boolean;
+  lovRuleCode: string | null;
+  allowLovValueManualOverride: boolean | null;
+  lovWarnings: string[];
+  lovResolvedContext: Record<string, string> | null;
+  lovResolvedSequenceScope: string | null;
+  lovResolvedPeriodKey: string | null;
+  lovValuePreviews: {
+    index: number;
+    manualCode: string | null;
+    name: string | null;
+    label: string | null;
+    suggestedCode: string | null;
   }[];
 }
 

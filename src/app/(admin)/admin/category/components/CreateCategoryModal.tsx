@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
-import { App, Form, Input, Select, Button, Row, Col, Space, Card, theme, Typography } from 'antd';
+import React, { useEffect, useRef, useState } from 'react';
+import { App, Form, Input, Select, Button, Row, Col, Space, Card, theme } from 'antd';
 import dynamic from 'next/dynamic';
 import DraggableModal from '@/components/DraggableModal';
+import { metaCategoryApi } from '@/services/metaCategory';
 import { useDictionary } from '@/contexts/DictionaryContext';
 import {
   CATEGORY_BUSINESS_DOMAIN_DICT_CODE,
@@ -9,7 +10,6 @@ import {
 } from '@/features/category/businessDomains';
 
 const { Option } = Select;
-const { Text } = Typography;
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 const EMPTY_QUILL_DELTA_JSON = '{"ops":[{"insert":"\\n"}]}'
 
@@ -74,10 +74,21 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
   const { token } = theme.useToken();
   const { modal } = App.useApp();
   const { ensureScene, getEntries } = useDictionary();
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewRequestIdRef = useRef(0);
+  const suggestedCodeRef = useRef('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [allowManualOverride, setAllowManualOverride] = useState(false);
+  const [previewWarnings, setPreviewWarnings] = useState<string[]>([]);
+  const [codeManuallyEdited, setCodeManuallyEdited] = useState(false);
 
   useEffect(() => {
     void ensureScene('category-admin');
   }, [ensureScene]);
+
+  const watchedBusinessDomain = Form.useWatch('businessDomain', form) as string | undefined;
+  const watchedParentId = Form.useWatch('parentId', form) as string | undefined;
+  const watchedCode = Form.useWatch('code', form) as string | undefined;
 
   const businessDomainEntries = getEntries(CATEGORY_BUSINESS_DOMAIN_DICT_CODE);
   const statusEntries = getEntries('META_CATEGORY_STATUS').filter((entry) =>
@@ -90,6 +101,7 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
 
   useEffect(() => {
     if (!open) return;
+    suggestedCodeRef.current = '';
     form.setFieldsValue({
       code: '',
       name: '',
@@ -111,11 +123,102 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
       status: 'CREATED',
       description: EMPTY_QUILL_DELTA_JSON,
     });
+    setAllowManualOverride(false);
+    setPreviewWarnings([]);
+    setCodeManuallyEdited(false);
   }, [open, parentNode, form, defaultBusinessDomain]);
 
+  useEffect(() => {
+    if (!open) {
+      if (previewTimerRef.current) {
+        clearTimeout(previewTimerRef.current);
+        previewTimerRef.current = null;
+      }
+      setPreviewLoading(false);
+      return;
+    }
+
+    const businessDomain = String(watchedBusinessDomain || '').trim();
+    if (!businessDomain) {
+      return;
+    }
+
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current);
+    }
+
+    previewTimerRef.current = setTimeout(async () => {
+      const requestId = ++previewRequestIdRef.current;
+      const currentCode = String(watchedCode || '').trim();
+      const manualCode = codeManuallyEdited ? currentCode : '';
+      if (codeManuallyEdited && !manualCode) {
+        setCodeManuallyEdited(false);
+        setPreviewWarnings([]);
+        setPreviewLoading(false);
+        return;
+      }
+
+      setPreviewLoading(true);
+      try {
+        const preview = await metaCategoryApi.previewCreateCode({
+          businessDomain,
+          parentId: watchedParentId || undefined,
+          manualCode: codeManuallyEdited ? manualCode : undefined,
+          count: 1,
+        });
+        if (requestId !== previewRequestIdRef.current) {
+          return;
+        }
+
+        setAllowManualOverride(Boolean(preview.allowManualOverride));
+        setPreviewWarnings(preview.warnings || []);
+
+        if (!codeManuallyEdited) {
+          suggestedCodeRef.current = preview.suggestedCode || '';
+          form.setFieldValue('code', preview.suggestedCode || '');
+        }
+
+        if (codeManuallyEdited && !preview.allowManualOverride) {
+          setCodeManuallyEdited(false);
+          form.setFieldValue('code', suggestedCodeRef.current || preview.suggestedCode || '');
+        }
+      } catch (error: any) {
+        if (requestId !== previewRequestIdRef.current) {
+          return;
+        }
+        setPreviewWarnings([error?.message || error?.error || '分类编码预计算失败']);
+        if (!codeManuallyEdited) {
+          form.setFieldValue('code', '');
+        }
+      } finally {
+        if (requestId === previewRequestIdRef.current) {
+          setPreviewLoading(false);
+        }
+      }
+    }, codeManuallyEdited ? 300 : 0);
+
+    return () => {
+      if (previewTimerRef.current) {
+        clearTimeout(previewTimerRef.current);
+        previewTimerRef.current = null;
+      }
+    };
+  }, [open, watchedBusinessDomain, watchedParentId, watchedCode, codeManuallyEdited, form]);
+
   const handleFinish = async (values: any) => {
-    await onOk(values);
+    const normalizedCode = String(values.code || '').trim();
+    const manualOverride = codeManuallyEdited && normalizedCode.length > 0 && allowManualOverride;
+    await onOk({
+      ...values,
+      code: manualOverride ? normalizedCode : undefined,
+      generationMode: manualOverride ? 'MANUAL' : undefined,
+      freezeCode: undefined,
+    });
     form.resetFields();
+    setAllowManualOverride(false);
+    setPreviewWarnings([]);
+    setCodeManuallyEdited(false);
+    suggestedCodeRef.current = '';
   };
 
   const handleRequestClose = () => {
@@ -133,6 +236,10 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
       okType: 'danger',
       onOk: () => {
         form.resetFields();
+        setAllowManualOverride(false);
+        setPreviewWarnings([]);
+        setCodeManuallyEdited(false);
+        suggestedCodeRef.current = '';
         onCancel();
       },
     });
@@ -177,8 +284,18 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
           >
             <Row gutter={24}>
               <Col span={12}>
-                <Form.Item label="分类编码" name="code" rules={[{ required: true }]}>
-                  <Input placeholder="请输入分类编码" />
+                <Form.Item
+                  label="分类编码"
+                  name="code"
+                  rules={[{ required: true, message: '请输入分类编码' }]}
+                >
+                  <Input
+                    placeholder="系统将先按规则自动计算，你也可以直接改写"
+                    onChange={(event) => {
+                      const nextCode = event.target.value.trim();
+                      setCodeManuallyEdited(nextCode.length > 0 && nextCode !== suggestedCodeRef.current);
+                    }}
+                  />
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -279,14 +396,6 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
                 </Form.Item>
               </Col>
             </Row>
-
-            <Row gutter={24}>
-              <Col span={24}>
-                <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-                  说明：分类编码创建后不可修改；排序由系统自动分配并在拖拽/移动后自动重算。
-                </Text>
-              </Col>
-            </Row>
           </Card>
 
           <Card 
@@ -297,9 +406,9 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
               borderRadius: token.borderRadiusLG
             }}
           >
-            <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+            <div style={{ fontSize: token.fontSizeSM, color: token.colorTextSecondary }}>
               状态说明：创建（默认），生效（允许业务调用），失效（停止业务调用）
-            </Text>
+            </div>
           </Card>
         </Form>
       </div>
