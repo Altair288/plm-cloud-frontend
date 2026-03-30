@@ -80,7 +80,7 @@ interface CodeRuleListProps {
   loading?: boolean;
   allowMutations?: boolean;
   activeId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: string | null) => void;
   onRefresh?: () => void;
   onAdd?: () => void;
   onBatchDelete?: (ids: React.Key[]) => void;

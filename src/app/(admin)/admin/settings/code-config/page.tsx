@@ -145,13 +145,18 @@ export default function CodeSettingPage() {
     };
   }, []);
 
-  const loadRuleSets = useCallback(async () => {
+  const loadRuleSets = useCallback(async (options?: { preserveSelection?: boolean }) => {
+    const preserveSelection = options?.preserveSelection ?? true;
+
     setListLoading(true);
     try {
       const summaries = await codeRuleApi.listRuleSets();
       const mappedRules = summaries.map((summary) => decorateBusinessObject(mapRuleSetSummaryToEditor(summary)));
       setRules(mappedRules);
       setActiveRuleId((prev) => {
+        if (!preserveSelection) {
+          return null;
+        }
         if (prev && mappedRules.some((rule) => rule.id === prev)) {
           return prev;
         }
@@ -190,6 +195,21 @@ export default function CodeSettingPage() {
 
   useEffect(() => {
     void loadRuleSets();
+  }, [loadRuleSets]);
+
+  const handleSelectRule = useCallback((id: string | null) => {
+    if (!id) {
+      setActiveRuleId(null);
+      return;
+    }
+
+    setActiveRuleId((prev) => (prev === id ? null : id));
+  }, []);
+
+  const handleRefreshRuleSets = useCallback(async () => {
+    setActiveRuleId(null);
+    setDetailLoading(false);
+    await loadRuleSets({ preserveSelection: false });
   }, [loadRuleSets]);
 
   useEffect(() => {
@@ -366,8 +386,8 @@ export default function CodeSettingPage() {
             loading={listLoading}
             allowMutations
             activeId={activeRuleId}
-            onSelect={setActiveRuleId}
-            onRefresh={loadRuleSets}
+            onSelect={handleSelectRule}
+            onRefresh={handleRefreshRuleSets}
             onAdd={handleAddRuleSet}
             onBatchDelete={handleBatchDeleteRuleSets}
           />
