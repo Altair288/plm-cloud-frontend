@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   MoreOutlined,
   NumberOutlined,
@@ -13,15 +13,16 @@ import {
   ExportOutlined,
 } from "@ant-design/icons";
 import {
-  List,
   Button,
+  Checkbox,
   Dropdown,
+  Empty,
   MenuProps,
+  Table,
   Typography,
   theme,
-  Tag,
-  Checkbox,
 } from "antd";
+import type { TableColumnsType } from "antd";
 import {
   AddCircleOutline,
   DeleteOutline,
@@ -92,8 +93,148 @@ const TYPE_COL_WIDTH = 100;
 const STATUS_COL_WIDTH = 44;
 const HORIZONTAL_PADDING = 16;
 const ACTION_COL_RESERVED_WIDTH = 40;
-const COLUMN_GAP = 8;
-const LIST_GRID_TEMPLATE_COLUMNS = `${CHECKBOX_COL_WIDTH}px ${INDEX_COL_WIDTH}px minmax(0, 1fr) minmax(0, 1fr) ${TYPE_COL_WIDTH}px ${STATUS_COL_WIDTH}px`;
+const ATTRIBUTE_INDEX_COL_WIDTH = 40;
+const ATTRIBUTE_META_COL_WIDTH = 112;
+const ATTRIBUTE_CHECKBOX_COL_WIDTH = 48;
+
+type AttributeColumnKey = 'name' | 'attributeField' | 'type';
+type AttributeColumnShareMap = Record<AttributeColumnKey, number>;
+
+const ATTRIBUTE_MIN_COLUMN_SHARE: AttributeColumnShareMap = {
+  name: 30,
+  attributeField: 30,
+  type: 22,
+};
+
+const ATTRIBUTE_DEFAULT_COLUMN_SHARES: AttributeColumnShareMap = {
+  name: 38,
+  attributeField: 34,
+  type: 28,
+};
+
+interface ResizableHeaderCellProps extends React.ThHTMLAttributes<HTMLTableCellElement> {
+  width?: string;
+  minShare?: number;
+  onResize?: (share: number) => void;
+}
+
+const distributeDeltaAcrossAttributeColumns = (
+  previous: AttributeColumnShareMap,
+  activeKey: AttributeColumnKey,
+  requestedShare: number,
+): AttributeColumnShareMap => {
+  const currentShare = previous[activeKey];
+  const delta = requestedShare - currentShare;
+
+  if (Math.abs(delta) < 0.01) {
+    return previous;
+  }
+
+  const otherKeys = (Object.keys(previous) as AttributeColumnKey[]).filter((key) => key !== activeKey);
+  const next = { ...previous };
+
+  if (delta > 0) {
+    let remainingDelta = delta;
+    for (const key of otherKeys) {
+      const maxShrink = next[key] - ATTRIBUTE_MIN_COLUMN_SHARE[key];
+      if (maxShrink <= 0) {
+        continue;
+      }
+
+      const applied = Math.min(maxShrink, remainingDelta / (otherKeys.length || 1) || remainingDelta);
+      next[key] -= applied;
+      remainingDelta -= applied;
+    }
+
+    if (remainingDelta > 0) {
+      for (const key of otherKeys) {
+        if (remainingDelta <= 0) {
+          break;
+        }
+        const maxShrink = next[key] - ATTRIBUTE_MIN_COLUMN_SHARE[key];
+        if (maxShrink <= 0) {
+          continue;
+        }
+        const applied = Math.min(maxShrink, remainingDelta);
+        next[key] -= applied;
+        remainingDelta -= applied;
+      }
+    }
+
+    next[activeKey] = requestedShare - remainingDelta;
+  } else {
+    const growDelta = Math.abs(delta);
+    const totalOtherShare = otherKeys.reduce((sum, key) => sum + previous[key], 0);
+    next[activeKey] = requestedShare;
+    otherKeys.forEach((key) => {
+      const ratio = totalOtherShare > 0 ? previous[key] / totalOtherShare : 1 / otherKeys.length;
+      next[key] += growDelta * ratio;
+    });
+  }
+
+  const total = (Object.values(next) as number[]).reduce((sum, value) => sum + value, 0);
+  if (total > 0) {
+    const factor = 100 / total;
+    (Object.keys(next) as AttributeColumnKey[]).forEach((key) => {
+      next[key] = Number((next[key] * factor).toFixed(2));
+    });
+  }
+
+  return next;
+};
+
+const ResizableHeaderCell: React.FC<ResizableHeaderCellProps> = ({
+  width,
+  minShare = 20,
+  onResize,
+  children,
+  style,
+  ...restProps
+}) => {
+  const startXRef = useRef(0);
+  const startShareRef = useRef(typeof width === 'string' ? Number.parseFloat(width) || 0 : 0);
+  const tableWidthRef = useRef(0);
+
+  const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const headerCell = event.currentTarget.parentElement;
+    const tableElement = headerCell?.closest('table');
+
+    startXRef.current = event.clientX;
+    startShareRef.current = typeof width === 'string' ? Number.parseFloat(width) || 0 : 0;
+    tableWidthRef.current = tableElement?.getBoundingClientRect().width || 0;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (tableWidthRef.current <= 0) return;
+      const deltaPercent = ((moveEvent.clientX - startXRef.current) / tableWidthRef.current) * 100;
+      const nextShare = Math.max(minShare, startShareRef.current + deltaPercent);
+      onResize?.(nextShare);
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  return (
+    <th {...restProps} style={{ ...style, width, position: 'relative' }}>
+      {children}
+      {typeof width === 'string' && onResize ? (
+        <div className="attribute-list-resize-handle" onMouseDown={handleMouseDown} />
+      ) : null}
+    </th>
+  );
+};
+
+type AttributeTableRow = AttributeItem & {
+  rowIndex: number;
+};
 
 const AttributeList: React.FC<AttributeListProps> = ({
   dataSource,
@@ -111,10 +252,13 @@ const AttributeList: React.FC<AttributeListProps> = ({
   const { token } = theme.useToken();
   const listRef = useRef<HTMLDivElement>(null);
   const [searchExpanded, setSearchExpanded] = useState(Boolean(searchText));
+  const [checkableEnabled, setCheckableEnabled] = useState(false);
+  const [columnShares, setColumnShares] = useState<AttributeColumnShareMap>(ATTRIBUTE_DEFAULT_COLUMN_SHARES);
 
   useEffect(() => {
     if (activeAttributeId && listRef.current) {
-      const element = document.getElementById(`attr-list-item-${activeAttributeId}`);
+      const safeRowKey = activeAttributeId.replaceAll('"', '\\"');
+      const element = listRef.current.querySelector(`tr[data-row-key="${safeRowKey}"]`);
       if (element) {
         element.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }
@@ -287,8 +431,29 @@ const AttributeList: React.FC<AttributeListProps> = ({
     handleDuplicate(singleSelectedAttribute);
   };
 
+  const handleColumnResize = useCallback((columnKey: AttributeColumnKey, nextShare: number) => {
+    setColumnShares((prev) => distributeDeltaAcrossAttributeColumns(prev, columnKey, nextShare));
+  }, []);
+
+  const handleRowContextMenu = useCallback((event: React.MouseEvent, item: AttributeItem) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!selectedRowKeys.includes(item.id)) {
+      emitSelectionChange([item.id], item.id);
+      setAnchorRowId(item.id);
+    }
+    setContextMenuRowId(item.id);
+    setContextMenuState({
+      open: true,
+      x: event.clientX,
+      y: event.clientY,
+      target: "row",
+      item,
+    });
+  }, [selectedRowKeys]);
+
   const toolbarState = useMemo<BaseToolbarState>(() => ({
-    checkableEnabled: true,
+    checkableEnabled,
     checkedKeys: selectedRowKeys,
     checkedCount: selectedRowKeys.length,
     searchValue: searchText,
@@ -296,8 +461,16 @@ const AttributeList: React.FC<AttributeListProps> = ({
     onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => onSearchTextChange(e.target.value),
     onSearchVisibilityChange: setSearchExpanded,
     onSearchClear: () => onSearchTextChange(''),
-    onCheckableToggle: () => undefined,
-  }), [onSearchTextChange, searchExpanded, searchText, selectedRowKeys]);
+    onCheckableToggle: () => {
+      setCheckableEnabled((prev) => {
+        const next = !prev;
+        if (!next && selectedRowKeys.length > 1) {
+          emitSelectionChange(activeAttributeId ? [activeAttributeId] : [], activeAttributeId);
+        }
+        return next;
+      });
+    },
+  }), [checkableEnabled, onSearchTextChange, searchExpanded, searchText, selectedRowKeys]);
 
   const primaryActions = useMemo<ToolbarAction[]>(() => [
     {
@@ -350,6 +523,175 @@ const AttributeList: React.FC<AttributeListProps> = ({
   const filteredSelectedCount = selectedRowKeys.filter((key) =>
     filteredSet.has(String(key)),
   ).length;
+  const tableData = useMemo<AttributeTableRow[]>(() => (
+    filteredData.map((item, index) => ({
+      ...item,
+      rowIndex: index + 1,
+    }))
+  ), [filteredData]);
+  const isEmpty = tableData.length === 0;
+
+  const columns = useMemo<TableColumnsType<AttributeTableRow>>(() => [
+    ...(checkableEnabled ? [{
+      title: (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Checkbox
+            checked={tableData.length > 0 && filteredSelectedCount === tableData.length}
+            indeterminate={filteredSelectedCount > 0 && filteredSelectedCount < tableData.length}
+            onChange={handleSelectAll}
+            onClick={(event) => event.stopPropagation()}
+          />
+        </div>
+      ),
+      key: 'selection',
+      width: ATTRIBUTE_CHECKBOX_COL_WIDTH,
+      align: 'center' as const,
+      render: (_: unknown, record: AttributeTableRow) => (
+        <Checkbox
+          checked={selectedRowKeys.includes(record.id)}
+          onChange={(event) => handleSelectRow(record.id, event.target.checked)}
+          onClick={(event) => event.stopPropagation()}
+        />
+      ),
+    }] : []),
+    {
+      title: '序号',
+      dataIndex: 'rowIndex',
+      key: 'rowIndex',
+      width: ATTRIBUTE_INDEX_COL_WIDTH,
+      align: 'center' as const,
+      render: (value: number) => (
+        <Text type="secondary" style={{ fontSize: 12, textAlign: 'center', display: 'block' }}>
+          {value}
+        </Text>
+      ),
+    },
+    {
+      title: '属性名称',
+      dataIndex: 'name',
+      key: 'name',
+      align: 'center' as const,
+      width: `${columnShares.name}%`,
+      ellipsis: true,
+      onHeaderCell: () => ({
+        width: `${columnShares.name}%`,
+        minShare: ATTRIBUTE_MIN_COLUMN_SHARE.name,
+        onResize: (share: number) => handleColumnResize('name', share),
+      }),
+      render: (value: string) => (
+        <Text
+          strong
+          style={{ fontSize: 14, minWidth: 0, textAlign: 'center', display: 'block' }}
+          ellipsis={{ tooltip: value || '未命名属性' }}
+        >
+          {value || (
+            <span style={{ color: token.colorTextQuaternary, fontStyle: 'italic' }}>
+              未命名属性
+            </span>
+          )}
+        </Text>
+      ),
+    },
+    {
+      title: '属性字段',
+      dataIndex: 'attributeField',
+      key: 'attributeField',
+      align: 'center' as const,
+      width: `${columnShares.attributeField}%`,
+      ellipsis: true,
+      onHeaderCell: () => ({
+        width: `${columnShares.attributeField}%`,
+        minShare: ATTRIBUTE_MIN_COLUMN_SHARE.attributeField,
+        onResize: (share: number) => handleColumnResize('attributeField', share),
+      }),
+      render: (value?: string) => (
+        <Text
+          type="secondary"
+          style={{ fontSize: 12, fontFamily: 'monospace', minWidth: 0, textAlign: 'center', display: 'block' }}
+          ellipsis={{ tooltip: value || '-' }}
+        >
+          {value || '-'}
+        </Text>
+      ),
+    },
+    {
+      title: '数据类型',
+      dataIndex: 'type',
+      key: 'type',
+      width: `${columnShares.type}%`,
+      align: 'center' as const,
+      onHeaderCell: () => ({
+        width: `${columnShares.type}%`,
+        minShare: ATTRIBUTE_MIN_COLUMN_SHARE.type,
+        onResize: (share: number) => handleColumnResize('type', share),
+      }),
+      render: (value: AttributeType, record) => (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            minWidth: 0,
+          }}
+        >
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              whiteSpace: 'nowrap',
+              minWidth: 0,
+              flex: 1,
+            }}
+            title={value}
+          >
+            {getTypeIcon(value)}
+            <span style={{ fontSize: 12 }}>{getTypeLabel(value)}</span>
+          </span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, flexShrink: 0 }}>
+            {record.required ? (
+              <div
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: token.colorError,
+                }}
+                title="必填"
+              />
+            ) : null}
+            <Dropdown
+              key={`more-${record.id}`}
+              menu={{ items: getMenuItems(record) }}
+              trigger={["click"]}
+            >
+              <Button
+                type="text"
+                size="small"
+                icon={<MoreOutlined style={{ color: token.colorTextQuaternary }} />}
+                onClick={(event) => event.stopPropagation()}
+              />
+            </Dropdown>
+          </div>
+        </div>
+      ),
+    },
+  ], [
+    checkableEnabled,
+    columnShares.attributeField,
+    columnShares.name,
+    columnShares.type,
+    filteredSelectedCount,
+    getMenuItems,
+    handleColumnResize,
+    handleSelectAll,
+    selectedRowKeys,
+    tableData.length,
+    token.colorError,
+    token.colorTextQuaternary,
+  ]);
 
   return (
     <div
@@ -373,8 +715,8 @@ const AttributeList: React.FC<AttributeListProps> = ({
         <BaseToolbar
           toolbarState={toolbarState}
           searchPlaceholder="筛选属性"
-          showCheckableToggle={false}
-          batchActionsVisible={selectedRowKeys.length > 0}
+          showCheckableToggle
+          batchActionsVisible={checkableEnabled && selectedRowKeys.length > 0}
           primaryActions={primaryActions}
           batchActions={batchActions}
           trailingActions={trailingActions}
@@ -383,7 +725,7 @@ const AttributeList: React.FC<AttributeListProps> = ({
 
       {/* List Area */}
       <div
-        style={{ flex: 1, overflowY: "auto" }}
+        style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: 'hidden' }}
         ref={listRef}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -449,199 +791,57 @@ const AttributeList: React.FC<AttributeListProps> = ({
             setContextMenuRowId(null);
           }}
         />
-        <div style={{
-          padding: `8px ${HORIZONTAL_PADDING}px`,
-          borderBottom: `1px solid ${token.colorBorderSecondary}`,
-          borderLeft: `${LEFT_INDICATOR_WIDTH}px solid transparent`,
-          background: token.colorBgContainer,
-          paddingRight: ACTION_COL_RESERVED_WIDTH,
-          position: "sticky",
-          top: 0,
-          zIndex: 2,
-        }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: LIST_GRID_TEMPLATE_COLUMNS,
-              columnGap: COLUMN_GAP,
-              alignItems: "center",
+        <div className="attribute-list-table-shell">
+          <Table<AttributeTableRow>
+            className={`attribute-list-table ${isEmpty ? 'attribute-list-table--empty' : ''}`}
+            rowKey="id"
+            size="small"
+            tableLayout="fixed"
+            components={{ header: { cell: ResizableHeaderCell } }}
+            style={{ height: '99%' }}
+            pagination={false}
+            dataSource={tableData}
+            columns={columns}
+            locale={{ emptyText: null }}
+            onRow={(record) => ({
+              onMouseDown: (event) => {
+                if (!event.shiftKey) return;
+                const target = event.target as HTMLElement;
+                if (!target.closest('input, textarea, [contenteditable="true"]')) {
+                  event.preventDefault();
+                }
+              },
+              onClick: (event) => {
+                const target = event.target as HTMLElement;
+                if (target.closest('.ant-checkbox-wrapper') || target.closest('.ant-checkbox') || target.closest('.ant-dropdown-trigger')) {
+                  return;
+                }
+                handleExplorerSelect(record.id, event);
+              },
+              onContextMenu: (event) => handleRowContextMenu(event, record),
+            })}
+            rowClassName={(record) => {
+              const isActive = activeAttributeId === record.id;
+              const isSelected = selectedRowKeys.includes(record.id);
+              const isNew = record.id.startsWith('new_attr_');
+              if (isActive) {
+                return 'attribute-list-row-active';
+              }
+              if (isNew) {
+                return 'attribute-list-row-new';
+              }
+              if (contextMenuRowId === record.id || isSelected) {
+                return 'attribute-list-row-selected';
+              }
+              return 'attribute-list-row';
             }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Checkbox
-                checked={filteredData.length > 0 && filteredSelectedCount === filteredData.length}
-                indeterminate={filteredSelectedCount > 0 && filteredSelectedCount < filteredData.length}
-                onChange={handleSelectAll}
-              />
+          />
+          {isEmpty ? (
+            <div className="attribute-list-empty-state" aria-hidden="true">
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无属性" />
             </div>
-            <Text type="secondary" style={{ fontSize: 12, textAlign: "center", display: "block" }}>序号</Text>
-            <Text type="secondary" style={{ fontSize: 12, textAlign: "center", display: "block" }}>属性名称</Text>
-            <Text type="secondary" style={{ fontSize: 12, textAlign: "center", display: "block" }}>属性字段</Text>
-            <Text type="secondary" style={{ fontSize: 12, textAlign: "center", display: "block" }}>数据类型</Text>
-            <div />
-          </div>
+          ) : null}
         </div>
-
-        <List
-          itemLayout="horizontal"
-          dataSource={filteredData}
-          split={false}
-          renderItem={(item, index) => {
-            const isActive = activeAttributeId === item.id;
-            const isSelected = selectedRowKeys.includes(item.id);
-            const isChecked = selectedRowKeys.includes(item.id);
-            return (
-              <div id={`attr-list-item-${item.id}`}>
-                <List.Item
-                style={{
-                  padding: `12px ${HORIZONTAL_PADDING}px`,
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                  userSelect: "none",
-                  WebkitUserSelect: "none",
-                  borderLeft: `${LEFT_INDICATOR_WIDTH}px solid ${isActive ? token.colorPrimary : "transparent"}`,
-                  background: isActive
-                    ? token.controlItemBgActive
-                    : isSelected
-                      ? token.controlItemBgHover
-                    : contextMenuRowId === item.id
-                      ? token.controlItemBgHover
-                      : "transparent",
-                  position: "relative",
-                  paddingRight: `${ACTION_COL_RESERVED_WIDTH}px`
-                }}
-                className={!isSelected ? "hover:bg-gray-50" : ""}
-                onMouseDown={(e) => {
-                  if (!e.shiftKey) return;
-                  const target = e.target as HTMLElement;
-                  if (!target.closest("input, textarea, [contenteditable='true']")) {
-                    e.preventDefault();
-                  }
-                }}
-                onClick={(e) => handleExplorerSelect(item.id, e)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (!selectedRowKeys.includes(item.id)) {
-                    emitSelectionChange([item.id], item.id);
-                    setAnchorRowId(item.id);
-                  }
-                  setContextMenuRowId(item.id);
-                  setContextMenuState({
-                    open: true,
-                    x: e.clientX,
-                    y: e.clientY,
-                    target: "row",
-                    item,
-                  });
-                }}
-              >
-                <div style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)" }}>
-                  <Dropdown
-                    key="more"
-                    menu={{ items: getMenuItems(item) }}
-                    trigger={["click"]}
-                  >
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={
-                        <MoreOutlined
-                          style={{ color: token.colorTextQuaternary }}
-                        />
-                      }
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </Dropdown>
-                </div>
-                <div
-                  style={{
-                    width: "100%",
-                    display: "grid",
-                    gridTemplateColumns: LIST_GRID_TEMPLATE_COLUMNS,
-                    columnGap: COLUMN_GAP,
-                    alignItems: "center",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Checkbox 
-                      checked={isChecked} 
-                      onChange={(e) => handleSelectRow(item.id, e.target.checked)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
-                  <Text type="secondary" style={{ fontSize: 12, textAlign: "center", display: "block" }}>
-                    {index + 1}
-                  </Text>
-
-                  <Text
-                    strong
-                    style={{ fontSize: 14, minWidth: 0, textAlign: "center", display: "block" }}
-                    ellipsis={{ tooltip: item.name || "未命名属性" }}
-                  >
-                    {item.name || (
-                      <span
-                        style={{
-                          color: token.colorTextQuaternary,
-                          fontStyle: "italic",
-                        }}
-                      >
-                        未命名属性
-                      </span>
-                    )}
-                  </Text>
-
-                  <Text
-                    type="secondary"
-                    style={{ fontSize: 12, fontFamily: "monospace", minWidth: 0, textAlign: "center", display: "block" }}
-                    ellipsis={{ tooltip: item.attributeField }}
-                  >
-                    {item.attributeField || '-'}
-                  </Text>
-
-                  <span
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 4,
-                      whiteSpace: "nowrap",
-                      minWidth: 0,
-                    }}
-                    title={item.type}
-                  >
-                    {getTypeIcon(item.type)}
-                    <span style={{ fontSize: 12 }}>
-                      {getTypeLabel(item.type)}
-                    </span>
-                  </span>
-
-                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    {item.id.startsWith("new_attr_") ? (
-                      <Tag
-                        color="processing"
-                        style={{ marginInlineEnd: 0, paddingInline: 6, lineHeight: "18px", height: 20 }}
-                      >
-                        NEW
-                      </Tag>
-                    ) : item.required ? (
-                      <div
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: token.colorError,
-                        }}
-                        title="必填"
-                      ></div>
-                    ) : null}
-                  </div>
-                </div>
-                </List.Item>
-              </div>
-            );
-          }}
-        />
       </div>
 
       {/* Footer Info */}
@@ -657,6 +857,128 @@ const AttributeList: React.FC<AttributeListProps> = ({
       >
         共 {dataSource.length} 个属性
       </div>
+
+      <style jsx global>{`
+        .attribute-list-table-shell {
+          position: relative;
+          height: 100%;
+          min-height: 0;
+        }
+        .attribute-list-table .ant-table,
+        .attribute-list-table .ant-table-container {
+          background: ${token.colorBgContainer};
+          width: 100%;
+        }
+        .attribute-list-table,
+        .attribute-list-table .ant-spin-nested-loading,
+        .attribute-list-table .ant-spin-container,
+        .attribute-list-table .ant-table,
+        .attribute-list-table .ant-table-container,
+        .attribute-list-table .ant-table-content {
+          height: 100%;
+        }
+        .attribute-list-table--empty .ant-table-placeholder {
+          display: none;
+        }
+        .attribute-list-empty-state {
+          position: absolute;
+          top: 46px;
+          right: 0;
+          bottom: 0;
+          left: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: ${token.colorBgContainer};
+        }
+        .attribute-list-table table {
+          width: 100% !important;
+        }
+        .attribute-list-table .ant-table-thead > tr > th,
+        .attribute-list-table .ant-table-tbody > tr > td {
+          padding-top: 12px;
+          padding-bottom: 12px;
+        }
+        .attribute-list-table .ant-table-thead > tr > th {
+          height: 46px;
+          padding-top: 0;
+          padding-bottom: 0;
+          background: ${token.colorFillAlter};
+          color: ${token.colorTextSecondary};
+          font-size: 12px;
+          font-weight: 500;
+          text-align: center;
+          position: sticky;
+          top: 0;
+          z-index: 2;
+          vertical-align: middle;
+        }
+        .attribute-list-table .ant-table-thead > tr > th.ant-table-selection-column,
+        .attribute-list-table .ant-table-tbody > tr > td.ant-table-selection-column {
+          padding-top: 0 !important;
+          padding-bottom: 0 !important;
+          vertical-align: middle;
+        }
+        .attribute-list-table .ant-table-thead > tr > th:first-child,
+        .attribute-list-table .ant-table-tbody > tr > td:first-child {
+          padding-left: 12px;
+        }
+        .attribute-list-table .ant-table-thead > tr > th:last-child,
+        .attribute-list-table .ant-table-tbody > tr > td:last-child {
+          padding-right: 12px;
+        }
+        .attribute-list-table .ant-table-tbody > tr > td {
+          background: ${token.colorBgContainer};
+          text-align: center;
+          cursor: pointer;
+          transition: background 0.2s ease;
+          user-select: none;
+          -webkit-user-select: none;
+        }
+        .attribute-list-table .ant-table-tbody > tr.attribute-list-row:hover > td {
+          background: ${token.controlItemBgHover};
+        }
+        .attribute-list-table .ant-table-tbody > tr.attribute-list-row-selected > td {
+          background: ${token.controlItemBgHover};
+        }
+        .attribute-list-table .ant-table-tbody > tr.attribute-list-row-new > td {
+          background: ${token.colorInfoBg};
+        }
+        .attribute-list-table .ant-table-tbody > tr.attribute-list-row-new:hover > td {
+          background: ${token.colorInfoBgHover || token.colorInfoBg};
+        }
+        .attribute-list-table .ant-table-tbody > tr.attribute-list-row-active > td {
+          background: ${token.controlItemBgActive} !important;
+        }
+        .attribute-list-table .ant-table-tbody > tr.attribute-list-row-active > td:first-child {
+          box-shadow: inset 4px 0 0 ${token.colorPrimary};
+        }
+        .attribute-list-resize-handle {
+          position: absolute;
+          top: 0;
+          right: -5px;
+          width: 10px;
+          height: 100%;
+          cursor: col-resize;
+          z-index: 3;
+        }
+        .attribute-list-resize-handle::after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          right: 4px;
+          transform: translateY(-50%);
+          width: 2px;
+          height: 18px;
+          border-radius: 999px;
+          background: ${token.colorBorder};
+          opacity: 0;
+          transition: opacity 0.2s ease;
+        }
+        .attribute-list-table .ant-table-thead > tr > th:hover .attribute-list-resize-handle::after {
+          opacity: 1;
+        }
+      `}</style>
     </div>
   );
 };

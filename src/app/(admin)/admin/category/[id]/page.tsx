@@ -1036,9 +1036,12 @@ const CategoryManagementPage: React.FC = () => {
       dataRef: {
         id: created.id,
         businessDomain: created.businessDomain || activeBusinessDomain,
+          key: created.id,
         code: created.code,
         name,
+          title: name,
         level: levelNumber,
+          depth: levelNumber - 1,
         parentId: created.parentId || null,
         path: created.path,
         hasChildren: false,

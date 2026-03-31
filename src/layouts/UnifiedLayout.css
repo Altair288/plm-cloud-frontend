@@ -100,3 +100,16 @@
   pointer-events: auto;
 }
 
+.ant-pro-sider,
+.ant-pro-sider .ant-layout-sider-children,
+.ant-pro-sider .ant-menu,
+.ant-pro-sider .ant-menu-item,
+.ant-pro-sider .ant-menu-submenu-title,
+.ant-pro-sider .ant-pro-base-menu-inline-item-title,
+.ant-pro-sider .ant-pro-base-menu-inline-item-text,
+.ant-pro-sider .ant-pro-menu-item-title,
+.ant-pro-sider .ant-pro-base-menu-vertical-item-title {
+  user-select: none;
+  -webkit-user-select: none;
+}
+

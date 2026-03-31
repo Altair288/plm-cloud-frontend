@@ -460,12 +460,17 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
               display: "flex",
               alignItems: "center",
               gap: 12,
+              userSelect: "none",
+              WebkitUserSelect: "none",
             }}
           >
             <Button
               type="text"
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={handleToggleCollapsed}
+              onMouseDown={(event) => {
+                event.preventDefault();
+              }}
               style={{
                 borderRadius: 999,
                 color: palette.iconColor,
@@ -479,6 +484,9 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
         menuDataRender={() => menuData}
         menuItemRender={(item, dom) => (
           <span
+            onMouseDown={(event) => {
+              event.preventDefault();
+            }}
             onClick={() => {
               if (item.path) router.push(item.path);
             }}
