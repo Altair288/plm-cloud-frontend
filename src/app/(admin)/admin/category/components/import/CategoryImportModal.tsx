@@ -402,7 +402,7 @@ const CategoryImportModal: React.FC<CategoryImportModalProps> = ({
             type="info"
             showIcon
             icon={<InfoCircleFilled />}
-            message="Excel 编码优先"
+            title="Excel 编码优先"
             description="系统将优先使用 Excel 中填写的编码值，空编码行仍由系统编码规则自动生成。"
             style={{ borderRadius: token.borderRadiusLG }}
           />
