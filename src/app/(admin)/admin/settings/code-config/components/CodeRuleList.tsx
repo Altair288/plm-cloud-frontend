@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { Empty, Flex, Typography, Table, theme } from 'antd';
 import type { TableColumnsType } from 'antd';
 import { PlusOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
-import BaseTreeToolbar from '@/components/TreeToolbar/BaseTreeToolbar';
+import BaseToolbar from '@/components/TreeToolbar/BaseToolbar';
 import type {
   CodeRule,
   ColumnKey,
@@ -221,7 +221,7 @@ const CodeRuleList: React.FC<CodeRuleListProps> = ({
     <Flex vertical style={{ height: '100%', background: token.colorBgContainer }}>
       {/* 列表工具栏 */}
       <Flex align="center" style={{ padding: '0 16px', borderBottom: `1px solid ${token.colorBorderSecondary}`, height: 48 }}>
-        <BaseTreeToolbar
+        <BaseToolbar
           toolbarState={toolbarState}
           searchPlaceholder="搜索规则集"
           showCheckableToggle={allowMutations}

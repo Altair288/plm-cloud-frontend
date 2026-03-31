@@ -11,7 +11,7 @@ import {
   SwapOutlined,
 } from "@ant-design/icons";
 import type { CategoryTreeToolbarState } from "@/features/category/CategoryTree";
-import BaseTreeToolbar, { type TreeToolbarAction } from "@/components/TreeToolbar/BaseTreeToolbar";
+import BaseToolbar, { type ToolbarAction } from "@/components/TreeToolbar/BaseToolbar";
 import {
   TOOLBAR_ACTIONS_EXPANDED_WIDTH,
 } from "@/components/TreeToolbar/treeToolbarStyles";
@@ -44,7 +44,7 @@ const AdminCategoryTreeToolbar: React.FC<AdminCategoryTreeToolbarProps> = ({
 }) => {
   const { token } = theme.useToken();
 
-  const primaryActions: TreeToolbarAction[] = [
+  const primaryActions: ToolbarAction[] = [
     {
       key: "add",
       icon: <PlusOutlined />,
@@ -54,7 +54,7 @@ const AdminCategoryTreeToolbar: React.FC<AdminCategoryTreeToolbarProps> = ({
     },
   ];
 
-  const batchActions: TreeToolbarAction[] = [
+  const batchActions: ToolbarAction[] = [
     {
       key: "delete",
       icon: <DeleteOutlined />,
@@ -78,7 +78,7 @@ const AdminCategoryTreeToolbar: React.FC<AdminCategoryTreeToolbarProps> = ({
     },
   ];
 
-  const trailingActions: TreeToolbarAction[] = [
+  const trailingActions: ToolbarAction[] = [
     {
       key: "more",
       type: "dropdown",
@@ -90,7 +90,7 @@ const AdminCategoryTreeToolbar: React.FC<AdminCategoryTreeToolbarProps> = ({
   ];
 
   return (
-    <BaseTreeToolbar
+    <BaseToolbar
       toolbarState={toolbarState}
       searchPlaceholder={searchPlaceholder}
       showCheckableToggle={showCheckableToggle}

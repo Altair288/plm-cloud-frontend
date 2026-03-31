@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  SearchOutlined,
   MoreOutlined,
   NumberOutlined,
   FontColorsOutlined,
@@ -9,10 +8,12 @@ import {
   CheckSquareOutlined,
   DeleteOutlined,
   CopyOutlined,
+  PlusOutlined,
+  ImportOutlined,
+  ExportOutlined,
 } from "@ant-design/icons";
 import {
   List,
-  Input,
   Button,
   Dropdown,
   MenuProps,
@@ -25,9 +26,8 @@ import {
   AddCircleOutline,
   DeleteOutline,
   ContentCopy,
-  FileUploadOutlined,
-  FileDownloadOutlined,
 } from "@mui/icons-material";
+import BaseToolbar, { type BaseToolbarState, type ToolbarAction } from "@/components/TreeToolbar/BaseToolbar";
 import { AttributeItem, AttributeType } from "./types";
 import FloatingContextMenu from "@/components/ContextMenu/FloatingContextMenu";
 
@@ -110,6 +110,7 @@ const AttributeList: React.FC<AttributeListProps> = ({
 }) => {
   const { token } = theme.useToken();
   const listRef = useRef<HTMLDivElement>(null);
+  const [searchExpanded, setSearchExpanded] = useState(Boolean(searchText));
 
   useEffect(() => {
     if (activeAttributeId && listRef.current) {
@@ -119,6 +120,12 @@ const AttributeList: React.FC<AttributeListProps> = ({
       }
     }
   }, [activeAttributeId, dataSource.length]);
+
+  useEffect(() => {
+    if (searchText) {
+      setSearchExpanded(true);
+    }
+  }, [searchText]);
 
   const filteredData = dataSource.filter(
     (item) =>
@@ -145,6 +152,14 @@ const AttributeList: React.FC<AttributeListProps> = ({
   }, [anchorRowId, dataSource]);
 
   const selectedRowKeys = selectedAttributeIds;
+  const singleSelectedAttribute = useMemo(() => {
+    if (selectedRowKeys.length !== 1) {
+      return null;
+    }
+
+    const selectedId = String(selectedRowKeys[0]);
+    return dataSource.find((item) => item.id === selectedId) || null;
+  }, [dataSource, selectedRowKeys]);
 
   const emitSelectionChange = (ids: string[], primaryId: string | null) => {
     const normalizedIds = Array.from(new Set(ids));
@@ -264,6 +279,72 @@ const AttributeList: React.FC<AttributeListProps> = ({
     emitSelectionChange([], null);
   };
 
+  const handleToolbarDuplicate = () => {
+    if (!singleSelectedAttribute) {
+      return;
+    }
+
+    handleDuplicate(singleSelectedAttribute);
+  };
+
+  const toolbarState = useMemo<BaseToolbarState>(() => ({
+    checkableEnabled: true,
+    checkedKeys: selectedRowKeys,
+    checkedCount: selectedRowKeys.length,
+    searchValue: searchText,
+    searchExpanded,
+    onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => onSearchTextChange(e.target.value),
+    onSearchVisibilityChange: setSearchExpanded,
+    onSearchClear: () => onSearchTextChange(''),
+    onCheckableToggle: () => undefined,
+  }), [onSearchTextChange, searchExpanded, searchText, selectedRowKeys]);
+
+  const primaryActions = useMemo<ToolbarAction[]>(() => [
+    {
+      key: 'add',
+      icon: <PlusOutlined />,
+      tooltip: '新增属性',
+      variant: 'primary',
+      onClick: () => onAddAttribute?.(),
+    },
+  ], [onAddAttribute]);
+
+  const batchActions = useMemo<ToolbarAction[]>(() => [
+    {
+      key: 'delete',
+      icon: <DeleteOutlined />,
+      tooltip: '批量删除',
+      variant: 'danger',
+      onClick: handleToolbarBatchDelete,
+      disabled: selectedRowKeys.length === 0,
+    },
+  ], [selectedRowKeys.length]);
+
+  const trailingActions = useMemo<ToolbarAction[]>(() => [
+    {
+      key: 'duplicate',
+      icon: <CopyOutlined />,
+      tooltip: '复制属性',
+      variant: 'neutral',
+      onClick: handleToolbarDuplicate,
+      disabled: !singleSelectedAttribute,
+    },
+    {
+      key: 'import',
+      icon: <ImportOutlined />,
+      tooltip: '导入属性',
+      variant: 'neutral',
+      disabled: true,
+    },
+    {
+      key: 'export',
+      icon: <ExportOutlined />,
+      tooltip: '导出属性',
+      variant: 'neutral',
+      disabled: true,
+    },
+  ], [handleToolbarDuplicate, singleSelectedAttribute]);
+
   const filteredIds = filteredData.map((item) => item.id);
   const filteredSet = new Set(filteredIds);
   const filteredSelectedCount = selectedRowKeys.filter((key) =>
@@ -289,62 +370,15 @@ const AttributeList: React.FC<AttributeListProps> = ({
           alignItems: "center",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            width: "100%",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-            <Button
-              type="text"
-              size="small"
-              icon={<AddCircleOutline fontSize="small" />}
-              style={{ color: token.colorPrimary }}
-              onClick={() => onAddAttribute?.()}
-            />
-            <Button
-              type="text"
-              size="small"
-              icon={<DeleteOutline fontSize="small" />}
-              style={{ color: token.colorPrimary }}
-              disabled={selectedRowKeys.length === 0}
-              onClick={handleToolbarBatchDelete}
-            />
-            <Button
-              type="text"
-              size="small"
-              icon={<ContentCopy fontSize="small" />}
-              style={{ color: token.colorPrimary }}
-            />
-            <Button
-              type="text"
-              size="small"
-              icon={<FileUploadOutlined fontSize="small" />}
-              style={{ color: token.colorPrimary }}
-            />
-            <Button
-              type="text"
-              size="small"
-              icon={<FileDownloadOutlined fontSize="small" />}
-              style={{ color: token.colorPrimary }}
-            />
-          </div>
-
-          <div style={{ flex: 1, minWidth: 180, maxWidth: 320 }}>
-            <Input
-              placeholder="筛选属性 . . ."
-              prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
-              value={searchText}
-              onChange={(e) => onSearchTextChange(e.target.value)}
-              allowClear
-              size="small"
-            />
-          </div>
-        </div>
+        <BaseToolbar
+          toolbarState={toolbarState}
+          searchPlaceholder="筛选属性"
+          showCheckableToggle={false}
+          batchActionsVisible={selectedRowKeys.length > 0}
+          primaryActions={primaryActions}
+          batchActions={batchActions}
+          trailingActions={trailingActions}
+        />
       </div>
 
       {/* List Area */}

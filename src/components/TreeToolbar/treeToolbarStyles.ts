@@ -4,6 +4,7 @@ export type ToolbarStyleToken = ReturnType<typeof theme.useToken>['token'];
 export type CircleButtonVariant = 'primary' | 'neutral' | 'danger';
 
 export const TOOLBAR_ICON_BUTTON_SIZE = 24;
+export const TOOLBAR_ICON_GLYPH_SIZE = 12;
 export const TOOLBAR_PILL_RADIUS = 999;
 export const TOOLBAR_CONTROL_GAP = 6;
 export const TOOLBAR_SEARCH_PILL_HEIGHT = 24;
@@ -40,11 +41,19 @@ export const createCircleButtonStyle = (
     minWidth: size,
     height: size,
     paddingInline: 0,
+    paddingBlock: 0,
     borderRadius: TOOLBAR_PILL_RADIUS,
     border: `1px solid ${palette.borderColor}`,
     background: palette.background,
     color: palette.color,
     boxShadow: 'none',
+    boxSizing: 'border-box',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    lineHeight: 1,
+    verticalAlign: 'middle',
+    flex: '0 0 auto',
   };
 };
 

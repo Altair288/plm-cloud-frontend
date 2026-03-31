@@ -1,20 +1,11 @@
 import React, { useState, useMemo, forwardRef, useEffect, useRef } from 'react';
 import { Input, Tree, Empty } from 'antd';
 import type { DataNode, TreeProps } from 'antd/es/tree';
+import type { BaseToolbarState } from '@/components/TreeToolbar/BaseToolbar';
 
 const { Search } = Input;
 
-export interface CategoryTreeToolbarState {
-  checkableEnabled: boolean;
-  checkedKeys: React.Key[];
-  checkedCount: number;
-  searchValue: string;
-  searchExpanded: boolean;
-  onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onSearchVisibilityChange: (expanded: boolean) => void;
-  onSearchClear: () => void;
-  onCheckableToggle: () => void;
-}
+export type CategoryTreeToolbarState = BaseToolbarState;
 
 export interface CategoryTreeProps {
   onSelect: TreeProps['onSelect'];
