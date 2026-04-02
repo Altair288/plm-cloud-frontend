@@ -70,6 +70,8 @@ export interface WorkbookImportPreviewRow {
   issueMessages: string[];
 }
 
+export type WorkbookImportPreviewEntityFilter = 'CATEGORY' | 'ATTRIBUTE' | 'ENUM_OPTION';
+
 const resolveIssueLevel = (issues: WorkbookImportIssueDto[]): WorkbookImportIssueLevel | null => {
   if (issues.some((issue) => issue.level === 'ERROR')) {
     return 'ERROR';
@@ -88,14 +90,9 @@ const collectIssueMessages = (issues: WorkbookImportIssueDto[]): string[] => {
   });
 };
 
-export const mapDryRunPreviewRows = (
-  dryRunResult: WorkbookImportDryRunResponseDto | null,
-): WorkbookImportPreviewRow[] => {
-  if (!dryRunResult) {
-    return [];
-  }
-
-  const categoryRows: WorkbookImportPreviewRow[] = dryRunResult.preview.categories.map((item) => ({
+const mapCategoryPreviewRow = (
+  item: WorkbookImportDryRunResponseDto['preview']['categories'][number],
+): WorkbookImportPreviewRow => ({
     key: `category-${item.rowNumber}-${item.resolvedFinalCode ?? item.categoryCode ?? item.categoryName}`,
     entityType: 'CATEGORY',
     sheetName: item.sheetName,
@@ -111,9 +108,11 @@ export const mapDryRunPreviewRows = (
     issueLevel: resolveIssueLevel(item.issues),
     issueCount: item.issues.length,
     issueMessages: collectIssueMessages(item.issues),
-  }));
+  });
 
-  const attributeRows: WorkbookImportPreviewRow[] = dryRunResult.preview.attributes.map((item) => ({
+const mapAttributePreviewRow = (
+  item: WorkbookImportDryRunResponseDto['preview']['attributes'][number],
+): WorkbookImportPreviewRow => ({
     key: `attribute-${item.rowNumber}-${item.resolvedFinalCode ?? item.attributeKey ?? item.attributeName}`,
     entityType: 'ATTRIBUTE',
     sheetName: item.sheetName,
@@ -129,9 +128,11 @@ export const mapDryRunPreviewRows = (
     issueLevel: resolveIssueLevel(item.issues),
     issueCount: item.issues.length,
     issueMessages: collectIssueMessages(item.issues),
-  }));
+  });
 
-  const enumRows: WorkbookImportPreviewRow[] = dryRunResult.preview.enumOptions.map((item) => ({
+const mapEnumPreviewRow = (
+  item: WorkbookImportDryRunResponseDto['preview']['enumOptions'][number],
+): WorkbookImportPreviewRow => ({
     key: `enum-${item.rowNumber}-${item.resolvedFinalCode ?? item.optionCode ?? item.optionName}`,
     entityType: 'ENUM_OPTION',
     sheetName: item.sheetName,
@@ -147,7 +148,65 @@ export const mapDryRunPreviewRows = (
     issueLevel: resolveIssueLevel(item.issues),
     issueCount: item.issues.length,
     issueMessages: collectIssueMessages(item.issues),
-  }));
+  });
+
+export const getPreviewRowCount = (
+  dryRunResult: WorkbookImportDryRunResponseDto | null,
+  entityType: WorkbookImportPreviewEntityFilter,
+): number => {
+  if (!dryRunResult) {
+    return 0;
+  }
+
+  switch (entityType) {
+    case 'CATEGORY':
+      return dryRunResult.preview.categories.length;
+    case 'ATTRIBUTE':
+      return dryRunResult.preview.attributes.length;
+    case 'ENUM_OPTION':
+      return dryRunResult.preview.enumOptions.length;
+    default:
+      return 0;
+  }
+};
+
+export const mapDryRunPreviewRowsPage = (
+  dryRunResult: WorkbookImportDryRunResponseDto | null,
+  entityType: WorkbookImportPreviewEntityFilter,
+  page: number,
+  pageSize: number,
+): WorkbookImportPreviewRow[] => {
+  if (!dryRunResult) {
+    return [];
+  }
+
+  const safePage = Math.max(page, 1);
+  const safePageSize = Math.max(pageSize, 1);
+  const start = (safePage - 1) * safePageSize;
+  const end = start + safePageSize;
+
+  switch (entityType) {
+    case 'CATEGORY':
+      return dryRunResult.preview.categories.slice(start, end).map(mapCategoryPreviewRow);
+    case 'ATTRIBUTE':
+      return dryRunResult.preview.attributes.slice(start, end).map(mapAttributePreviewRow);
+    case 'ENUM_OPTION':
+      return dryRunResult.preview.enumOptions.slice(start, end).map(mapEnumPreviewRow);
+    default:
+      return [];
+  }
+};
+
+export const mapDryRunPreviewRows = (
+  dryRunResult: WorkbookImportDryRunResponseDto | null,
+): WorkbookImportPreviewRow[] => {
+  if (!dryRunResult) {
+    return [];
+  }
+
+  const categoryRows: WorkbookImportPreviewRow[] = dryRunResult.preview.categories.map(mapCategoryPreviewRow);
+  const attributeRows: WorkbookImportPreviewRow[] = dryRunResult.preview.attributes.map(mapAttributePreviewRow);
+  const enumRows: WorkbookImportPreviewRow[] = dryRunResult.preview.enumOptions.map(mapEnumPreviewRow);
 
   return [...categoryRows, ...attributeRows, ...enumRows].sort((left, right) => {
     const leftRow = left.rowNumber ?? 0;

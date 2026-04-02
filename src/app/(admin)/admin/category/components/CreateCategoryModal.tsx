@@ -290,7 +290,6 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
                   rules={[{ required: true, message: '请输入分类编码' }]}
                 >
                   <Input
-                    placeholder="系统将先按规则自动计算，你也可以直接改写"
                     onChange={(event) => {
                       const nextCode = event.target.value.trim();
                       setCodeManuallyEdited(nextCode.length > 0 && nextCode !== suggestedCodeRef.current);

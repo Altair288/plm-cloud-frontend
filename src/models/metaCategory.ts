@@ -217,7 +217,11 @@ export type MetaCategoryBatchTransferAction = 'MOVE' | 'COPY';
 export interface MetaCategoryBatchTransferCopyOptionsDto {
   versionPolicy?: 'CURRENT_ONLY';
   codePolicy?: 'AUTO_SUFFIX';
-  namePolicy?: 'KEEP';
+  /**
+   * Name copy policy.
+   * Current default is 'AUTO_SUFFIX'; 'KEEP' only succeeds when the original name is reusable.
+   */
+  namePolicy?: string;
   defaultStatus?: 'DRAFT';
 }
 

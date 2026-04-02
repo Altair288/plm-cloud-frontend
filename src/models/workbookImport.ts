@@ -5,8 +5,18 @@ export type WorkbookImportDuplicatePolicy =
   | 'KEEP_EXISTING'
   | 'FAIL_ON_DUPLICATE';
 
+export type WorkbookImportJobType = 'DRY_RUN' | 'IMPORT';
+
+export type WorkbookImportExecutionMode = 'GLOBAL_TX' | 'STAGE_TX' | 'STAGING_ATOMIC';
+
 export type WorkbookImportJobStatusValue =
   | 'QUEUED'
+  | 'PARSING'
+  | 'PRELOADING'
+  | 'VALIDATING_CATEGORIES'
+  | 'VALIDATING_ATTRIBUTES'
+  | 'VALIDATING_ENUMS'
+  | 'BUILDING_PREVIEW'
   | 'PREPARING'
   | 'IMPORTING_CATEGORIES'
   | 'IMPORTING_ATTRIBUTES'
@@ -16,6 +26,12 @@ export type WorkbookImportJobStatusValue =
   | 'FAILED';
 
 export type WorkbookImportStage =
+  | 'PARSING'
+  | 'PRELOADING'
+  | 'VALIDATING_CATEGORIES'
+  | 'VALIDATING_ATTRIBUTES'
+  | 'VALIDATING_ENUMS'
+  | 'BUILDING_PREVIEW'
   | 'PREPARING'
   | 'CATEGORIES'
   | 'ATTRIBUTES'
@@ -48,6 +64,13 @@ export interface WorkbookImportIssueDto {
   message: string;
   rawValue: string | null;
   expectedRule: string | null;
+}
+
+export interface WorkbookImportDryRunStartResponseDto {
+  jobId: string;
+  status: WorkbookImportJobStatusValue;
+  currentStage: WorkbookImportStage;
+  createdAt: string;
 }
 
 export interface WorkbookImportDryRunResponseDto {
@@ -136,9 +159,11 @@ export interface WorkbookImportEnumOptionPreviewItemDto {
 }
 
 export interface WorkbookImportStartRequestDto {
-  importSessionId: string;
+  importSessionId?: string;
+  dryRunJobId?: string;
   operator?: string;
   atomic?: boolean;
+  executionMode?: WorkbookImportExecutionMode;
   overwriteMode?: string | null;
 }
 
@@ -147,18 +172,25 @@ export interface WorkbookImportStartResponseDto {
   importSessionId: string;
   status: WorkbookImportJobStatusValue;
   atomic: boolean;
+  executionMode?: WorkbookImportExecutionMode | null;
   createdAt: string;
 }
 
 export interface WorkbookImportJobStatusDto {
   jobId: string;
-  importSessionId: string;
+  jobType: WorkbookImportJobType;
+  importSessionId: string | null;
   status: WorkbookImportJobStatusValue;
   currentStage: WorkbookImportStage;
+  executionMode: WorkbookImportExecutionMode | null;
+  totalRows: number | null;
+  processedRows: number | null;
   overallPercent: number;
   stagePercent: number;
   startedAt: string | null;
   updatedAt: string | null;
+  currentEntityType: string | null;
+  currentBusinessDomain: string | null;
   progress: {
     categories: WorkbookImportEntityProgressDto;
     attributes: WorkbookImportEntityProgressDto;

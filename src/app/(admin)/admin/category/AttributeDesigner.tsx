@@ -105,6 +105,7 @@ const AttributeDesigner: React.FC<Props> = ({
   const [previewWarnings, setPreviewWarnings] = useState<string[]>([]);
   const [allowManualCodeOverride, setAllowManualCodeOverride] = useState(false);
   const [allowManualEnumCodeOverride, setAllowManualEnumCodeOverride] = useState(false);
+  const currentBusinessDomain = String(currentNode?.businessDomain || "").trim();
 
   // Helper: Map Backend DTO List Item to Frontend AttributeItem
   const mapListItemToAttributeItem = (dto: MetaAttributeDefListItemDto): AttributeItem => ({
@@ -159,13 +160,17 @@ const AttributeDesigner: React.FC<Props> = ({
 
   const loadAttributes = async (
     categoryCode: string,
+    businessDomain?: string,
     selectAttributeId?: string,
     localUnsavedItems: AttributeItem[] = [],
   ) => {
     setLoading(true);
     try {
       const res = await metaAttributeApi.listAttributes({ 
-        categoryCode, page: 0, size: 100 
+        businessDomain,
+        categoryCode,
+        page: 0,
+        size: 100,
       });
       const merged = [...res.content.map(mapListItemToAttributeItem), ...localUnsavedItems];
       setDataSource(merged);
@@ -184,7 +189,7 @@ const AttributeDesigner: React.FC<Props> = ({
 
   useEffect(() => {
     if (currentNode?.code) {
-      loadAttributes(currentNode.code, undefined, []);
+      loadAttributes(currentNode.code, currentBusinessDomain, undefined, []);
       setSelectedAttributeId(null);
       setSelectedAttributeIds([]);
       setCurrentAttribute(null);
@@ -202,7 +207,7 @@ const AttributeDesigner: React.FC<Props> = ({
       setBaselineEnumOptions([]);
       setHasUnsavedChanges(false);
     }
-  }, [currentNode]);
+  }, [currentBusinessDomain, currentNode]);
 
   // Sync currentAttribute from dataSource when selection changes
   useEffect(() => {
@@ -221,9 +226,17 @@ const AttributeDesigner: React.FC<Props> = ({
              return;
         }
 
+          if (!currentBusinessDomain) {
+           setCurrentAttribute(null);
+           setBaselineAttribute(null);
+           setEnumOptions([]);
+           setBaselineEnumOptions([]);
+           return;
+          }
+
         try {
            console.log(`Fetching detail for ${selectedAttributeId}`);
-           const detail = await metaAttributeApi.getAttributeDetail(selectedAttributeId, true); // includeValues=true
+            const detail = await metaAttributeApi.getAttributeDetail(selectedAttributeId, currentBusinessDomain, true); // includeValues=true
            const mapped = mapDetailToAttributeItem(detail);
            setCurrentAttribute(mapped);
            setBaselineAttribute(mapped);
@@ -256,7 +269,7 @@ const AttributeDesigner: React.FC<Props> = ({
       }
     };
     fetchDetail();
-  }, [selectedAttributeId, selectedAttributeIds.length, dataSource]);
+  }, [currentBusinessDomain, selectedAttributeId, selectedAttributeIds.length, dataSource]);
 
   // Sync selection state when dataSource changes (e.g. deletion)
   useEffect(() => {
@@ -306,7 +319,7 @@ const AttributeDesigner: React.FC<Props> = ({
 
     const categoryCode = currentNode?.code;
 
-    if (!currentAttribute || !categoryCode || !isNewAttributeId(currentAttribute.id)) {
+    if (!currentAttribute || !categoryCode || !currentBusinessDomain || !isNewAttributeId(currentAttribute.id)) {
       setPreviewLoading(false);
       setPreviewWarnings([]);
       setAllowManualCodeOverride(false);
@@ -345,7 +358,7 @@ const AttributeDesigner: React.FC<Props> = ({
       setPreviewLoading(true);
 
       try {
-        const preview = await metaAttributeApi.previewCreateCode(categoryCode, {
+        const preview = await metaAttributeApi.previewCreateCode(currentBusinessDomain, categoryCode, {
           manualKey: attributeManualOverride ? manualCode : undefined,
           dataType: mapAttributeTypeToBackend(currentAttribute.type),
           count: 1,
@@ -447,7 +460,7 @@ const AttributeDesigner: React.FC<Props> = ({
         previewTimerRef.current = null;
       }
     };
-  }, [currentAttribute?.id, currentAttribute?.type, currentAttribute?.code, currentAttribute?.suggestedCode, enumPreviewSignature, currentNode?.code]);
+  }, [currentAttribute?.id, currentAttribute?.type, currentAttribute?.code, currentAttribute?.suggestedCode, currentBusinessDomain, enumPreviewSignature, currentNode?.code]);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -545,7 +558,10 @@ const AttributeDesigner: React.FC<Props> = ({
     attribute: AttributeItem,
     options?: { saveAndNext?: boolean },
   ) => {
-      if (!currentNode?.code) return;
+      if (!currentNode?.code || !currentBusinessDomain) {
+        messageApi.error("缺少业务领域上下文，无法保存属性");
+        return;
+      }
       
       const isNew = attribute.id.startsWith("new_attr_");
       const attributeManualOverride = isNew && allowManualCodeOverride && isManualCodeOverride(attribute.code, attribute.suggestedCode);
@@ -592,10 +608,10 @@ const AttributeDesigner: React.FC<Props> = ({
       try {
             let savedDetail: MetaAttributeDefDetailDto;
           if (isNew) {
-              savedDetail = await metaAttributeApi.createAttribute(currentNode.code, dto);
+          savedDetail = await metaAttributeApi.createAttribute(currentBusinessDomain, currentNode.code, dto);
               messageApi.success("Created successfully");
           } else {
-              savedDetail = await metaAttributeApi.updateAttribute(attribute.code, currentNode.code, dto);
+          savedDetail = await metaAttributeApi.updateAttribute(attribute.code, currentBusinessDomain, currentNode.code, dto);
               messageApi.success("Updated successfully");
           }
 
@@ -604,7 +620,12 @@ const AttributeDesigner: React.FC<Props> = ({
           );
 
           const targetId = nextUnsavedNewId || savedDetail.key;
-          await loadAttributes(currentNode.code, targetId, remainingUnsavedItems.filter((item) => isNewAttributeId(item.id)));
+          await loadAttributes(
+            currentNode.code,
+            currentBusinessDomain,
+            targetId,
+            remainingUnsavedItems.filter((item) => isNewAttributeId(item.id)),
+          );
 
           if (nextUnsavedNewId) {
             setSelectedAttributeId(nextUnsavedNewId);
@@ -623,8 +644,10 @@ const AttributeDesigner: React.FC<Props> = ({
           let errorMsg = e.message || e.error || "Operation failed";
           
           // User-friendly error message translation
-          if (errorMsg.includes("attribute already exists")) {
-            errorMsg = `保存失败：属性编码 "${attribute.code}" 已存在，请使用其他编码。`;
+          if (errorMsg.includes("attribute code already exists in business domain") || errorMsg.includes("attribute already exists")) {
+            errorMsg = `保存失败：属性编码在当前业务领域内已存在，请使用其他编码。`;
+          } else if (errorMsg.includes("enum option code already exists in business domain")) {
+            errorMsg = "保存失败：枚举值编码在当前业务领域内已存在，请调整后重试。";
           } else if (errorMsg.includes("INVALID_ARGUMENT")) {
             errorMsg = `参数错误：${errorMsg}`;
           } else {
@@ -658,14 +681,18 @@ const AttributeDesigner: React.FC<Props> = ({
         }
 
         // If it's a real backend attribute
-        if (!currentNode?.code) return;
+        if (!currentNode?.code || !currentBusinessDomain) {
+          messageApi.error("缺少业务领域上下文，无法删除属性");
+          return;
+        }
 
         try {
-          await metaAttributeApi.deleteAttribute(attribute.code, currentNode.code);
+          await metaAttributeApi.deleteAttribute(attribute.code, currentBusinessDomain, currentNode.code);
           messageApi.success("删除成功 (Deleted)");
           // Refresh list
           loadAttributes(
             currentNode.code,
+            currentBusinessDomain,
             undefined,
             dataSource.filter((item) => isNewAttributeId(item.id)),
           );

@@ -452,6 +452,15 @@ const AttributeList: React.FC<AttributeListProps> = ({
     });
   }, [selectedRowKeys]);
 
+  const handleCheckableToggle = useCallback(() => {
+    const nextCheckableEnabled = !checkableEnabled;
+    setCheckableEnabled(nextCheckableEnabled);
+
+    if (!nextCheckableEnabled && selectedRowKeys.length > 1) {
+      emitSelectionChange(activeAttributeId ? [activeAttributeId] : [], activeAttributeId);
+    }
+  }, [activeAttributeId, checkableEnabled, selectedRowKeys]);
+
   const toolbarState = useMemo<BaseToolbarState>(() => ({
     checkableEnabled,
     checkedKeys: selectedRowKeys,
@@ -461,16 +470,8 @@ const AttributeList: React.FC<AttributeListProps> = ({
     onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => onSearchTextChange(e.target.value),
     onSearchVisibilityChange: setSearchExpanded,
     onSearchClear: () => onSearchTextChange(''),
-    onCheckableToggle: () => {
-      setCheckableEnabled((prev) => {
-        const next = !prev;
-        if (!next && selectedRowKeys.length > 1) {
-          emitSelectionChange(activeAttributeId ? [activeAttributeId] : [], activeAttributeId);
-        }
-        return next;
-      });
-    },
-  }), [checkableEnabled, onSearchTextChange, searchExpanded, searchText, selectedRowKeys]);
+    onCheckableToggle: handleCheckableToggle,
+  }), [checkableEnabled, handleCheckableToggle, onSearchTextChange, searchExpanded, searchText, selectedRowKeys]);
 
   const primaryActions = useMemo<ToolbarAction[]>(() => [
     {

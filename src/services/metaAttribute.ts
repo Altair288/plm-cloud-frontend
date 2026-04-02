@@ -18,12 +18,14 @@ interface PageResponse<T> {
 }
 
 interface AttributeListParams {
+  businessDomain?: string;
   categoryCode?: string;
   keyword?: string;
   dataType?: string;
   required?: boolean;
   unique?: boolean;
   searchable?: boolean;
+  includeDeleted?: boolean;
   page?: number;
   size?: number;
 }
@@ -41,9 +43,13 @@ export const metaAttributeApi = {
    * 元数据属性详情（最新版本 + 版本摘要）
    * GET /api/meta/attribute-defs/{attrKey}
    */
-  getAttributeDetail: (attrKey: string, includeValues: boolean = false): Promise<MetaAttributeDefDetailDto> => {
+  getAttributeDetail: (
+    attrKey: string,
+    businessDomain: string,
+    includeValues: boolean = false,
+  ): Promise<MetaAttributeDefDetailDto> => {
     return request.get(`/api/meta/attribute-defs/${attrKey}`, {
-      params: { includeValues }
+      params: { businessDomain, includeValues }
     });
   },
 
@@ -51,8 +57,10 @@ export const metaAttributeApi = {
    * 元数据属性版本摘要列表
    * GET /api/meta/attribute-defs/{attrKey}/versions
    */
-  getAttributeVersions: (attrKey: string): Promise<MetaAttributeVersionSummaryDto[]> => {
-    return request.get(`/api/meta/attribute-defs/${attrKey}/versions`);
+  getAttributeVersions: (attrKey: string, businessDomain: string): Promise<MetaAttributeVersionSummaryDto[]> => {
+    return request.get(`/api/meta/attribute-defs/${attrKey}/versions`, {
+      params: { businessDomain },
+    });
   },
 
   /**
@@ -60,12 +68,13 @@ export const metaAttributeApi = {
    * POST /api/meta/attribute-defs
    */
   createAttribute: (
+    businessDomain: string,
     categoryCode: string,
     data: MetaAttributeUpsertRequestDto,
     createdBy?: string
   ): Promise<MetaAttributeDefDetailDto> => {
     return request.post('/api/meta/attribute-defs', data, {
-      params: { categoryCode, createdBy }
+      params: { businessDomain, categoryCode, createdBy }
     });
   },
 
@@ -74,11 +83,12 @@ export const metaAttributeApi = {
    * POST /api/meta/attribute-defs/code-preview
    */
   previewCreateCode: (
+    businessDomain: string | undefined,
     categoryCode: string,
     data: CreateAttributeCodePreviewRequestDto
   ): Promise<CreateAttributeCodePreviewResponseDto> => {
     return request.post('/api/meta/attribute-defs/code-preview', data, {
-      params: { categoryCode }
+      params: { businessDomain, categoryCode }
     });
   },
 
@@ -88,12 +98,13 @@ export const metaAttributeApi = {
    */
   updateAttribute: (
     attrKey: string,
+    businessDomain: string,
     categoryCode: string,
     data: MetaAttributeUpsertRequestDto,
     createdBy?: string
   ): Promise<MetaAttributeDefDetailDto> => {
     return request.put(`/api/meta/attribute-defs/${attrKey}`, data, {
-      params: { categoryCode, createdBy }
+      params: { businessDomain, categoryCode, createdBy }
     });
   },
 
@@ -101,12 +112,16 @@ export const metaAttributeApi = {
    * 导入元数据属性（Excel）
    * POST /api/meta/attributes/import
    */
-  importAttributes: (file: File, createdBy: string = 'system'): Promise<AttributeImportSummaryDto> => {
+  importAttributes: (
+    businessDomain: string,
+    file: File,
+    createdBy: string = 'system',
+  ): Promise<AttributeImportSummaryDto> => {
     const formData = new FormData();
     formData.append('file', file);
     
     return request.post('/api/meta/attributes/import', formData, {
-      params: { createdBy },
+      params: { businessDomain, createdBy },
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -117,9 +132,14 @@ export const metaAttributeApi = {
    * 删除元数据属性（软删）
    * DELETE /api/meta/attribute-defs/{attrKey}
    */
-  deleteAttribute: (attrKey: string, categoryCode: string, createdBy?: string): Promise<void> => {
+  deleteAttribute: (
+    attrKey: string,
+    businessDomain: string,
+    categoryCode: string,
+    createdBy?: string,
+  ): Promise<void> => {
     return request.delete(`/api/meta/attribute-defs/${attrKey}`, {
-      params: { categoryCode, createdBy }
+      params: { businessDomain, categoryCode, createdBy }
     });
   }
 };

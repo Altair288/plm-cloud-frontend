@@ -53,7 +53,7 @@ const ROOT_DROP_TARGET_DROPPABLE_ID = `tgt-${ROOT_DROP_TARGET_KEY}`;
 const DEFAULT_COPY_OPTIONS = {
   versionPolicy: "CURRENT_ONLY" as const,
   codePolicy: "AUTO_SUFFIX" as const,
-  namePolicy: "KEEP" as const,
+  namePolicy: "AUTO_SUFFIX" as const,
   defaultStatus: "DRAFT" as const,
 };
 const DEFAULT_DRAG_OVERLAY_DROP_ANIMATION = {
@@ -1328,7 +1328,10 @@ export default function TransferWorkspace({
       title: `${index + 1}. ${operation.sourceNode.title} -> ${getNodeDisplayTitle(
         operation.targetKey == null ? null : String(operation.targetKey),
       )}`,
-      detail: actionType === "copy" ? "复制后保留原节点" : "等待执行",
+      detail:
+        actionType === "copy"
+          ? "复制后保留原节点，编码与名称冲突默认自动派生后缀"
+          : "等待执行",
     }));
   };
 
