@@ -72,6 +72,72 @@ export interface WorkbookImportPreviewRow {
 
 export type WorkbookImportPreviewEntityFilter = 'CATEGORY' | 'ATTRIBUTE' | 'ENUM_OPTION';
 
+const ISSUE_FIELD_LABELS: Record<string, string> = {
+  Attribute_Field: '属性字段名',
+  attributeField: '属性字段名',
+  Attribute_Key: '属性编码',
+  attributeKey: '属性编码',
+  Attribute_Name: '属性名称',
+  attributeName: '属性名称',
+  Business_Domain: '业务域',
+  businessDomain: '业务域',
+  Category_Code: '分类编码',
+  categoryCode: '分类编码',
+  Category_Name: '分类名称',
+  categoryName: '分类名称',
+  Category_Path: '分类路径',
+  categoryPath: '分类路径',
+  Data_Type: '数据类型',
+  dataType: '数据类型',
+  displayLabel: '显示名称',
+  excelReferenceCode: 'Excel 参考编码',
+  file: '文件',
+  importSessionId: '导入会话',
+  key: '编码',
+  Option_Code: '枚举值编码',
+  optionCode: '枚举值编码',
+  Option_Name: '枚举值名称',
+  optionName: '枚举值名称',
+  Parent_Code: '父级分类编码',
+  parentCode: '父级分类编码',
+  Parent_Path: '父级分类路径',
+  parentPath: '父级分类路径',
+  resolvedFinalCode: '最终编码',
+  resolvedFinalPath: '最终路径',
+  rowNumber: '行号',
+  sheetName: '工作表',
+  unique: '是否唯一',
+  Unique: '是否唯一',
+};
+
+const ISSUE_TEXT_REPLACEMENTS = Object.entries(ISSUE_FIELD_LABELS).sort(
+  (left, right) => right[0].length - left[0].length,
+);
+
+const escapeRegExp = (value: string): string => {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+const translateIssueText = (value: string | null | undefined): string => {
+  if (!value) {
+    return '';
+  }
+
+  return ISSUE_TEXT_REPLACEMENTS.reduce((current, [source, target]) => {
+    return current.replace(new RegExp(escapeRegExp(source), 'g'), target);
+  }, value.trim());
+};
+
+const formatIssueColumnName = (columnName: string | null | undefined): string | null => {
+  const translated = translateIssueText(columnName);
+  return translated || null;
+};
+
+const formatIssueSuggestion = (expectedRule: string | null | undefined): string | null => {
+  const translated = translateIssueText(expectedRule).replace(/^建议\s*/u, '').trim();
+  return translated || null;
+};
+
 const resolveIssueLevel = (issues: WorkbookImportIssueDto[]): WorkbookImportIssueLevel | null => {
   if (issues.some((issue) => issue.level === 'ERROR')) {
     return 'ERROR';
@@ -84,9 +150,22 @@ const resolveIssueLevel = (issues: WorkbookImportIssueDto[]): WorkbookImportIssu
 
 const collectIssueMessages = (issues: WorkbookImportIssueDto[]): string[] => {
   return issues.map((issue) => {
-    const location = issue.columnName ? `${issue.columnName}: ` : '';
-    const suggestion = issue.expectedRule ? `（建议：${issue.expectedRule}）` : '';
-    return `${location}${issue.message}${suggestion}`;
+    const fieldLabel = formatIssueColumnName(issue.columnName);
+    const message = translateIssueText(issue.message) || '存在问题';
+    const rawValue = issue.rawValue?.trim();
+    const suggestion = formatIssueSuggestion(issue.expectedRule);
+
+    let result = fieldLabel ? `${fieldLabel}：${message}` : message;
+
+    if (rawValue) {
+      result += `；当前值：${rawValue}`;
+    }
+
+    if (suggestion) {
+      result += `；处理建议：${suggestion}`;
+    }
+
+    return result;
   });
 };
 
@@ -160,11 +239,11 @@ export const getPreviewRowCount = (
 
   switch (entityType) {
     case 'CATEGORY':
-      return dryRunResult.preview.categories.length;
+      return dryRunResult.previewPage?.totalElements ?? dryRunResult.summary.categoryRowCount;
     case 'ATTRIBUTE':
-      return dryRunResult.preview.attributes.length;
+      return dryRunResult.previewPage?.totalElements ?? dryRunResult.summary.attributeRowCount;
     case 'ENUM_OPTION':
-      return dryRunResult.preview.enumOptions.length;
+      return dryRunResult.previewPage?.totalElements ?? dryRunResult.summary.enumRowCount;
     default:
       return 0;
   }
@@ -173,25 +252,20 @@ export const getPreviewRowCount = (
 export const mapDryRunPreviewRowsPage = (
   dryRunResult: WorkbookImportDryRunResponseDto | null,
   entityType: WorkbookImportPreviewEntityFilter,
-  page: number,
-  pageSize: number,
+  _page: number,
+  _pageSize: number,
 ): WorkbookImportPreviewRow[] => {
   if (!dryRunResult) {
     return [];
   }
 
-  const safePage = Math.max(page, 1);
-  const safePageSize = Math.max(pageSize, 1);
-  const start = (safePage - 1) * safePageSize;
-  const end = start + safePageSize;
-
   switch (entityType) {
     case 'CATEGORY':
-      return dryRunResult.preview.categories.slice(start, end).map(mapCategoryPreviewRow);
+      return dryRunResult.preview.categories.map(mapCategoryPreviewRow);
     case 'ATTRIBUTE':
-      return dryRunResult.preview.attributes.slice(start, end).map(mapAttributePreviewRow);
+      return dryRunResult.preview.attributes.map(mapAttributePreviewRow);
     case 'ENUM_OPTION':
-      return dryRunResult.preview.enumOptions.slice(start, end).map(mapEnumPreviewRow);
+      return dryRunResult.preview.enumOptions.map(mapEnumPreviewRow);
     default:
       return [];
   }

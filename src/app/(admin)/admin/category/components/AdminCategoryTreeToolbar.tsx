@@ -1,20 +1,16 @@
 import React from "react";
 import { theme } from "antd";
-import type { MenuProps } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
   CopyOutlined,
   ImportOutlined,
   ExportOutlined,
-  MoreOutlined,
   SwapOutlined,
 } from "@ant-design/icons";
 import type { CategoryTreeToolbarState } from "@/features/category/CategoryTree";
 import BaseToolbar, { type ToolbarAction } from "@/components/TreeToolbar/BaseToolbar";
-import {
-  TOOLBAR_ACTIONS_EXPANDED_WIDTH,
-} from "@/components/TreeToolbar/treeToolbarStyles";
+import { TOOLBAR_ACTIONS_EXPANDED_WIDTH } from "@/components/TreeToolbar/treeToolbarStyles";
 
 export interface AdminCategoryTreeToolbarProps {
   searchPlaceholder?: string;
@@ -25,13 +21,11 @@ export interface AdminCategoryTreeToolbarProps {
   onCut: () => void;
   onCopy: () => void;
   onImport?: () => void;
+  onExport?: () => void;
   toolbarState: CategoryTreeToolbarState;
 }
 
-const moreMenuItems: MenuProps["items"] = [
-  { key: "import", label: "导入", icon: <ImportOutlined /> },
-  { key: "export", label: "导出", icon: <ExportOutlined /> },
-];
+const CATEGORY_BATCH_ACTIONS_EXPANDED_WIDTH = TOOLBAR_ACTIONS_EXPANDED_WIDTH + 36;
 
 const AdminCategoryTreeToolbar: React.FC<AdminCategoryTreeToolbarProps> = ({
   searchPlaceholder,
@@ -42,15 +36,10 @@ const AdminCategoryTreeToolbar: React.FC<AdminCategoryTreeToolbarProps> = ({
   onCut,
   onCopy,
   onImport,
+  onExport,
   toolbarState,
 }) => {
   const { token } = theme.useToken();
-
-  const handleMoreMenuClick = (info: { key: string }) => {
-    if (info.key === 'import') {
-      onImport?.();
-    }
-  };
 
   const primaryActions: ToolbarAction[] = [
     {
@@ -60,16 +49,16 @@ const AdminCategoryTreeToolbar: React.FC<AdminCategoryTreeToolbarProps> = ({
       onClick: onAdd,
       variant: "primary",
     },
+    {
+      key: "import",
+      icon: <ImportOutlined />,
+      tooltip: "导入",
+      onClick: onImport,
+      variant: "neutral",
+    },
   ];
 
   const batchActions: ToolbarAction[] = [
-    {
-      key: "delete",
-      icon: <DeleteOutlined />,
-      tooltip: "删除",
-      onClick: onDelete,
-      variant: "danger",
-    },
     {
       key: "move",
       icon: <SwapOutlined />,
@@ -84,16 +73,18 @@ const AdminCategoryTreeToolbar: React.FC<AdminCategoryTreeToolbarProps> = ({
       onClick: onCopy,
       variant: "neutral",
     },
-  ];
-
-  const trailingActions: ToolbarAction[] = [
     {
-      key: "more",
-      type: "dropdown",
-      icon: <MoreOutlined />,
-      tooltip: "更多操作",
-      menuItems: moreMenuItems,
-      onMenuClick: handleMoreMenuClick,
+      key: "delete",
+      icon: <DeleteOutlined />,
+      tooltip: "删除",
+      onClick: onDelete,
+      variant: "danger",
+    },
+    {
+      key: "export",
+      icon: <ExportOutlined />,
+      tooltip: "导出已选分类",
+      onClick: onExport,
       variant: "neutral",
     },
   ];
@@ -104,10 +95,9 @@ const AdminCategoryTreeToolbar: React.FC<AdminCategoryTreeToolbarProps> = ({
       searchPlaceholder={searchPlaceholder}
       showCheckableToggle={showCheckableToggle}
       batchActionsVisible={hasCheckedNodes}
-      batchActionsExpandedWidth={TOOLBAR_ACTIONS_EXPANDED_WIDTH}
+      batchActionsExpandedWidth={CATEGORY_BATCH_ACTIONS_EXPANDED_WIDTH}
       primaryActions={primaryActions}
       batchActions={batchActions}
-      trailingActions={trailingActions}
     />
   );
 };

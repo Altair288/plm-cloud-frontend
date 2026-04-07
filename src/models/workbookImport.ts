@@ -101,6 +101,19 @@ export interface WorkbookImportDryRunResponseDto {
   };
   issues: WorkbookImportIssueDto[];
   createdAt: string;
+  previewEntityType?: 'CATEGORY' | 'ATTRIBUTE' | 'ENUM_OPTION' | null;
+  previewPage?: {
+    number: number;
+    size: number;
+    totalPages: number;
+    totalElements: number;
+  } | null;
+}
+
+export interface WorkbookImportDryRunResultPageQueryParams {
+  entityType: 'CATEGORY' | 'ATTRIBUTE' | 'ENUM_OPTION';
+  page: number;
+  size: number;
 }
 
 export interface WorkbookImportChangeCounterDto {

@@ -2,6 +2,7 @@ import { API_BASE_URL } from '@/config';
 import request from './request';
 import type {
   WorkbookImportDryRunOptionsDto,
+  WorkbookImportDryRunResultPageQueryParams,
   WorkbookImportDryRunResponseDto,
   WorkbookImportDryRunStartResponseDto,
   WorkbookImportJobStatusDto,
@@ -12,6 +13,7 @@ import type {
 
 export type {
   WorkbookImportDryRunOptionsDto,
+  WorkbookImportDryRunResultPageQueryParams,
   WorkbookImportDryRunResponseDto,
   WorkbookImportDryRunStartResponseDto,
   WorkbookImportEntityProgressDto,
@@ -53,6 +55,10 @@ const createMultipartFormData = (
 };
 
 const buildWorkbookStreamUrl = (path: string): string => {
+  if (typeof window !== 'undefined') {
+    return path;
+  }
+
   const baseUrl = normalizeBaseUrl(API_BASE_URL);
   return baseUrl ? `${baseUrl}${path}` : path;
 };
@@ -99,6 +105,13 @@ export const workbookImportApi = {
 
   getDryRunResult(jobId: string): Promise<WorkbookImportDryRunResponseDto> {
     return request.get(`${WORKBOOK_IMPORT_BASE}/dry-run-jobs/${encodeURIComponent(jobId)}/result`);
+  },
+
+  getDryRunResultPage(
+    jobId: string,
+    params: WorkbookImportDryRunResultPageQueryParams,
+  ): Promise<WorkbookImportDryRunResponseDto> {
+    return request.get(`${WORKBOOK_IMPORT_BASE}/dry-run-jobs/${encodeURIComponent(jobId)}/result`, { params });
   },
 
   listDryRunJobLogs(
