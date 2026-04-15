@@ -1,5 +1,6 @@
-import axios from 'axios';
+import axios, { AxiosHeaders } from 'axios';
 import { API_BASE_URL } from '@/config';
+import { readPersistedAuthSnapshot } from '@/utils/authStorage';
 
 const baseURL = API_BASE_URL;
 
@@ -9,7 +10,21 @@ export const request = axios.create({
 });
 
 request.interceptors.request.use((config) => {
-  // TODO: attach auth token
+  const authSnapshot = readPersistedAuthSnapshot();
+  const mergedHeaders = config.headers instanceof AxiosHeaders
+    ? config.headers
+    : new AxiosHeaders(config.headers ?? {});
+
+  if (authSnapshot.platformAuth.platformTokenName && authSnapshot.platformAuth.platformToken) {
+    mergedHeaders.set(authSnapshot.platformAuth.platformTokenName, authSnapshot.platformAuth.platformToken);
+  }
+
+  if (authSnapshot.workspaceSession.workspaceTokenName && authSnapshot.workspaceSession.workspaceToken) {
+    mergedHeaders.set(authSnapshot.workspaceSession.workspaceTokenName, authSnapshot.workspaceSession.workspaceToken);
+  }
+
+  config.headers = mergedHeaders;
+
   return config;
 });
 

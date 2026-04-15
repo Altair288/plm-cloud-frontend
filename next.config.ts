@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
         source: "/api/:path*",
         destination: `${apiBaseUrl}/api/:path*`,
       },
+      {
+        source: "/auth/:path*",
+        destination: `${apiBaseUrl}/auth/:path*`,
+      },
     ];
   },
   transpilePackages: [

@@ -1,13 +1,15 @@
 'use client';
 
-import { Form, Input, Button, Typography, Checkbox, Divider } from "antd";
-import { useState } from "react";
+import { Form, Input, Button, Typography, Checkbox, Divider, message } from "antd";
+import { useEffect, useState } from "react";
 import "./login.css";
 import { ArrowRightOutlined, GoogleOutlined, GithubOutlined, QuestionCircleOutlined, LeftOutlined } from "@ant-design/icons";
 import Illustration from "@/assets/illustration-final.svg";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { authApi, isAuthErrorResponse } from '@/services/auth';
+import { persistPlatformAuthState } from '@/utils/authStorage';
 
 const { Title, Text } = Typography;
 
@@ -20,23 +22,83 @@ interface LoginFormValuesStep2 extends LoginFormValuesStep1 {
 }
 
 export default function LoginPage() {
+  const [stepOneForm] = Form.useForm<LoginFormValuesStep1>();
+  const [stepTwoForm] = Form.useForm<LoginFormValuesStep2>();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [plmIdCache, setPlmIdCache] = useState('');
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const initialIdentifier = searchParams.get('identifier')?.trim();
+    if (!initialIdentifier) {
+      return;
+    }
+
+    setPlmIdCache(initialIdentifier);
+    stepOneForm.setFieldsValue({ plmId: initialIdentifier });
+  }, [searchParams, stepOneForm]);
 
   const handleStep1Finish = ({ plmId }: LoginFormValuesStep1) => {
     setPlmIdCache(plmId.trim());
     setStep(2);
+    stepTwoForm.setFieldsValue({ remember: true });
   };
 
   const handleLogin = async (values: LoginFormValuesStep2) => {
     setLoading(true);
-    console.log("Login submit:", values);
-    await new Promise((r) => setTimeout(r, 800));
-    setLoading(false);
-    // 实际认证逻辑，成功后跳转 dashboard
-    router.push('/dashboard');
+
+    try {
+      const response = await authApi.loginWithPassword({
+        identifier: plmIdCache,
+        password: values.password,
+      });
+
+      persistPlatformAuthState(
+        {
+          platformToken: response.platformToken,
+          platformTokenName: response.platformTokenName,
+          user: response.user,
+        },
+        {
+          remember: values.remember,
+          resetWorkspace: true,
+        },
+      );
+
+      if (response.workspaceOptions.length > 0 || response.defaultWorkspace || response.currentWorkspace) {
+        message.success('登录成功，平台登录态已建立。Workspace 切换将在后续接入。');
+      } else {
+        message.success('登录成功。当前账号尚未接入 Workspace 流程。');
+      }
+
+      router.push('/dashboard');
+    } catch (error) {
+      if (isAuthErrorResponse(error)) {
+        if (error.code === 'AUTH_INVALID_CREDENTIALS') {
+          stepTwoForm.setFields([{ name: 'password', errors: ['用户名、邮箱、手机号或密码错误'] }]);
+          return;
+        }
+
+        if (error.code === 'ACCOUNT_NOT_ACTIVE') {
+          message.error('账号当前不可登录，请联系管理员。');
+          return;
+        }
+
+        if (error.code === 'INVALID_ARGUMENT') {
+          message.error(error.message || '请输入完整的登录信息');
+          return;
+        }
+
+        message.error(error.message || '登录失败，请稍后重试');
+        return;
+      }
+
+      message.error('登录失败，请稍后重试');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -61,6 +123,7 @@ export default function LoginPage() {
 
               {step === 1 && (
                 <Form
+                  form={stepOneForm}
                   layout="vertical"
                   onFinish={handleStep1Finish}
                   autoComplete="off"
@@ -72,7 +135,7 @@ export default function LoginPage() {
                     rules={[{ required: true, message: "请输入PLM Cloud Platform ID" }]}
                   >
                     <Input
-                      placeholder=""
+                      placeholder="用户名、邮箱或手机号"
                       size="large"
                       className="ibm-input"
                     />
@@ -117,9 +180,10 @@ export default function LoginPage() {
               )}
               {step === 2 && (
                 <Form
+                  form={stepTwoForm}
                   layout="vertical"
                   onFinish={handleLogin}
-                  initialValues={{ plmId: plmIdCache }}
+                  initialValues={{ remember: true }}
                   autoComplete="off"
                   className="ibm-login-form"
                 >
@@ -157,7 +221,7 @@ export default function LoginPage() {
                       loading={loading}
                       className="ibm-continue-btn"
                       icon={<ArrowRightOutlined />}
-                      iconPosition="end"
+                      iconPlacement="end"
                     >
                       登录
                     </Button>

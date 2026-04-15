@@ -55,14 +55,25 @@ description: PLM Cloud 前后端接口对接标准规范（Next.js + TypeScript 
 - 字典 API：`../plm-cloud-platform/api-document/api-specification-documentation/dictionary-api.md`
 - 编码规则 API：`../plm-cloud-platform/api-document/api-specification-documentation/code-rule-api.md`
 - workbook导出 API：`../plm-cloud-platform/api-document/api-specification-documentation/workbook-export-api.md`
+- auth服务 API：`../plm-cloud-platform/1. system-document/system-user-api-document/auth-service-frontend-integration.md`
 
 ### 2.6 后端代码（副参考）
 
+#### plm-attribute-service相关
 - controller 层：`../plm-cloud-platform/plm-attribute-service/src/main/java/com/plm/attribute/version/controller`
 - service 层：`../plm-cloud-platform/plm-attribute-service/src/main/java/com/plm/attribute/version/service`
 - dto 层：`../plm-cloud-platform/plm-common/src/main/java/com/plm/common/api/dto`
 - domain 层：`../plm-cloud-platform/plm-common/src/main/java/com/plm/common/version/domain`
 - repository 层：`../plm-cloud-platform/plm-infrastructure/src/main/java/com/plm/infrastructure/version/repository`
+
+#### plm-auth-service相关
+
+- controller 层：`../plm-cloud-platform/plm-auth-service/src/main/java/com/plm/auth/controller`
+- service 层：`../plm-cloud-platform/plm-auth-service/src/main/java/com/plm/auth/service`
+- dto 层：`../plm-cloud-platform/plm-common/src/main/java/com/plm/common/api/dto/auth`
+- domain 层：`../plm-cloud-platform/plm-common/src/main/java/com/plm/common/domain/auth`
+- repository 层：`../plm-cloud-platform/plm-infrastructure/src/main/java/com/plm/infrastructure/repository/auth`
+
 ## 3. 标准对接流程（必须按顺序执行）
 
 1. 明确业务场景与接口能力
