@@ -11,6 +11,7 @@ import type {
   AuthRequestHeaders,
   AuthSendRegisterEmailCodeRequestDto,
   AuthSendRegisterEmailCodeResponseDto,
+  AuthWorkspaceBootstrapOptionsDto,
   AuthSwitchWorkspaceRequestDto,
   AuthWorkspaceSessionDto,
   AuthWorkspaceSummaryDto,
@@ -30,6 +31,8 @@ export type {
   AuthRequestHeaders,
   AuthSendRegisterEmailCodeRequestDto,
   AuthSendRegisterEmailCodeResponseDto,
+  AuthWorkspaceBootstrapOptionsDto,
+  AuthWorkspaceDictionaryOptionDto,
   AuthSwitchWorkspaceRequestDto,
   AuthUserStatus,
   AuthWorkspaceMemberStatus,
@@ -76,6 +79,10 @@ export const isAuthErrorResponse = (error: unknown): error is AuthErrorResponseD
 };
 
 export const authApi = {
+  getWorkspaceBootstrapOptions(): Promise<AuthWorkspaceBootstrapOptionsDto> {
+    return request.get(`${AUTH_PUBLIC_BASE}/workspace-bootstrap-options`);
+  },
+
   sendRegisterEmailCode(
     data: AuthSendRegisterEmailCodeRequestDto,
   ): Promise<AuthSendRegisterEmailCodeResponseDto> {

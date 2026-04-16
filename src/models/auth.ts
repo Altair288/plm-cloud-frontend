@@ -6,7 +6,7 @@ export type AuthWorkspaceStatus = OpenEndedUnion<'ACTIVE' | 'INACTIVE' | 'FROZEN
 
 export type AuthWorkspaceMemberStatus = OpenEndedUnion<'ACTIVE' | 'INACTIVE'>;
 
-export type AuthWorkspaceType = OpenEndedUnion<'DEFAULT'>;
+export type AuthWorkspaceType = OpenEndedUnion<'TEAM' | 'PERSONAL' | 'LEARNING'>;
 
 export type AuthErrorCode = OpenEndedUnion<
   | 'INVALID_ARGUMENT'
@@ -23,7 +23,6 @@ export type AuthErrorCode = OpenEndedUnion<
   | 'EMAIL_VERIFICATION_DISABLED'
   | 'EMAIL_VERIFICATION_NOT_CONFIGURED'
   | 'USER_NOT_ACTIVE'
-  | 'WORKSPACE_CODE_ALREADY_EXISTS'
   | 'WORKSPACE_MEMBER_NOT_FOUND'
   | 'WORKSPACE_MEMBER_INACTIVE'
   | 'WORKSPACE_NOT_FOUND'
@@ -58,9 +57,26 @@ export interface AuthWorkspaceSummaryDto {
   workspaceCode: string;
   workspaceName: string;
   workspaceStatus: AuthWorkspaceStatus;
+  workspaceType: AuthWorkspaceType;
+  defaultLocale: string;
+  defaultTimezone: string;
   workspaceMemberId: string;
   memberStatus: AuthWorkspaceMemberStatus;
   isDefaultWorkspace: boolean;
+}
+
+export interface AuthWorkspaceDictionaryOptionDto {
+  code: string;
+  label: string;
+  description?: string | null;
+  sortOrder: number;
+  isDefault: boolean;
+}
+
+export interface AuthWorkspaceBootstrapOptionsDto {
+  workspaceTypes: AuthWorkspaceDictionaryOptionDto[];
+  locales: AuthWorkspaceDictionaryOptionDto[];
+  timezones: AuthWorkspaceDictionaryOptionDto[];
 }
 
 export interface AuthWorkspaceSessionDto {
@@ -69,6 +85,9 @@ export interface AuthWorkspaceSessionDto {
   workspaceId: string;
   workspaceCode: string;
   workspaceName: string;
+  workspaceType: AuthWorkspaceType;
+  defaultLocale: string;
+  defaultTimezone: string;
   workspaceMemberId: string;
   roleCodes: string[];
 }
@@ -134,7 +153,6 @@ export interface AuthListWorkspacesResponseDto extends Array<AuthWorkspaceSummar
 
 export interface AuthCreateWorkspaceRequestDto {
   workspaceName: string;
-  workspaceCode: string;
   workspaceType: AuthWorkspaceType;
   defaultLocale: string;
   defaultTimezone: string;
@@ -158,6 +176,9 @@ export interface WorkspaceSessionState {
   workspaceId: string | null;
   workspaceCode: string | null;
   workspaceName: string | null;
+  workspaceType: AuthWorkspaceType | null;
+  defaultLocale: string | null;
+  defaultTimezone: string | null;
   workspaceMemberId: string | null;
   roleCodes: string[];
 }
@@ -174,6 +195,9 @@ export const createEmptyWorkspaceSessionState = (): WorkspaceSessionState => ({
   workspaceId: null,
   workspaceCode: null,
   workspaceName: null,
+  workspaceType: null,
+  defaultLocale: null,
+  defaultTimezone: null,
   workspaceMemberId: null,
   roleCodes: [],
 });

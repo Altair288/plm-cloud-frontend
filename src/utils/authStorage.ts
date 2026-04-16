@@ -1,4 +1,9 @@
-import type { AuthWorkspaceSessionDto, PlatformAuthState, WorkspaceSessionState } from '@/models/auth';
+import type {
+  AuthRequestHeaders,
+  AuthWorkspaceSessionDto,
+  PlatformAuthState,
+  WorkspaceSessionState,
+} from '@/models/auth';
 import { createEmptyPlatformAuthState, createEmptyWorkspaceSessionState } from '@/models/auth';
 
 type AuthPersistence = 'local' | 'session';
@@ -95,7 +100,27 @@ export const persistPlatformAuthState = (
     workspaceSession: options?.resetWorkspace ? createEmptyWorkspaceSessionState() : currentSnapshot.workspaceSession,
   };
 
-  persistAuthSnapshot(nextSnapshot, options?.remember === false ? 'session' : 'local');
+  persistAuthSnapshot(
+    nextSnapshot,
+    options?.remember === undefined
+      ? resolvePersistedAuthPersistence()
+      : options.remember === false
+        ? 'session'
+        : 'local',
+  );
+};
+
+export const mapPersistedAuthSnapshotToHeaders = (
+  snapshot: AuthStorageSnapshot,
+): AuthRequestHeaders => ({
+  platformToken: snapshot.platformAuth.platformToken,
+  platformTokenName: snapshot.platformAuth.platformTokenName,
+  workspaceToken: snapshot.workspaceSession.workspaceToken,
+  workspaceTokenName: snapshot.workspaceSession.workspaceTokenName,
+});
+
+export const readPersistedAuthHeaders = (): AuthRequestHeaders => {
+  return mapPersistedAuthSnapshotToHeaders(readPersistedAuthSnapshot());
 };
 
 export const mapWorkspaceSessionDtoToState = (
@@ -111,6 +136,9 @@ export const mapWorkspaceSessionDtoToState = (
     workspaceId: workspaceSession.workspaceId,
     workspaceCode: workspaceSession.workspaceCode,
     workspaceName: workspaceSession.workspaceName,
+    workspaceType: workspaceSession.workspaceType,
+    defaultLocale: workspaceSession.defaultLocale,
+    defaultTimezone: workspaceSession.defaultTimezone,
     workspaceMemberId: workspaceSession.workspaceMemberId,
     roleCodes: [...workspaceSession.roleCodes],
   };

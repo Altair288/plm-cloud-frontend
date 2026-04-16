@@ -1,17 +1,19 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Checkbox,
   Form,
   Input,
+  message,
   Select,
   Space,
   Typography,
   theme,
 } from 'antd';
 import {
+  ApartmentOutlined,
   ArrowRightOutlined,
   BulbFilled,
   LinkOutlined,
@@ -20,21 +22,24 @@ import {
 import InventoryIcon from '@mui/icons-material/Inventory';
 import PersonIcon from '@mui/icons-material/Person';
 import SchoolIcon from '@mui/icons-material/School';
+import { useRouter } from 'next/navigation';
+import { authApi, isAuthErrorResponse } from '@/services/auth';
+import type {
+  AuthWorkspaceBootstrapOptionsDto,
+  AuthWorkspaceDictionaryOptionDto,
+  AuthWorkspaceType,
+} from '@/models/auth';
+import {
+  mapWorkspaceSessionDtoToState,
+  persistPlatformAuthState,
+  persistWorkspaceSessionState,
+  readPersistedAuthHeaders,
+  readPersistedAuthSnapshot,
+} from '@/utils/authStorage';
 
 const { Title, Text } = Typography;
 
 const TOTAL_STEPS = 3;
-
-const LOCALE_OPTIONS = [
-  { label: '简体中文', value: 'zh-CN' },
-  { label: 'English', value: 'en-US' },
-];
-
-const TIMEZONE_OPTIONS = [
-  { label: 'Asia/Shanghai (UTC+08:00)', value: 'Asia/Shanghai' },
-  { label: 'UTC (UTC+00:00)', value: 'UTC' },
-  { label: 'America/Los_Angeles (UTC-08:00)', value: 'America/Los_Angeles' },
-];
 
 /* ───────── Step Progress Bar ───────── */
 
@@ -74,16 +79,29 @@ const StepProgressBar: React.FC<StepProgressBarProps> = ({ current, total }) => 
 /* ───────── Workspace Type Options (Step 1) ───────── */
 
 interface WorkspaceTypeOption {
-  key: string;
+  key: AuthWorkspaceType;
   icon: React.ReactNode;
   title: string;
   description: string;
 }
 
+const getWorkspaceTypeIcon = (workspaceType: string): React.ReactNode => {
+  switch (workspaceType) {
+    case 'TEAM':
+      return <InventoryIcon style={{ fontSize: 22 }} />;
+    case 'PERSONAL':
+      return <PersonIcon style={{ fontSize: 22 }} />;
+    case 'LEARNING':
+      return <SchoolIcon style={{ fontSize: 22 }} />;
+    default:
+      return <ApartmentOutlined style={{ fontSize: 22 }} />;
+  }
+};
+
 interface WorkspaceTypeCardProps {
   option: WorkspaceTypeOption;
   selected: boolean;
-  onSelect: (key: string) => void;
+  onSelect: (key: AuthWorkspaceType) => void;
 }
 
 const WorkspaceTypeCard: React.FC<WorkspaceTypeCardProps> = ({ option, selected, onSelect }) => {
@@ -151,36 +169,105 @@ interface WorkspaceSetupFormValues {
 
 const WorkspaceCreationOnboarding: React.FC = () => {
   const { token } = theme.useToken();
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
-  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<AuthWorkspaceType | null>(null);
+  const [bootstrapOptions, setBootstrapOptions] = useState<AuthWorkspaceBootstrapOptionsDto | null>(null);
+  const [optionsLoading, setOptionsLoading] = useState(true);
+  const [creatingWorkspace, setCreatingWorkspace] = useState(false);
   const [setupForm] = Form.useForm<WorkspaceSetupFormValues>();
   const [inviteEmails, setInviteEmails] = useState('');
 
+  useEffect(() => {
+    let active = true;
+
+    const persistedHeaders = readPersistedAuthHeaders();
+    if (!persistedHeaders.platformToken || !persistedHeaders.platformTokenName) {
+      message.error('请先登录后再创建工作区。');
+      router.replace('/login');
+      return () => {
+        active = false;
+      };
+    }
+
+    authApi.getWorkspaceBootstrapOptions()
+      .then((response) => {
+        if (!active) {
+          return;
+        }
+
+        setBootstrapOptions(response);
+
+        const defaultType = response.workspaceTypes.find((item) => item.isDefault)?.code as AuthWorkspaceType | undefined;
+        const defaultLocale = response.locales.find((item) => item.isDefault)?.code ?? response.locales[0]?.code;
+        const defaultTimezone = response.timezones.find((item) => item.isDefault)?.code ?? response.timezones[0]?.code;
+
+        if (defaultType) {
+          setSelectedType(defaultType);
+        }
+
+        setupForm.setFieldsValue({
+          defaultLocale,
+          defaultTimezone,
+          rememberAsDefault: true,
+        });
+      })
+      .catch((error) => {
+        if (!active) {
+          return;
+        }
+
+        if (isAuthErrorResponse(error)) {
+          message.error(error.message || '工作区引导选项加载失败，请稍后重试。');
+          return;
+        }
+
+        message.error('工作区引导选项加载失败，请稍后重试。');
+      })
+      .finally(() => {
+        if (active) {
+          setOptionsLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [router, setupForm]);
+
   const workspaceTypeOptions: WorkspaceTypeOption[] = useMemo(
-    () => [
-      {
-        key: 'team',
-        icon: <InventoryIcon style={{ fontSize: 22 }} />,
-        title: '团队工作区',
-        description: '管理产品数据、项目目标、团队协作。',
-      },
-      {
-        key: 'personal',
-        icon: <PersonIcon style={{ fontSize: 22 }} />,
-        title: '个人工作区',
-        description: '管理个人内容，整理思路与资料。',
-      },
-      {
-        key: 'learning',
-        icon: <SchoolIcon style={{ fontSize: 22 }} />,
-        title: '学习 / 研究',
-        description: '笔记、研究和知识整理。',
-      },
-    ],
-    [],
+    () => [...(bootstrapOptions?.workspaceTypes ?? [])]
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .map((option) => ({
+        key: option.code as AuthWorkspaceType,
+        icon: getWorkspaceTypeIcon(option.code),
+        title: option.label,
+        description: option.description ?? '',
+      })),
+    [bootstrapOptions],
   );
 
-  const handleTypeSelect = (key: string) => {
+  const localeOptions = useMemo(
+    () => [...(bootstrapOptions?.locales ?? [])]
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .map((option: AuthWorkspaceDictionaryOptionDto) => ({
+        label: option.label,
+        value: option.code,
+      })),
+    [bootstrapOptions],
+  );
+
+  const timezoneOptions = useMemo(
+    () => [...(bootstrapOptions?.timezones ?? [])]
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .map((option: AuthWorkspaceDictionaryOptionDto) => ({
+        label: option.label,
+        value: option.code,
+      })),
+    [bootstrapOptions],
+  );
+
+  const handleTypeSelect = (key: AuthWorkspaceType) => {
     setSelectedType(key);
   };
 
@@ -196,9 +283,82 @@ const WorkspaceCreationOnboarding: React.FC = () => {
     });
   };
 
-  const handleStep3Finish = () => {
-    // 暂时不接入接口，仅前端页面操作
-    setCurrentStep(2);
+  const handleStep3Finish = async () => {
+    if (!selectedType) {
+      message.error('请先选择工作区类型。');
+      setCurrentStep(0);
+      return;
+    }
+
+    const persistedHeaders = readPersistedAuthHeaders();
+    if (!persistedHeaders.platformToken || !persistedHeaders.platformTokenName) {
+      message.error('登录态已失效，请重新登录。');
+      router.replace('/login');
+      return;
+    }
+
+    const values = await setupForm.validateFields();
+    setCreatingWorkspace(true);
+
+    try {
+      const createdWorkspace = await authApi.createWorkspace(
+        {
+          workspaceName: values.workspaceName.trim(),
+          workspaceType: selectedType,
+          defaultLocale: values.defaultLocale,
+          defaultTimezone: values.defaultTimezone,
+          rememberAsDefault: values.rememberAsDefault,
+        },
+        persistedHeaders,
+      );
+
+      persistWorkspaceSessionState(mapWorkspaceSessionDtoToState(createdWorkspace));
+
+      const meHeaders = {
+        ...persistedHeaders,
+        workspaceToken: createdWorkspace.workspaceToken,
+        workspaceTokenName: createdWorkspace.workspaceTokenName,
+      };
+
+      try {
+        const me = await authApi.getMe(meHeaders);
+        const currentSnapshot = readPersistedAuthSnapshot();
+        persistPlatformAuthState({
+          ...currentSnapshot.platformAuth,
+          user: me.user,
+        });
+      } catch {
+        const currentSnapshot = readPersistedAuthSnapshot();
+        if (currentSnapshot.platformAuth.user) {
+          persistPlatformAuthState({
+            ...currentSnapshot.platformAuth,
+            user: {
+              ...currentSnapshot.platformAuth.user,
+              isFirstLogin: false,
+              workspaceCount: Math.max(1, currentSnapshot.platformAuth.user.workspaceCount),
+            },
+          });
+        }
+      }
+
+      message.success(inviteEmails.trim() ? '工作区已创建，邀请成员功能后续再接入。' : '工作区创建成功。');
+      router.push('/dashboard');
+    } catch (error) {
+      if (isAuthErrorResponse(error)) {
+        if (error.code === 'AUTH_NOT_LOGGED_IN') {
+          message.error('登录态已失效，请重新登录。');
+          router.replace('/login');
+          return;
+        }
+
+        message.error(error.message || '工作区创建失败，请稍后重试。');
+        return;
+      }
+
+      message.error('工作区创建失败，请稍后重试。');
+    } finally {
+      setCreatingWorkspace(false);
+    }
   };
 
   const handleBack = () => {
@@ -234,7 +394,7 @@ const WorkspaceCreationOnboarding: React.FC = () => {
         type="primary"
         size="large"
         block
-        disabled={!selectedType}
+        disabled={!selectedType || optionsLoading || workspaceTypeOptions.length === 0}
         icon={<ArrowRightOutlined />}
         iconPlacement="end"
         onClick={handleStep1Next}
@@ -262,8 +422,6 @@ const WorkspaceCreationOnboarding: React.FC = () => {
         layout="vertical"
         initialValues={{
           workspaceName: '',
-          defaultLocale: 'zh-CN',
-          defaultTimezone: 'Asia/Shanghai',
           rememberAsDefault: true,
         }}
       >
@@ -292,7 +450,7 @@ const WorkspaceCreationOnboarding: React.FC = () => {
             rules={[{ required: true, message: '请选择默认语言' }]}
             style={{ marginBottom: 0 }}
           >
-            <Select size="large" options={LOCALE_OPTIONS} />
+            <Select size="large" options={localeOptions} loading={optionsLoading} />
           </Form.Item>
 
           <Form.Item
@@ -301,7 +459,7 @@ const WorkspaceCreationOnboarding: React.FC = () => {
             rules={[{ required: true, message: '请选择默认时区' }]}
             style={{ marginBottom: 0 }}
           >
-            <Select size="large" options={TIMEZONE_OPTIONS} />
+            <Select size="large" options={timezoneOptions} loading={optionsLoading} />
           </Form.Item>
         </div>
 
@@ -383,9 +541,10 @@ const WorkspaceCreationOnboarding: React.FC = () => {
           size="large"
           icon={<ArrowRightOutlined />}
           iconPlacement="end"
+          loading={creatingWorkspace}
           onClick={handleStep3Finish}
         >
-          继续
+          创建工作区
         </Button>
       </div>
     </div>

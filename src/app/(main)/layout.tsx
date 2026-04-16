@@ -151,7 +151,11 @@ const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
       return;
     }
 
-    if (!snapshot.workspaceSession.workspaceId) {
+    const shouldEnterWorkspaceCreation =
+      snapshot.platformAuth.user?.isFirstLogin === true ||
+      snapshot.platformAuth.user?.workspaceCount === 0;
+
+    if (shouldEnterWorkspaceCreation && !snapshot.workspaceSession.workspaceId) {
       router.replace('/workspace/create');
     }
   }, [pathname, router]);

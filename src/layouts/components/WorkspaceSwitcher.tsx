@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { App, Avatar, Button, Divider, Flex, Popover, Space, Switch, Tag, Typography } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import { App, Avatar, Button, Divider, Empty, Flex, Popover, Space, Spin, Switch, Typography } from 'antd';
 import {
   ApartmentOutlined,
   CheckOutlined,
@@ -9,51 +9,154 @@ import {
   TeamOutlined,
   UserSwitchOutlined,
 } from '@ant-design/icons';
+import { useRouter } from 'next/navigation';
 import type { AppPalette } from '@/styles/colors';
+import { authApi, isAuthErrorResponse } from '@/services/auth';
+import type { AuthWorkspaceSummaryDto } from '@/models/auth';
+import {
+  mapWorkspaceSessionDtoToState,
+  persistWorkspaceSessionState,
+  readPersistedAuthHeaders,
+  readPersistedAuthSnapshot,
+} from '@/utils/authStorage';
 
 interface WorkspaceSwitcherProps {
   palette: AppPalette;
 }
 
-interface WorkspaceOption {
-  id: string;
-  name: string;
-  plan: string;
-  memberCount: number;
-  area: 'PRIVATE' | 'TEAM';
-}
+const formatWorkspaceMeta = (workspace: AuthWorkspaceSummaryDto): string => {
+  return [workspace.workspaceType, workspace.defaultLocale, workspace.defaultTimezone]
+    .filter(Boolean)
+    .join(' · ');
+};
 
-const MOCK_WORKSPACES: WorkspaceOption[] = [
-  {
-    id: 'workspace-rd',
-    name: 'MI SAKA 的工作空间',
-    plan: '免费版 · 1 位成员',
-    memberCount: 1,
-    area: 'PRIVATE',
-  },
-  {
-    id: 'workspace-headquarter',
-    name: 'MI SAKA 的工作空间总部',
-    plan: '团队协作区',
-    memberCount: 12,
-    area: 'TEAM',
-  },
-];
+const createSnapshotWorkspaceSummary = (): AuthWorkspaceSummaryDto | null => {
+  const snapshot = readPersistedAuthSnapshot();
+  if (!snapshot.workspaceSession.workspaceId) {
+    return null;
+  }
+
+  return {
+    workspaceId: snapshot.workspaceSession.workspaceId,
+    workspaceCode: snapshot.workspaceSession.workspaceCode ?? 'workspace',
+    workspaceName: snapshot.workspaceSession.workspaceName ?? '当前工作区',
+    workspaceStatus: 'ACTIVE',
+    workspaceType: snapshot.workspaceSession.workspaceType ?? 'TEAM',
+    defaultLocale: snapshot.workspaceSession.defaultLocale ?? 'zh-CN',
+    defaultTimezone: snapshot.workspaceSession.defaultTimezone ?? 'Asia/Shanghai',
+    workspaceMemberId: snapshot.workspaceSession.workspaceMemberId ?? '',
+    memberStatus: 'ACTIVE',
+    isDefaultWorkspace: false,
+  };
+};
 
 const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({ palette }) => {
   const { message } = App.useApp();
+  const router = useRouter();
+  const initialSnapshot = useMemo(() => readPersistedAuthSnapshot(), []);
+  const snapshotWorkspace = useMemo(() => createSnapshotWorkspaceSummary(), []);
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [currentWorkspaceId, setCurrentWorkspaceId] = useState(MOCK_WORKSPACES[0].id);
+  const [loading, setLoading] = useState(Boolean(initialSnapshot.platformAuth.platformToken));
+  const [switchingWorkspaceId, setSwitchingWorkspaceId] = useState<string | null>(null);
+  const [workspaceOptions, setWorkspaceOptions] = useState<AuthWorkspaceSummaryDto[]>([]);
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(initialSnapshot.workspaceSession.workspaceId);
+  const [accountEmail, setAccountEmail] = useState(initialSnapshot.platformAuth.user?.email ?? null);
   const [newSidebarEnabled, setNewSidebarEnabled] = useState(false);
 
+  useEffect(() => {
+    const persistedHeaders = readPersistedAuthHeaders();
+    if (!persistedHeaders.platformToken || !persistedHeaders.platformTokenName) {
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
+
+    authApi.getMe(persistedHeaders)
+      .then((response) => {
+        if (!active) {
+          return;
+        }
+
+        setWorkspaceOptions(response.workspaceOptions);
+        setAccountEmail(response.user.email);
+
+        if (response.currentWorkspace) {
+          setCurrentWorkspaceId(response.currentWorkspace.workspaceId);
+          persistWorkspaceSessionState(mapWorkspaceSessionDtoToState(response.currentWorkspace));
+          return;
+        }
+
+        setCurrentWorkspaceId(response.defaultWorkspace?.workspaceId ?? response.workspaceOptions[0]?.workspaceId ?? null);
+      })
+      .catch(() => {
+        if (active) {
+          setWorkspaceOptions(snapshotWorkspace ? [snapshotWorkspace] : []);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [snapshotWorkspace]);
+
   const currentWorkspace = useMemo(
-    () => MOCK_WORKSPACES.find((item) => item.id === currentWorkspaceId) ?? MOCK_WORKSPACES[0],
-    [currentWorkspaceId],
+    () => workspaceOptions.find((item) => item.workspaceId === currentWorkspaceId)
+      ?? snapshotWorkspace
+      ?? workspaceOptions[0]
+      ?? null,
+    [currentWorkspaceId, snapshotWorkspace, workspaceOptions],
   );
 
   const triggerActive = open || hovered;
-  const workspaceInitial = currentWorkspace.name.trim().charAt(0).toUpperCase() || 'W';
+  const workspaceInitial = currentWorkspace?.workspaceName.trim().charAt(0).toUpperCase() || 'W';
+
+  const handleWorkspaceSwitch = async (workspaceId: string) => {
+    if (!workspaceId || workspaceId === currentWorkspace?.workspaceId) {
+      setOpen(false);
+      return;
+    }
+
+    const persistedHeaders = readPersistedAuthHeaders();
+    if (!persistedHeaders.platformToken || !persistedHeaders.platformTokenName) {
+      message.error('登录态已失效，请重新登录。');
+      router.push('/login');
+      return;
+    }
+
+    setSwitchingWorkspaceId(workspaceId);
+
+    try {
+      const response = await authApi.switchWorkspace(
+        {
+          workspaceId,
+          rememberAsDefault: false,
+        },
+        persistedHeaders,
+      );
+
+      persistWorkspaceSessionState(mapWorkspaceSessionDtoToState(response));
+      setCurrentWorkspaceId(response.workspaceId);
+      setOpen(false);
+      message.success(`已切换到 ${response.workspaceName}`);
+      router.refresh();
+    } catch (error) {
+      if (isAuthErrorResponse(error)) {
+        message.error(error.message || '工作区切换失败，请稍后重试。');
+        return;
+      }
+
+      message.error('工作区切换失败，请稍后重试。');
+    } finally {
+      setSwitchingWorkspaceId(null);
+    }
+  };
 
   const popoverContent = (
     <div
@@ -85,10 +188,10 @@ const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({ palette }) => {
               />
               <div>
                 <Typography.Text strong style={{ color: palette.textPrimary, display: 'block' }}>
-                  {currentWorkspace.name}
+                  {currentWorkspace?.workspaceName ?? '暂无工作区'}
                 </Typography.Text>
                 <Typography.Text style={{ color: palette.textSecondary, fontSize: 12 }}>
-                  {currentWorkspace.plan}
+                  {currentWorkspace ? formatWorkspaceMeta(currentWorkspace) : '创建或切换工作区'}
                 </Typography.Text>
               </div>
             </Space>
@@ -121,63 +224,75 @@ const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({ palette }) => {
 
         <div style={{ padding: '0 12px 10px' }}>
           <Typography.Text style={{ color: palette.textPrimary }}>
-            misaka25680@gmail.com
+            {accountEmail || '未登录账号'}
           </Typography.Text>
         </div>
 
         <div style={{ padding: '0 8px 8px' }}>
-          {MOCK_WORKSPACES.map((workspace) => {
-            const selected = workspace.id === currentWorkspaceId;
-            return (
-              <button
-                key={workspace.id}
-                type="button"
-                onClick={() => {
-                  setCurrentWorkspaceId(workspace.id);
-                  setOpen(false);
-                  message.success(`已切换到 ${workspace.name}`);
-                }}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                  padding: '10px 12px',
-                  borderRadius: 12,
-                  border: 'none',
-                  background: selected
-                    ? palette.mode === 'dark'
-                      ? 'rgba(15, 98, 254, 0.14)'
-                      : 'rgba(15, 98, 254, 0.08)'
-                    : 'transparent',
-                  color: palette.textPrimary,
-                  cursor: 'pointer',
-                }}
-              >
-                <Space size={10}>
-                  <Avatar
-                    shape="square"
-                    size={28}
-                    style={{
-                      background: workspace.area === 'TEAM' ? '#5b8c00' : '#b85c18',
-                      color: '#fff',
-                      borderRadius: 8,
-                    }}
-                  />
-                  <div style={{ textAlign: 'left' }}>
-                    <Typography.Text style={{ color: palette.textPrimary, display: 'block' }}>
-                      {workspace.name}
-                    </Typography.Text>
-                    <Typography.Text style={{ color: palette.textSecondary, fontSize: 12 }}>
-                      {workspace.plan}
-                    </Typography.Text>
-                  </div>
-                </Space>
-                {selected ? <CheckOutlined style={{ color: palette.menuTextSelected }} /> : null}
-              </button>
-            );
-          })}
+          {loading ? (
+            <div style={{ padding: '24px 0', display: 'flex', justifyContent: 'center' }}>
+              <Spin size="small" />
+            </div>
+          ) : workspaceOptions.length === 0 && !currentWorkspace ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="暂无可用工作区"
+              styles={{ image: { height: 44 }, description: { color: palette.textSecondary } }}
+            />
+          ) : (
+            (workspaceOptions.length > 0 ? workspaceOptions : currentWorkspace ? [currentWorkspace] : []).map((workspace) => {
+              const selected = workspace.workspaceId === currentWorkspaceId;
+              return (
+                <button
+                  key={workspace.workspaceId}
+                  type="button"
+                  onClick={() => void handleWorkspaceSwitch(workspace.workspaceId)}
+                  disabled={switchingWorkspaceId === workspace.workspaceId}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    padding: '10px 12px',
+                    borderRadius: 12,
+                    border: 'none',
+                    background: selected
+                      ? palette.mode === 'dark'
+                        ? 'rgba(15, 98, 254, 0.14)'
+                        : 'rgba(15, 98, 254, 0.08)'
+                      : 'transparent',
+                    color: palette.textPrimary,
+                    cursor: switchingWorkspaceId === workspace.workspaceId ? 'wait' : 'pointer',
+                    opacity: switchingWorkspaceId === workspace.workspaceId ? 0.75 : 1,
+                  }}
+                >
+                  <Space size={10}>
+                    <Avatar
+                      shape="square"
+                      size={28}
+                      style={{
+                        background: workspace.workspaceType === 'TEAM' ? '#5b8c00' : '#b85c18',
+                        color: '#fff',
+                        borderRadius: 8,
+                      }}
+                    >
+                      {workspace.workspaceName.trim().charAt(0).toUpperCase() || 'W'}
+                    </Avatar>
+                    <div style={{ textAlign: 'left' }}>
+                      <Typography.Text style={{ color: palette.textPrimary, display: 'block' }}>
+                        {workspace.workspaceName}
+                      </Typography.Text>
+                      <Typography.Text style={{ color: palette.textSecondary, fontSize: 12 }}>
+                        {formatWorkspaceMeta(workspace)}
+                      </Typography.Text>
+                    </div>
+                  </Space>
+                  {selected ? <CheckOutlined style={{ color: palette.menuTextSelected }} /> : null}
+                </button>
+              );
+            })
+          )}
         </div>
 
         <div style={{ padding: '0 12px 12px' }}>
@@ -185,7 +300,10 @@ const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({ palette }) => {
             type="link"
             icon={<PlusOutlined />}
             style={{ paddingInline: 0, color: palette.menuTextSelected }}
-            onClick={() => message.info('后续在这里接入新建工作空间流程。')}
+            onClick={() => {
+              setOpen(false);
+              router.push('/workspace/create');
+            }}
           >
             新建工作空间
           </Button>
@@ -310,7 +428,7 @@ const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({ palette }) => {
             margin: 0,
           }}
         >
-            {currentWorkspace.name}
+            {currentWorkspace?.workspaceName ?? '选择工作区'}
         </Typography.Text>
         <DownOutlined style={{ color: palette.iconColor, fontSize: 10, flex: '0 0 auto' }} />
       </button>

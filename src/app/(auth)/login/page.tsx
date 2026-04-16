@@ -55,6 +55,12 @@ export default function LoginPage() {
         password: values.password,
       });
 
+      const remember = values.remember !== false;
+      const loginHeaders = {
+        platformToken: response.platformToken,
+        platformTokenName: response.platformTokenName,
+      };
+
       persistPlatformAuthState(
         {
           platformToken: response.platformToken,
@@ -62,27 +68,56 @@ export default function LoginPage() {
           user: response.user,
         },
         {
-          remember: values.remember,
+          remember,
           resetWorkspace: true,
         },
       );
 
+      const shouldCreateWorkspace = response.user.isFirstLogin || response.user.workspaceCount === 0;
+      let resolvedWorkspaceSession = response.currentWorkspace;
+
+      if (!shouldCreateWorkspace && !resolvedWorkspaceSession) {
+        const targetWorkspaceId = response.defaultWorkspace?.workspaceId ?? response.workspaceOptions[0]?.workspaceId;
+
+        if (targetWorkspaceId) {
+          try {
+            resolvedWorkspaceSession = await authApi.switchWorkspace(
+              {
+                workspaceId: targetWorkspaceId,
+                rememberAsDefault: false,
+              },
+              loginHeaders,
+            );
+          } catch (error) {
+            if (isAuthErrorResponse(error)) {
+              message.error(error.message || '登录成功，但默认工作区恢复失败，请稍后在工作区菜单中手动切换。');
+            } else {
+              message.error('登录成功，但默认工作区恢复失败，请稍后在工作区菜单中手动切换。');
+            }
+          }
+        }
+      }
+
       persistWorkspaceSessionState(
-        mapWorkspaceSessionDtoToState(response.currentWorkspace),
+        mapWorkspaceSessionDtoToState(resolvedWorkspaceSession),
         {
-          remember: values.remember,
+          remember,
         },
       );
 
-      const hasWorkspace = response.workspaceOptions.length > 0 || response.defaultWorkspace || response.currentWorkspace;
-
-      if (hasWorkspace) {
-        message.success('登录成功。');
-      } else {
-        message.success('登录成功，请先创建工作区。');
+      if (shouldCreateWorkspace) {
+        message.success(response.user.isFirstLogin ? '登录成功，请先创建第一个工作区。' : '登录成功，当前没有可用工作区，请创建新的工作区。');
+        router.push('/workspace/create');
+        return;
       }
 
-      router.push(hasWorkspace ? '/dashboard' : '/workspace/create');
+      if (resolvedWorkspaceSession) {
+        message.success('登录成功。');
+      } else {
+        message.warning('登录成功，但工作区会话尚未恢复，请在工作区菜单中手动切换或新建工作区。');
+      }
+
+      router.push('/dashboard');
     } catch (error) {
       if (isAuthErrorResponse(error)) {
         if (error.code === 'AUTH_INVALID_CREDENTIALS') {
