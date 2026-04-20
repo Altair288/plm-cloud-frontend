@@ -14,18 +14,28 @@ export interface AuthStorageSnapshot {
 }
 
 const AUTH_STORAGE_KEY = 'plm-auth-snapshot';
+const AUTH_PERSISTENCE_KEY = 'plm-auth-persistence';
+const AUTH_SESSION_COOKIE_KEY = 'plm-auth-session-active';
 
 const createEmptyAuthStorageSnapshot = (): AuthStorageSnapshot => ({
   platformAuth: createEmptyPlatformAuthState(),
   workspaceSession: createEmptyWorkspaceSessionState(),
 });
 
-const getStorage = (persistence: AuthPersistence): Storage | null => {
+const getLocalStorage = (): Storage | null => {
   if (typeof window === 'undefined') {
     return null;
   }
 
-  return persistence === 'local' ? window.localStorage : window.sessionStorage;
+  return window.localStorage;
+};
+
+const getLegacySessionStorage = (): Storage | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return window.sessionStorage;
 };
 
 const parseAuthStorageSnapshot = (rawValue: string | null): AuthStorageSnapshot | null => {
@@ -50,41 +60,113 @@ const parseAuthStorageSnapshot = (rawValue: string | null): AuthStorageSnapshot 
   }
 };
 
-const readStorageSnapshot = (persistence: AuthPersistence): AuthStorageSnapshot | null => {
-  const storage = getStorage(persistence);
+const readLocalStorageSnapshot = (): AuthStorageSnapshot | null => {
+  const storage = getLocalStorage();
   return storage ? parseAuthStorageSnapshot(storage.getItem(AUTH_STORAGE_KEY)) : null;
 };
 
-const resolvePersistedAuthPersistence = (): AuthPersistence => {
-  if (readStorageSnapshot('local')) {
-    return 'local';
+const readLegacySessionStorageSnapshot = (): AuthStorageSnapshot | null => {
+  const storage = getLegacySessionStorage();
+  return storage ? parseAuthStorageSnapshot(storage.getItem(AUTH_STORAGE_KEY)) : null;
+};
+
+const readPersistedAuthMode = (): AuthPersistence | null => {
+  const storage = getLocalStorage();
+  const mode = storage?.getItem(AUTH_PERSISTENCE_KEY);
+  return mode === 'local' || mode === 'session' ? mode : null;
+};
+
+const hasSessionCookieMarker = (): boolean => {
+  if (typeof document === 'undefined') {
+    return false;
   }
 
-  if (readStorageSnapshot('session')) {
+  return document.cookie
+    .split('; ')
+    .some((entry) => entry.startsWith(`${AUTH_SESSION_COOKIE_KEY}=`));
+};
+
+const persistSessionCookieMarker = (): void => {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  document.cookie = `${AUTH_SESSION_COOKIE_KEY}=1; Path=/; SameSite=Lax`;
+};
+
+const clearSessionCookieMarker = (): void => {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  document.cookie = `${AUTH_SESSION_COOKIE_KEY}=; Path=/; Max-Age=0; SameSite=Lax`;
+};
+
+const clearLocalStorageSnapshot = (): void => {
+  const storage = getLocalStorage();
+  storage?.removeItem(AUTH_STORAGE_KEY);
+  storage?.removeItem(AUTH_PERSISTENCE_KEY);
+};
+
+const clearLegacySessionStorageSnapshot = (): void => {
+  const storage = getLegacySessionStorage();
+  storage?.removeItem(AUTH_STORAGE_KEY);
+};
+
+const clearPersistedSessionArtifacts = (): void => {
+  clearSessionCookieMarker();
+  clearLegacySessionStorageSnapshot();
+};
+
+const readModernPersistedSnapshot = (): AuthStorageSnapshot | null => {
+  const snapshot = readLocalStorageSnapshot();
+  if (!snapshot) {
+    return null;
+  }
+
+  const persistence = readPersistedAuthMode() ?? 'local';
+  if (persistence === 'local') {
+    return snapshot;
+  }
+
+  if (hasSessionCookieMarker()) {
+    return snapshot;
+  }
+
+  clearLocalStorageSnapshot();
+  return null;
+};
+
+const resolvePersistedAuthPersistence = (): AuthPersistence => {
+  if (readLocalStorageSnapshot()) {
+    return readPersistedAuthMode() ?? 'local';
+  }
+
+  if (readLegacySessionStorageSnapshot()) {
     return 'session';
   }
 
   return 'local';
 };
 
-const clearStorageSnapshot = (persistence: AuthPersistence): void => {
-  const storage = getStorage(persistence);
-  storage?.removeItem(AUTH_STORAGE_KEY);
-};
-
 export const readPersistedAuthSnapshot = (): AuthStorageSnapshot => {
-  return readStorageSnapshot('local') ?? readStorageSnapshot('session') ?? createEmptyAuthStorageSnapshot();
+  return readModernPersistedSnapshot() ?? readLegacySessionStorageSnapshot() ?? createEmptyAuthStorageSnapshot();
 };
 
 export const persistAuthSnapshot = (
   snapshot: AuthStorageSnapshot,
   persistence: AuthPersistence = 'local',
 ): void => {
-  clearStorageSnapshot('local');
-  clearStorageSnapshot('session');
+  clearLocalStorageSnapshot();
+  clearPersistedSessionArtifacts();
 
-  const storage = getStorage(persistence);
+  const storage = getLocalStorage();
   storage?.setItem(AUTH_STORAGE_KEY, JSON.stringify(snapshot));
+  storage?.setItem(AUTH_PERSISTENCE_KEY, persistence);
+
+  if (persistence === 'session') {
+    persistSessionCookieMarker();
+  }
 };
 
 export const persistPlatformAuthState = (
@@ -167,6 +249,6 @@ export const persistWorkspaceSessionState = (
 };
 
 export const clearPersistedAuthState = (): void => {
-  clearStorageSnapshot('local');
-  clearStorageSnapshot('session');
+  clearLocalStorageSnapshot();
+  clearPersistedSessionArtifacts();
 };
