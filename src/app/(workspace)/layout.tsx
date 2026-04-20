@@ -104,8 +104,11 @@ const WorkspaceOnboardingLayout: React.FC<React.PropsWithChildren> = ({ children
       homePath="/workspace/create"
       homeTitle="创建工作区"
       title="PLM Cloud Platform"
+      // workspace/create 复用共享布局时关闭右上角操作区，避免把常规业务头部带进 onboarding。
       showHeaderRight={false}
+      // onboarding 不需要多标签页，这里通过开关关闭，不再额外维护一套分支布局。
       showTabs={false}
+      // onboarding 主体直接铺开内容区，不套默认卡片容器。
       contentVariant="plain"
     >
       {children}

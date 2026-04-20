@@ -27,7 +27,9 @@ export interface MenuItem {
   name: string;
   icon?: React.ReactNode;
   children?: MenuItem[];
+  // 仅给少量特殊菜单项提供局部替换内容，普通页面菜单继续走 ProLayout 默认 DOM。
   menuRenderContent?: React.ReactNode;
+  // 主要给 onboarding 这类占位菜单使用，避免不可点击项误跳转。
   disabled?: boolean;
 }
 
@@ -38,6 +40,7 @@ export interface UnifiedLayoutProps {
     homeTitle?: string;
     title?: string;
   enableWorkspaceSwitcher?: boolean;
+  // 通过显式开关复用共享布局，而不是再拆一套 workspace 专用 layout 分支。
   showHeaderRight?: boolean;
   showTabs?: boolean;
   contentVariant?: 'card' | 'plain';
@@ -498,10 +501,12 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
         location={{ pathname }}
         menuDataRender={() => menuData}
         menuItemRender={(item, dom) => {
+          // 默认菜单项保持原始渲染链路，避免再次影响收起态 icon 显示。
           if (!item.menuRenderContent) {
             return dom;
           }
 
+          // 仅特殊页面按需替换菜单内容，例如 workspace/create 的骨架占位项。
           return (
             <span
               onMouseDown={(event) => {
