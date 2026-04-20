@@ -47,7 +47,15 @@ export const useProtectedAppAccess = (
     };
 
     const restoreAccess = async () => {
+      const currentSnapshot = readPersistedAuthSnapshot();
       const persistedHeaders = readPersistedAuthHeaders();
+
+      if (currentSnapshot.platformAuth.principalType === 'platform-admin') {
+        persistWorkspaceSessionState(null);
+        redirectTo('/admin/dashboard');
+        return;
+      }
+
       if (!persistedHeaders.platformToken || !persistedHeaders.platformTokenName) {
         clearPersistedAuthState();
         redirectTo('/login');
@@ -110,6 +118,30 @@ export const useProtectedAppAccess = (
         }
 
         if (isAuthErrorResponse(error)) {
+          if (error.code === 'PLATFORM_ADMIN_REQUIRED') {
+            try {
+              const adminMe = await authApi.getPlatformAdminMe(persistedHeaders);
+              if (!active) {
+                return;
+              }
+
+              const snapshot = readPersistedAuthSnapshot();
+              persistPlatformAuthState({
+                ...snapshot.platformAuth,
+                user: null,
+                admin: adminMe.admin,
+                principalType: 'platform-admin',
+              });
+              persistWorkspaceSessionState(null);
+              redirectTo('/admin/dashboard');
+              return;
+            } catch {
+              clearPersistedAuthState();
+              redirectTo('/admin-login');
+              return;
+            }
+          }
+
           if (error.code === 'AUTH_NOT_LOGGED_IN') {
             clearPersistedAuthState();
             redirectTo('/login');

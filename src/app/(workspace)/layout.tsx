@@ -1,9 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { HomeOutlined } from '@ant-design/icons';
 import { Skeleton } from 'antd';
+import { useRouter } from 'next/navigation';
 import UnifiedLayout, { type MenuItem } from '@/layouts/UnifiedLayout';
+import { readPersistedAuthSnapshot } from '@/utils/authStorage';
 import './workspace-onboarding.css';
 
 interface SidebarSkeletonItemProps {
@@ -98,6 +100,21 @@ const onboardingMenuData: MenuItem[] = [
 ];
 
 const WorkspaceOnboardingLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
+  const router = useRouter();
+  const [blocked, setBlocked] = useState(false);
+
+  useEffect(() => {
+    const snapshot = readPersistedAuthSnapshot();
+    if (snapshot.platformAuth.principalType === 'platform-admin') {
+      setBlocked(true);
+      router.replace('/admin/dashboard');
+    }
+  }, [router]);
+
+  if (blocked) {
+    return null;
+  }
+
   return (
     <UnifiedLayout
       menuData={onboardingMenuData}
