@@ -489,7 +489,7 @@ const RegisterPage: React.FC = () => {
             <a href="#">Cookie 首选项</a>
           </div>
           <div className="footer-copyright">
-            © 2026 PLM Cloud Platform
+            Powered by PLM Cloud Platform © 2026 All Rights Reserved.
           </div>
         </div>
       </footer>

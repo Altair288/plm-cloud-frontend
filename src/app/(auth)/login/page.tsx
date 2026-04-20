@@ -316,7 +316,7 @@ export default function LoginPage() {
             <Link href="#">辅助功能选项</Link>
           </div>
           <Text className="footer-copyright">
-            Powered by PLM Cloud Platform © 2025 All Rights Reserved.
+            Powered by PLM Cloud Platform © 2026 All Rights Reserved.
           </Text>
         </div>
       </footer>

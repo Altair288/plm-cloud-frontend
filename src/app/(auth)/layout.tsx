@@ -14,6 +14,7 @@ import {
 } from '@/utils/authStorage';
 import './login/login.css';
 import './register/register.css';
+import './admin-login/admin-login.css';
 
 export default function AuthLayout({
   children,
