@@ -536,7 +536,7 @@ const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({ palette }) => {
                 试用新侧边栏
               </Typography.Text>
               <Typography.Text style={{ color: palette.textSecondary, fontSize: 12 }}>
-                你的页面、会议和 AI，一步到位。
+                Some Content
               </Typography.Text>
             </div>
             <Switch checked={newSidebarEnabled} onChange={setNewSidebarEnabled} size="small" />
