@@ -19,6 +19,8 @@ RUN --mount=type=cache,target=/root/.npm \
 FROM node:24-alpine AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG INTERNAL_API_BASE_URL=http://localhost:8080
+ENV INTERNAL_API_BASE_URL=${INTERNAL_API_BASE_URL}
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . ./
@@ -30,6 +32,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+ENV INTERNAL_API_BASE_URL=http://localhost:8080
 
 RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
 
