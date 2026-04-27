@@ -11,19 +11,23 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
   async rewrites() {
-    const raw = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const raw = process.env.INTERNAL_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL;
     const trimmed = raw ? raw.trim() : '';
     const apiBaseUrl = trimmed.length > 0 ? trimmed.replace(/\/$/, '') : 'http://localhost:8080';
-    return [
-      {
-        source: "/api/:path*",
-        destination: `${apiBaseUrl}/api/:path*`,
-      },
-      {
-        source: "/auth/:path*",
-        destination: `${apiBaseUrl}/auth/:path*`,
-      },
-    ];
+    return {
+      beforeFiles: [
+        {
+          source: "/api/:path*",
+          destination: `${apiBaseUrl}/api/:path*`,
+        },
+        {
+          source: "/auth/:path*",
+          destination: `${apiBaseUrl}/auth/:path*`,
+        },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
   },
   transpilePackages: [
     "antd",
