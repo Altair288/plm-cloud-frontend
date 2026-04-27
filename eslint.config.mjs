@@ -7,13 +7,13 @@ export default defineConfig([
   ...nextTypescript,
   {
     rules: {
-      "@typescript-eslint/no-empty-object-type": "warn",
-      "@typescript-eslint/no-explicit-any": "warn",
-      "react/display-name": "warn",
-      "react-hooks/purity": "warn",
-      "react-hooks/refs": "warn",
-      "react-hooks/preserve-manual-memoization": "warn",
-      "react-hooks/set-state-in-effect": "warn"
+      "@typescript-eslint/no-empty-object-type": "error",
+      "@typescript-eslint/no-explicit-any": "error",
+      "react/display-name": "error",
+      "react-hooks/purity": "error",
+      "react-hooks/refs": "error",
+      "react-hooks/preserve-manual-memoization": "error",
+      "react-hooks/set-state-in-effect": "error"
     }
   },
   globalIgnores([
