@@ -13,6 +13,17 @@ const HOP_BY_HOP_HEADERS = new Set([
   'upgrade',
 ]);
 
+const BROWSER_ONLY_PROXY_HEADERS = new Set([
+  'access-control-request-headers',
+  'access-control-request-method',
+  'origin',
+  'referer',
+  'sec-fetch-dest',
+  'sec-fetch-mode',
+  'sec-fetch-site',
+  'sec-fetch-user',
+]);
+
 const FORWARDED_RESPONSE_HEADERS = new Set([
   'cache-control',
   'content-disposition',
@@ -57,7 +68,9 @@ function copyRequestHeaders(request: NextRequest): Headers {
   const headers = new Headers();
 
   request.headers.forEach((value, key) => {
-    if (!HOP_BY_HOP_HEADERS.has(key.toLowerCase())) {
+    const normalizedKey = key.toLowerCase();
+
+    if (!HOP_BY_HOP_HEADERS.has(normalizedKey) && !BROWSER_ONLY_PROXY_HEADERS.has(normalizedKey)) {
       headers.set(key, value);
     }
   });
