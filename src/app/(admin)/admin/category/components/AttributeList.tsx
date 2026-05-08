@@ -24,11 +24,9 @@ import {
 } from "antd";
 import type { TableColumnsType } from "antd";
 import type { CheckboxChangeEvent } from 'antd/es/checkbox';
-import {
-  AddCircleOutline,
-  DeleteOutline,
-  ContentCopy,
-} from "@mui/icons-material";
+import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
+import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
+import { ContentCopy } from "@mui/icons-material";
 import BaseToolbar, { type BaseToolbarState, type ToolbarAction } from "@/components/TreeToolbar/BaseToolbar";
 import { AttributeItem, AttributeType } from "./types";
 import FloatingContextMenu from "@/components/ContextMenu/FloatingContextMenu";
@@ -736,7 +734,7 @@ const AttributeList: React.FC<AttributeListProps> = ({
                   {
                     key: "add",
                     label: "新增属性",
-                    icon: <AddCircleOutline fontSize="small" />,
+                    icon: <AddCircleOutlineOutlinedIcon fontSize="small" />,
                   },
                 ]
               : [
@@ -749,7 +747,7 @@ const AttributeList: React.FC<AttributeListProps> = ({
                   {
                     key: "delete",
                     label: "删除",
-                    icon: <DeleteOutline fontSize="small" />,
+                    icon: <DeleteOutlineOutlinedIcon fontSize="small" />,
                     danger: true,
                     disabled: !contextMenuState.item,
                   },
