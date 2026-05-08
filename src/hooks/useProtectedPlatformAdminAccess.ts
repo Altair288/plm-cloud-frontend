@@ -20,18 +20,31 @@ export const useProtectedPlatformAdminAccess = (
 ): boolean => {
   const router = useRouter();
   const { showLoading, hideLoading } = useGlobalLoading();
-  const [checkingAccess, setCheckingAccess] = useState(true);
+  const persistedHeaders = readPersistedAuthHeaders();
+  const persistedSnapshot = readPersistedAuthSnapshot();
+  const platformToken = persistedHeaders.platformToken;
+  const platformTokenName = persistedHeaders.platformTokenName;
+  const hasPersistedPlatformAdminAccess = Boolean(
+    persistedSnapshot.platformAuth.principalType === 'platform-admin'
+    && platformToken
+    && platformTokenName,
+  );
+  const [checkingAccess, setCheckingAccess] = useState(!hasPersistedPlatformAdminAccess);
 
   useEffect(() => {
     let active = true;
-    const loadingId = showLoading(options?.loadingMessage ?? '正在验证平台管理员访问权限...');
+    const loadingId = hasPersistedPlatformAdminAccess
+      ? null
+      : showLoading(options?.loadingMessage ?? '正在验证平台管理员访问权限...');
 
     const allowAccess = () => {
       if (!active) {
         return;
       }
 
-      hideLoading(loadingId);
+      if (loadingId !== null) {
+        hideLoading(loadingId);
+      }
       setCheckingAccess(false);
     };
 
@@ -44,15 +57,19 @@ export const useProtectedPlatformAdminAccess = (
     };
 
     const restoreAccess = async () => {
-      const persistedHeaders = readPersistedAuthHeaders();
-      if (!persistedHeaders.platformToken || !persistedHeaders.platformTokenName) {
+      const requestHeaders = {
+        platformToken,
+        platformTokenName,
+      };
+
+      if (!platformToken || !platformTokenName) {
         clearPersistedAuthState();
         redirectTo('/admin-login');
         return;
       }
 
       try {
-        const me = await authApi.getPlatformAdminMe(persistedHeaders);
+        const me = await authApi.getPlatformAdminMe(requestHeaders);
 
         if (!active) {
           return;
@@ -91,9 +108,11 @@ export const useProtectedPlatformAdminAccess = (
 
     return () => {
       active = false;
-      hideLoading(loadingId);
+      if (loadingId !== null) {
+        hideLoading(loadingId);
+      }
     };
-  }, [hideLoading, options?.loadingMessage, router, showLoading]);
+  }, [hasPersistedPlatformAdminAccess, hideLoading, options?.loadingMessage, platformToken, platformTokenName, router, showLoading]);
 
   return checkingAccess;
 };

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useGlobalLoading } from '@/components/providers/GlobalLoadingProvider';
 import { authApi, isAuthErrorResponse } from '@/services/auth';
 import {
@@ -21,20 +21,32 @@ export const useProtectedAppAccess = (
   options?: UseProtectedAppAccessOptions,
 ): boolean => {
   const router = useRouter();
-  const pathname = usePathname();
   const { showLoading, hideLoading } = useGlobalLoading();
-  const [checkingAccess, setCheckingAccess] = useState(true);
+  const persistedHeaders = readPersistedAuthHeaders();
+  const persistedSnapshot = readPersistedAuthSnapshot();
+  const platformToken = persistedHeaders.platformToken;
+  const platformTokenName = persistedHeaders.platformTokenName;
+  const hasPersistedUserAccess = Boolean(
+    persistedSnapshot.platformAuth.principalType === 'user'
+    && platformToken
+    && platformTokenName,
+  );
+  const [checkingAccess, setCheckingAccess] = useState(!hasPersistedUserAccess);
 
   useEffect(() => {
     let active = true;
-    const loadingId = showLoading(options?.loadingMessage ?? '正在验证访问权限...');
+    const loadingId = hasPersistedUserAccess
+      ? null
+      : showLoading(options?.loadingMessage ?? '正在验证访问权限...');
 
     const allowAccess = () => {
       if (!active) {
         return;
       }
 
-      hideLoading(loadingId);
+      if (loadingId !== null) {
+        hideLoading(loadingId);
+      }
       setCheckingAccess(false);
     };
 
@@ -47,8 +59,12 @@ export const useProtectedAppAccess = (
     };
 
     const restoreAccess = async () => {
+      const requestHeaders = {
+        platformToken,
+        platformTokenName,
+      };
+
       const currentSnapshot = readPersistedAuthSnapshot();
-      const persistedHeaders = readPersistedAuthHeaders();
 
       if (currentSnapshot.platformAuth.principalType === 'platform-admin') {
         persistWorkspaceSessionState(null);
@@ -56,14 +72,14 @@ export const useProtectedAppAccess = (
         return;
       }
 
-      if (!persistedHeaders.platformToken || !persistedHeaders.platformTokenName) {
+      if (!platformToken || !platformTokenName) {
         clearPersistedAuthState();
         redirectTo('/login');
         return;
       }
 
       try {
-        const me = await authApi.getMe(persistedHeaders);
+        const me = await authApi.getMe(requestHeaders);
 
         if (!active) {
           return;
@@ -103,7 +119,7 @@ export const useProtectedAppAccess = (
             workspaceId: targetWorkspaceId,
             rememberAsDefault: false,
           },
-          persistedHeaders,
+          requestHeaders,
         );
 
         if (!active) {
@@ -120,7 +136,7 @@ export const useProtectedAppAccess = (
         if (isAuthErrorResponse(error)) {
           if (error.code === 'PLATFORM_ADMIN_REQUIRED') {
             try {
-              const adminMe = await authApi.getPlatformAdminMe(persistedHeaders);
+              const adminMe = await authApi.getPlatformAdminMe(requestHeaders);
               if (!active) {
                 return;
               }
@@ -157,7 +173,7 @@ export const useProtectedAppAccess = (
             persistWorkspaceSessionState(null);
 
             try {
-              const workspaces = await authApi.listWorkspaces(persistedHeaders);
+              const workspaces = await authApi.listWorkspaces(requestHeaders);
               if (!active) {
                 return;
               }
@@ -184,7 +200,7 @@ export const useProtectedAppAccess = (
                   workspaceId: workspaces[0].workspaceId,
                   rememberAsDefault: false,
                 },
-                persistedHeaders,
+                requestHeaders,
               );
 
               if (!active) {
@@ -209,9 +225,11 @@ export const useProtectedAppAccess = (
 
     return () => {
       active = false;
-      hideLoading(loadingId);
+      if (loadingId !== null) {
+        hideLoading(loadingId);
+      }
     };
-  }, [hideLoading, options?.loadingMessage, pathname, router, showLoading]);
+  }, [hasPersistedUserAccess, hideLoading, options?.loadingMessage, platformToken, platformTokenName, router, showLoading]);
 
   return checkingAccess;
 };
