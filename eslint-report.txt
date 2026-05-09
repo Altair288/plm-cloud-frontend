@@ -1,0 +1,546 @@
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\AttributeDesigner.tsx
+  294:12  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\AttributeDesigner.tsx:294:12
+  292 |   useEffect(() => {
+  293 |     if (currentCategoryCode) {
+> 294 |       void loadAttributes(currentCategoryCode, currentBusinessDomain, undefined, []);
+      |            ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  295 |       setSelectedAttributeId(null);
+  296 |       setSelectedAttributeIds([]);
+  297 |       setCurrentAttribute(null);                                                             react-hooks/set-state-in-effect
+  377:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\AttributeDesigner.tsx:377:7
+  375 |   useEffect(() => {
+  376 |     if (selectedAttributeId && !dataSource.some(item => item.id === selectedAttributeId)) {
+> 377 |       setSelectedAttributeId(null);
+      |       ^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  378 |     }
+  379 |     setSelectedAttributeIds((prev) => prev.filter((id) => dataSource.some((item) => item.id === id)));
+  380 |   }, [dataSource, selectedAttributeId]);  react-hooks/set-state-in-effect
+  431:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\AttributeDesigner.tsx:431:7
+  429 |
+  430 |     if (!currentAttribute || !categoryCode || !currentBusinessDomain || (!isNewAttribute && !canPreviewExistingEnumCodes)) {
+> 431 |       setPreviewLoading(false);
+      |       ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  432 |       setPreviewWarnings([]);
+  433 |       setAllowManualCodeOverride(false);
+  434 |       setAllowManualEnumCodeOverride(false);                                react-hooks/set-state-in-effect
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\[id]\page.tsx
+  420:38  error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This value was memoized in source but not in compilation output.
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\[id]\page.tsx:420:38
+  418 |   };
+  419 |
+> 420 |   const fetchRootNodes = useCallback(async () => {
+      |                                      ^^^^^^^^^^^^^
+> 421 |     const page = await metaCategoryApi.listNodes({
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 422 |       businessDomain: activeBusinessDomain,
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 429 |     return (Array.isArray(page.content) ? page.content : []).map(mapNodeToTreeNode);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 430 |   }, [activeBusinessDomain, mapNodeToTreeNode]);
+      | ^^^^ Could not preserve existing memoization
+  431 |
+  432 |   const fetchChildNodes = useCallback(async (parentId: React.Key) => {
+  433 |     const page = await metaCategoryApi.listNodes({                                                                                                       react-hooks/preserve-manual-memoization
+  430:7   error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This dependency may be mutated later, which could cause the value to change unexpectedly.
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\[id]\page.tsx:430:7
+  428 |
+  429 |     return (Array.isArray(page.content) ? page.content : []).map(mapNodeToTreeNode);
+> 430 |   }, [activeBusinessDomain, mapNodeToTreeNode]);
+      |       ^^^^^^^^^^^^^^^^^^^^ This dependency may be modified later
+  431 |
+  432 |   const fetchChildNodes = useCallback(async (parentId: React.Key) => {
+  433 |     const page = await metaCategoryApi.listNodes({                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/preserve-manual-memoization
+  432:39  error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This value was memoized in source but not in compilation output.
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\[id]\page.tsx:432:39
+  430 |   }, [activeBusinessDomain, mapNodeToTreeNode]);
+  431 |
+> 432 |   const fetchChildNodes = useCallback(async (parentId: React.Key) => {
+      |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 433 |     const page = await metaCategoryApi.listNodes({
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 434 |       businessDomain: activeBusinessDomain,
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 441 |     return (page.content || []).map(mapNodeToTreeNode);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 442 |   }, [activeBusinessDomain, mapNodeToTreeNode]);
+      | ^^^^ Could not preserve existing memoization
+  443 |
+  444 |   const resolvePathKeys = async (targetNodeIds: string[]) => {
+  445 |     const uniqueIds = Array.from(new Set(targetNodeIds.map((id) => String(id).trim()).filter(Boolean)));  react-hooks/preserve-manual-memoization
+  442:7   error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This dependency may be mutated later, which could cause the value to change unexpectedly.
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\[id]\page.tsx:442:7
+  440 |
+  441 |     return (page.content || []).map(mapNodeToTreeNode);
+> 442 |   }, [activeBusinessDomain, mapNodeToTreeNode]);
+      |       ^^^^^^^^^^^^^^^^^^^^ This dependency may be modified later
+  443 |
+  444 |   const resolvePathKeys = async (targetNodeIds: string[]) => {
+  445 |     const uniqueIds = Array.from(new Set(targetNodeIds.map((id) => String(id).trim()).filter(Boolean)));                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/preserve-manual-memoization
+  547:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\[id]\page.tsx:547:5
+  545 |     }
+  546 |
+> 547 |     setSelectedKey("");
+      |     ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  548 |     setSelectedNode(undefined);
+  549 |     setDrawerVisible(false);
+  550 |     setPreviewNode(undefined);                                                                                                                                                                                                      react-hooks/set-state-in-effect
+  762:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\[id]\page.tsx:762:5
+  760 |     }
+  761 |     previewForm.setFieldsValue(pendingPreviewFormValues);
+> 762 |     setPendingPreviewFormValues(null);
+      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  763 |   }, [drawerVisible, previewEditing, pendingPreviewFormValues, previewForm]);
+  764 |
+  765 |   const openPreviewDetail = (                                                                                                react-hooks/set-state-in-effect
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\batch-transfer\components\TransferWorkspace.tsx
+  870:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\batch-transfer\components\TransferWorkspace.tsx:870:5
+  868 |
+  869 |   useEffect(() => {
+> 870 |     setIsClientMounted(true);
+      |     ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  871 |   }, []);
+  872 |
+  873 |   useEffect(() => {                                                                                                                                                             react-hooks/set-state-in-effect
+  877:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\batch-transfer\components\TransferWorkspace.tsx:877:5
+  875 |     const nextExpandedKeys = collectInitialSourceExpandedKeys(nextSourceData);
+  876 |
+> 877 |     setSourceData(nextSourceData);
+      |     ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  878 |     setSourceExpandedKeys(nextExpandedKeys);
+  879 |     resetWorkspaceSnapshots();
+  880 |   }, [resetWorkspaceSnapshots, sourceNodesData]);  react-hooks/set-state-in-effect
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\components\BatchDeleteModal.tsx
+  127:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\components\BatchDeleteModal.tsx:127:7
+  125 |   useEffect(() => {
+  126 |     if (!open) {
+> 127 |       setPhase('idle');
+      |       ^^^^^^^^ Avoid calling setState() directly within an effect
+  128 |       setDryRunResponse(null);
+  129 |       setExecuteResponse(null);
+  130 |       setCascadeEnabled(false);  react-hooks/set-state-in-effect
+  223:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\components\BatchDeleteModal.tsx:223:7
+  221 |   useEffect(() => {
+  222 |     if (cascadeRequiredCount > 0) {
+> 223 |       setCascadeHintCount(cascadeRequiredCount);
+      |       ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  224 |     }
+  225 |   }, [cascadeRequiredCount]);
+  226 |      react-hooks/set-state-in-effect
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\components\BatchTransferModal.tsx
+  213:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\components\BatchTransferModal.tsx:213:7
+  211 |   useEffect(() => {
+  212 |     if (!open) {
+> 213 |       setSourceNodesData([]);
+      |       ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  214 |       setSourceLoading(false);
+  215 |       return;
+  216 |     }  react-hooks/set-state-in-effect
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\components\export\WorkbookExportModal.tsx
+   570:3   error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\components\export\WorkbookExportModal.tsx:570:3
+  568 |   const previewRequestIdRef = useRef(0);
+  569 |
+> 570 |   runtimeStateRef.current = runtime;
+      |   ^^^^^^^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  571 |
+  572 |   const resetRuntime = useCallback(() => {
+  573 |     const tracker = runtimeTrackerRef.current;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/refs
+   685:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\components\export\WorkbookExportModal.tsx:685:7
+  683 |     if (!open) {
+  684 |       planRequestSignatureRef.current = null;
+> 685 |       resetRuntime();
+      |       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  686 |       setCurrentStep(0);
+  687 |       setSchema(null);
+  688 |       setSchemaError(null);                                                                                                                                                                                                                                                                                                                        react-hooks/set-state-in-effect
+   719:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\components\export\WorkbookExportModal.tsx:719:7
+  717 |
+  718 |     if (!selectableModuleKeys.includes(activeModule)) {
+> 719 |       setActiveModule(selectableModuleKeys[0]);
+      |       ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  720 |     }
+  721 |   }, [activeModule, selectableModuleKeys]);
+  722 |                                                                                                                                                                                                                                                                                                                            react-hooks/set-state-in-effect
+   965:10  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\components\export\WorkbookExportModal.tsx:965:10
+  963 |
+  964 |   useEffect(() => {
+> 965 |     void loadPreviewRows();
+      |          ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  966 |   }, [loadPreviewRows]);
+  967 |
+  968 |   useEffect(() => {                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/set-state-in-effect
+  1242:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\components\export\WorkbookExportModal.tsx:1242:5
+  1240 |       return;
+  1241 |     }
+> 1242 |     stopTracking();
+       |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  1243 |   }, [runtime.jobId, runtime.status?.status, stopTracking]);
+  1244 |
+  1245 |   useEffect(() => {                                                                                                                                                                                                                                                                                                                                                          react-hooks/set-state-in-effect
+  1294:38  error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `runtime.result`, but the source dependencies were [message, onSuccess, runtime.jobId, runtime.result?.file]. Inferred less specific property than source.
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\category\components\export\WorkbookExportModal.tsx:1294:38
+  1292 |   }, [message, runtime.jobId, runtime.status?.status, syncStatus]);
+  1293 |
+> 1294 |   const handleDownload = useCallback(async () => {
+       |                                      ^^^^^^^^^^^^^
+> 1295 |     if (!runtime.jobId || !runtime.result?.file) {
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 1296 |       message.warning('当前尚无可下载的导出文件');
+       …
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 1310 |     }
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 1311 |   }, [message, onSuccess, runtime.jobId, runtime.result?.file]);
+       | ^^^^ Could not preserve existing manual memoization
+  1312 |
+  1313 |   const mappingIndexCellStyle = useMemo<CellStyle>(() => ({
+  1314 |     textAlign: 'center',  react-hooks/preserve-manual-memoization
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\settings\code-config\components\CodeRulePreviewPanel.tsx
+  303:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\settings\code-config\components\CodeRulePreviewPanel.tsx:303:7
+  301 |   useEffect(() => {
+  302 |     if (!previewRule.ruleMetadata || previewRule.isNew) {
+> 303 |       setBackendPreview(null);
+      |       ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  304 |       setPreviewError(null);
+  305 |       setPreviewLoading(false);
+  306 |       return;  react-hooks/set-state-in-effect
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\settings\code-config\components\CodeRuleWorkspace.tsx
+  72:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\settings\code-config\components\CodeRuleWorkspace.tsx:72:5
+  70 |   // 规则切换时重置编辑状态
+  71 |   React.useEffect(() => {
+> 72 |     setEditingRule(initialRule);
+     |     ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  73 |     setHasChanges(false);
+  74 |     setActiveTab('category');
+  75 |   }, [initialRule]);                                                                                    react-hooks/set-state-in-effect
+  80:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\settings\code-config\components\CodeRuleWorkspace.tsx:80:7
+  78 |   React.useEffect(() => {
+  79 |     if (usesSubRules && !editingRule.subRules) {
+> 80 |       setEditingRule(prev => ({ ...prev, subRules: createDefaultSubRules() }));
+     |       ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  81 |     }
+  82 |   }, [editingRule.businessObject, editingRule.subRules, usesSubRules]);
+  83 |  react-hooks/set-state-in-effect
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\settings\code-config\page.tsx
+  177:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\settings\code-config\page.tsx:177:5
+  175 |
+  176 |   useEffect(() => {
+> 177 |     setRules((prev) => {
+      |     ^^^^^^^^ Avoid calling setState() directly within an effect
+  178 |       if (prev.length === 0) {
+  179 |         return prev;
+  180 |       }                                      react-hooks/set-state-in-effect
+  197:10  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(admin)\admin\settings\code-config\page.tsx:197:10
+  195 |
+  196 |   useEffect(() => {
+> 197 |     void loadRuleSets();
+      |          ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  198 |   }, [loadRuleSets]);
+  199 |
+  200 |   const handleSelectRule = useCallback((id: string | null) => {  react-hooks/set-state-in-effect
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(auth)\login\page.tsx
+  42:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(auth)\login\page.tsx:42:5
+  40 |     }
+  41 |
+> 42 |     setPlmIdCache(initialIdentifier);
+     |     ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  43 |     stepOneForm.setFieldsValue({ plmId: initialIdentifier });
+  44 |   }, [stepOneForm]);
+  45 |  react-hooks/set-state-in-effect
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(auth)\register\page.tsx
+  50:51  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(auth)\register\page.tsx:50:51
+  48 |
+  49 |   useEffect(()=> {
+> 50 |     if (passwordRules.score !== passwordStrength) setPasswordStrength(passwordRules.score);
+     |                                                   ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  51 |   // eslint-disable-next-line react-hooks/exhaustive-deps
+  52 |   }, [passwordValue, passwordRules.score]);
+  53 |  react-hooks/set-state-in-effect
+  71:26  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(auth)\register\page.tsx:71:26
+  69 |     if(emailFocused){
+  70 |       // 聚焦期间不显示勾
+> 71 |       if(emailValidated) setEmailValidated(false);
+     |                          ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  72 |     }
+  73 |   }, [emailValue, emailFocused, emailValidated]);
+  74 |                                                                                               react-hooks/set-state-in-effect
+  84:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(auth)\register\page.tsx:84:5
+  82 |     }
+  83 |
+> 84 |     setSecondUnlocked(false);
+     |     ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  85 |     setVerificationInfo(null);
+  86 |     setVerificationCode('');
+  87 |     setVerificationCodeError(null);                                                                                                                                    react-hooks/set-state-in-effect
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(main)\category\list\components\CategoryBrowser.tsx
+  103:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(main)\category\list\components\CategoryBrowser.tsx:103:5
+  101 |   // Reset right-side scope when family changes
+  102 |   useEffect(() => {
+> 103 |     setActiveScope(activeFamily);
+      |     ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  104 |     setScopeStack([]);
+  105 |     setSelectedLeaf(null);
+  106 |   }, [activeFamily]);  react-hooks/set-state-in-effect
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(main)\category\list\components\CategoryMarketplace.tsx
+  143:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\app\(main)\category\list\components\CategoryMarketplace.tsx:143:13
+  141 |           const parsed = JSON.parse(savedCart);
+  142 |           if (Array.isArray(parsed) && parsed.length > 0) {
+> 143 |             setCart(parsed);
+      |             ^^^^^^^ Avoid calling setState() directly within an effect
+  144 |             message.success({ content: `已恢复上次未提交的 ${parsed.length} 项分类`, key: 'restore_cart' });
+  145 |           }
+  146 |         } catch (e) {  react-hooks/set-state-in-effect
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\layouts\components\WorkspaceSwitcher.tsx
+  106:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Github\plm-cloud-platform\plm-cloud-frontend\src\layouts\components\WorkspaceSwitcher.tsx:106:7
+  104 |     const persistedHeaders = readPersistedAuthHeaders();
+  105 |     if (!persistedHeaders.platformToken || !persistedHeaders.platformTokenName) {
+> 106 |       setLoading(false);
+      |       ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  107 |       return;
+  108 |     }
+  109 |  react-hooks/set-state-in-effect
+
+✖ 32 problems (32 errors, 0 warnings)
+

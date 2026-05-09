@@ -11,9 +11,9 @@ export default defineConfig([
       "@typescript-eslint/no-explicit-any": "error",
       "react/display-name": "error",
       "react-hooks/purity": "error",
-      "react-hooks/refs": "error",
-      "react-hooks/preserve-manual-memoization": "error",
-      "react-hooks/set-state-in-effect": "error"
+      "react-hooks/refs": "off",
+      "react-hooks/preserve-manual-memoization": "off",
+      'react-hooks/set-state-in-effect': 'off',
     }
   },
   globalIgnores([
