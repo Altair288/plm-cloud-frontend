@@ -1,21 +1,30 @@
 'use client';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import '@cds/core/global.min.css';
 import '@clr/icons/clr-icons.min.css';
 import '@clr/ui/clr-ui.min.css';
-import { loadCoreIconSet, loadEssentialIconSet, loadTechnologyIconSet } from '@cds/core/icon';
 
 export default function ClarityPreviewLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
-    // Ensure icons are loaded in the browser
-    loadCoreIconSet();
-    loadEssentialIconSet();
-    loadTechnologyIconSet();
+    // Ensure icons and web components are loaded only in the browser
+    import('@cds/core/icon/register.js');
+    import('@cds/core/icon').then(({ loadCoreIconSet, loadEssentialIconSet, loadTechnologyIconSet }) => {
+      loadCoreIconSet();
+      loadEssentialIconSet();
+      loadTechnologyIconSet();
+      setMounted(true);
+    });
   }, []);
+
+  if (!mounted) {
+    return <div style={{ visibility: 'hidden' }}>{children}</div>;
+  }
 
   return (
     <div className="clarity-preview-scope">

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import '@cds/core/icon/register.js';
 import { MenuItem } from '@/layouts/UnifiedLayout'; // re-use the type but not the logic directly
 import { readPersistedAuthSnapshot } from '@/utils/authStorage';
 
