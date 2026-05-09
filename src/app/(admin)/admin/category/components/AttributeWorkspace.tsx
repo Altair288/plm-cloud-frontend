@@ -181,6 +181,19 @@ const getRenderTypeLabel = (renderType?: AttributeItem["renderType"]) => {
   return "文本 (Text)";
 };
 
+const ATTRIBUTE_TYPE_LABELS: Record<AttributeType, string> = {
+  string: "文本",
+  number: "数值",
+  boolean: "布尔",
+  date: "日期",
+  enum: "单选枚举",
+  "multi-enum": "多选枚举",
+};
+
+const getAttributeTypeLabel = (type: AttributeType) => ATTRIBUTE_TYPE_LABELS[type] || type;
+
+const supportsUnitForType = (type: AttributeType) => type === "number";
+
 const getEnumDefaultValueSet = (attribute: AttributeItem) => {
   if (attribute.type === "multi-enum") {
     return new Set(normalizeMultiEnumDefaultValue(attribute.defaultValue));
@@ -557,14 +570,20 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
   const handleFormChange = (changedValues: AttributeFormChangeMap) => {
     if (attribute && "type" in changedValues) {
       const nextType = changedValues.type as AttributeType;
+      const currentDefaultValue = form.getFieldValue("defaultValue") ?? attribute.defaultValue;
       const nextDefaultValue = normalizeDefaultValueForType(
         nextType,
-        attribute.defaultValue,
+        currentDefaultValue,
       );
+      const nextUnit = supportsUnitForType(nextType)
+        ? (form.getFieldValue("unit") ?? attribute.unit)
+        : undefined;
 
       onUpdate("type", nextType);
       onUpdate("defaultValue", nextDefaultValue);
+      onUpdate("unit", nextUnit);
       form.setFieldValue("defaultValue", nextDefaultValue);
+      form.setFieldValue("unit", nextUnit);
       return;
     }
 
@@ -573,23 +592,50 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
     });
   };
 
+  const buildFormSnapshot = () => {
+    if (!attribute) {
+      return null;
+    }
+
+    const formValues = form.getFieldsValue(true) as Partial<AttributeItem>;
+    const nextType = (formValues.type as AttributeType | undefined) ?? attribute.type;
+    const rawDefaultValue = form.getFieldValue("defaultValue");
+
+    return {
+      ...attribute,
+      ...formValues,
+      type: nextType,
+      unit: supportsUnitForType(nextType)
+        ? (typeof formValues.unit === "string"
+            ? formValues.unit.trim() || undefined
+            : attribute.unit)
+        : undefined,
+      defaultValue: normalizeDefaultValueForType(
+        nextType,
+        rawDefaultValue ?? attribute.defaultValue,
+      ),
+    } as AttributeItem;
+  };
+
   const handleSave = (saveAndNext: boolean = false) => {
     form
       .validateFields()
       .then(async () => {
-        if (attribute && ((saveAndNext && onSaveAndNext) || (!saveAndNext && onSave))) {
-          setSaveStatusState({ attributeId: attribute.id, status: "loading" });
+        const nextAttribute = buildFormSnapshot();
+
+        if (nextAttribute && ((saveAndNext && onSaveAndNext) || (!saveAndNext && onSave))) {
+          setSaveStatusState({ attributeId: nextAttribute.id, status: "loading" });
           try {
              if (saveAndNext && onSaveAndNext) {
-               await onSaveAndNext(attribute);
+               await onSaveAndNext(nextAttribute);
              } else if (onSave) {
-               await onSave(attribute);
+               await onSave(nextAttribute);
                setEditingAttributeId(null);
              }
-             setSaveStatusState({ attributeId: attribute.id, status: "success" });
-             setTimeout(() => setSaveStatusState({ attributeId: attribute.id, status: "idle" }), 2000);
+             setSaveStatusState({ attributeId: nextAttribute.id, status: "success" });
+             setTimeout(() => setSaveStatusState({ attributeId: nextAttribute.id, status: "idle" }), 2000);
            } catch (error) {
-             setSaveStatusState({ attributeId: attribute.id, status: "idle" });
+             setSaveStatusState({ attributeId: nextAttribute.id, status: "idle" });
              // Error handling should be done by onSave or global message
              const errorMsg = getErrorMessage(error);
              if (errorMsg.includes("attribute already exists")) {
@@ -668,7 +714,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
           {attribute.attributeField || attribute.code}
         </Text>
         <Tag color="blue" variant="filled">
-          {attribute.type}
+          {getAttributeTypeLabel(attribute.type)}
         </Tag>
       </Space>
 
@@ -822,7 +868,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
           {attribute.name}
         </Descriptions.Item>
         <Descriptions.Item label="数据类型 (Data Type)">
-          {attribute.type}
+          {getAttributeTypeLabel(attribute.type)}
         </Descriptions.Item>
         <Descriptions.Item label="属性字段 (Attribute Field)">
           {attribute.attributeField || "-"}
@@ -834,7 +880,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
           {formatDefaultValueForDisplay(attribute, enumOptions)}
         </Descriptions.Item>
         <Descriptions.Item label="单位 (Unit)">
-          {attribute.unit || "-"}
+          {supportsUnitForType(attribute.type) ? (attribute.unit || "-") : "-"}
         </Descriptions.Item>
         <Descriptions.Item label="可见性 (Visibility)">
           <Space separator={<Divider orientation="vertical" />}>
@@ -888,7 +934,7 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
           styles={{ label: { width: "180px" } }}
         >
           <Descriptions.Item label="数据类型 (Data Type)">
-            {attribute.type}
+            {getAttributeTypeLabel(attribute.type)}
           </Descriptions.Item>
           <Descriptions.Item label="默认值策略 (Default Strategy)">
             {attribute.defaultValue === undefined || attribute.defaultValue === null
@@ -1067,10 +1113,12 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
                     <Col xs={24} sm={12} md={12} lg={12} xl={6}>
                       <Form.Item label="数据类型 (Data Type)" name="type">
                         <Select size="middle">
-                          <Option value="number">Number</Option>
-                          <Option value="boolean">Boolean</Option>
-                          <Option value="enum">Enum</Option>
-                          <Option value="multi-enum">Multi Enum</Option>
+                          <Option value="string">文本</Option>
+                          <Option value="number">数值</Option>
+                          <Option value="boolean">布尔</Option>
+                          <Option value="date">日期</Option>
+                          <Option value="enum">单选枚举</Option>
+                          <Option value="multi-enum">多选枚举</Option>
                         </Select>
                       </Form.Item>
                     </Col>
@@ -1087,7 +1135,11 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
                     </Col>
                     <Col xs={24} sm={12} md={12} lg={6} xl={7}>
                       <Form.Item label="单位 (Unit)" name="unit">
-                        <Input size="middle" />
+                        <Input
+                          size="middle"
+                          disabled={!supportsUnitForType(attribute.type)}
+                          placeholder={supportsUnitForType(attribute.type) ? undefined : "当前数据类型不支持单位"}
+                        />
                       </Form.Item>
                     </Col>
                     <Col xs={24} sm={12} md={12} lg={6} xl={7}>
@@ -1558,6 +1610,16 @@ const AttributeWorkspace: React.FC<AttributeWorkspaceProps> = ({
             />
           </Form.Item>
         </Form>
+      );
+    }
+
+    if (attribute.type === "string" || attribute.type === "date") {
+      return renderCommonHelper(
+        "类型配置 (Type Configuration)",
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="当前数据类型暂无额外配置"
+        />,
       );
     }
 

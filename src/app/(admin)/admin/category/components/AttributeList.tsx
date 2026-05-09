@@ -9,8 +9,6 @@ import {
   DeleteOutlined,
   CopyOutlined,
   PlusOutlined,
-  ImportOutlined,
-  ExportOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -43,7 +41,6 @@ interface AttributeListProps {
   onDuplicateAttribute?: (item: AttributeItem) => void;
   onDeleteAttribute?: (item: AttributeItem) => void;
   onBatchRemoveAttributes?: (ids: string[]) => void;
-  onExportAttributes?: () => void;
 }
 
 const { Text } = Typography;
@@ -243,7 +240,6 @@ const AttributeList: React.FC<AttributeListProps> = ({
   onDuplicateAttribute,
   onDeleteAttribute,
   onBatchRemoveAttributes,
-  onExportAttributes,
 }) => {
   const { token } = theme.useToken();
   const listRef = useRef<HTMLDivElement>(null);
@@ -492,22 +488,7 @@ const AttributeList: React.FC<AttributeListProps> = ({
       onClick: handleToolbarDuplicate,
       disabled: !singleSelectedAttribute,
     },
-    {
-      key: 'import',
-      icon: <ImportOutlined />,
-      tooltip: '导入属性',
-      variant: 'neutral',
-      disabled: true,
-    },
-    {
-      key: 'export',
-      icon: <ExportOutlined />,
-      tooltip: '导出属性',
-      variant: 'neutral',
-      disabled: dataSource.length === 0,
-      onClick: () => onExportAttributes?.(),
-    },
-  ], [dataSource.length, handleToolbarDuplicate, onExportAttributes, singleSelectedAttribute]);
+  ], [handleToolbarDuplicate, singleSelectedAttribute]);
 
   const filteredIds = filteredData.map((item) => item.id);
   const filteredSet = new Set(filteredIds);

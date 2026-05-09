@@ -29,7 +29,7 @@ export default function AdminCategoryIndexPage() {
 
   return (
     <div style={{ height: 'calc(100vh - 163px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Spin tip="正在加载业务领域..." />
+      <Spin description="正在加载业务领域..." />
     </div>
   );
 }

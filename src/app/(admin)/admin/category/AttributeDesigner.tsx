@@ -595,10 +595,17 @@ const AttributeDesigner: React.FC<Props> = ({
   }, [effectiveHasUnsavedChanges]);
 
   const handleAttributeUpdate = useCallback((key: string, value: unknown) => {
-    if (!currentAttribute) return;
-    const updated = { ...currentAttribute, [key]: value } as AttributeItem;
-    setCurrentAttribute(updated);
-  }, [currentAttribute]);
+    setCurrentAttribute((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [key]: value,
+      } as AttributeItem;
+    });
+  }, []);
 
   const resetWorkspaceState = () => {
     setCurrentAttribute(null);
@@ -738,7 +745,7 @@ const AttributeDesigner: React.FC<Props> = ({
           displayName: attribute.name,
           attributeField: attribute.attributeField,
           dataType: mapAttributeTypeToBackend(attribute.type),
-          unit: attribute.unit,
+          unit: attribute.unit?.trim() || undefined,
           defaultValue: serializeDefaultValueForBackend(attribute.defaultValue),
           required: attribute.required,
           unique: attribute.unique,
@@ -946,7 +953,6 @@ const AttributeDesigner: React.FC<Props> = ({
             onDuplicateAttribute={handleDuplicateAttribute}
             onDeleteAttribute={handleDeleteAttribute}
             onBatchRemoveAttributes={handleBatchRemoveAttributes}
-            onExportAttributes={() => messageApi.info("导出功能暂未开放")}
           />
         </Splitter.Panel>
         <Splitter.Panel>

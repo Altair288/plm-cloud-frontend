@@ -231,6 +231,7 @@ const CategoryManagementPage: React.FC = () => {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewEditing, setPreviewEditing] = useState(false);
   const [previewSaving, setPreviewSaving] = useState(false);
+  const [previewDrawerActiveTab, setPreviewDrawerActiveTab] = useState("basic");
   const [renameGuidedEdit, setRenameGuidedEdit] = useState(false);
   const [previewEditBaseline, setPreviewEditBaseline] = useState("");
   const [previewEditCurrent, setPreviewEditCurrent] = useState("");
@@ -768,6 +769,7 @@ const CategoryManagementPage: React.FC = () => {
     options?: { openAfterDataReady?: boolean },
   ) => {
     setPreviewNode(node);
+    setPreviewDrawerActiveTab("basic");
     const id = String(node.key);
     const openAfterDataReady = !!options?.openAfterDataReady;
 
@@ -1092,6 +1094,7 @@ const CategoryManagementPage: React.FC = () => {
 
   const handleStartPreviewEdit = () => {
     if (!previewDetail) return;
+    setPreviewDrawerActiveTab("basic");
     setRenameGuidedEdit(false);
     const initialValues = {
       name: previewDetail.latestVersion?.name || "",
@@ -1287,7 +1290,7 @@ const CategoryManagementPage: React.FC = () => {
               placement="right"
               closable={true}
               extra={
-                previewDetail ? (
+                previewDetail && previewDrawerActiveTab === "basic" ? (
                   previewEditing ? (
                     <Space>
                       <Button onClick={() => checkPreviewUnsaved(() => {
@@ -1310,6 +1313,7 @@ const CategoryManagementPage: React.FC = () => {
                 checkPreviewUnsaved(() => {
                   setDrawerVisible(false);
                   setPreviewDetail(null);
+                      setPreviewDrawerActiveTab("basic");
                   setPreviewEditing(false);
                   setRenameGuidedEdit(false);
                   setPreviewEditBaseline("");
@@ -1329,7 +1333,8 @@ const CategoryManagementPage: React.FC = () => {
                 </div>
               ) : previewDetail ? (
                 <Tabs
-                  defaultActiveKey="basic"
+                  activeKey={previewDrawerActiveTab}
+                  onChange={setPreviewDrawerActiveTab}
                   items={[
                     {
                       key: 'basic',

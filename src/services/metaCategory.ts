@@ -48,6 +48,7 @@ export type {
 } from '@/models/metaCategory';
 
 const CATEGORY_BASE = '/api/meta/categories';
+const CATEGORY_BATCH_TRANSFER_TIMEOUT = 120000;
 
 export const metaCategoryApi = {
   listNodes(params: {
@@ -157,13 +158,17 @@ export const metaCategoryApi = {
   batchTransferCategories(
     data: MetaCategoryBatchTransferRequestDto,
   ): Promise<MetaCategoryBatchTransferResponseDto> {
-    return request.post(`${CATEGORY_BASE}/batch-transfer`, data);
+    return request.post(`${CATEGORY_BASE}/batch-transfer`, data, {
+      timeout: CATEGORY_BATCH_TRANSFER_TIMEOUT,
+    });
   },
 
   batchTransferCategoriesWithTopology(
     data: MetaCategoryBatchTransferTopologyRequestDto,
   ): Promise<MetaCategoryBatchTransferTopologyResponseDto> {
-    return request.post(`${CATEGORY_BASE}/batch-transfer/topology`, data);
+    return request.post(`${CATEGORY_BASE}/batch-transfer/topology`, data, {
+      timeout: CATEGORY_BATCH_TRANSFER_TIMEOUT,
+    });
   },
 
   compareCategoryVersions(
