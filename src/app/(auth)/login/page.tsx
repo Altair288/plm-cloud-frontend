@@ -7,7 +7,7 @@ import Illustration from "@/assets/illustration-final.svg";
 import Image from "next/image";
 import Link from "next/link";
 import { authApi, isAuthErrorResponse } from '@/services/auth';
-import { mapWorkspaceSessionDtoToState, persistPlatformAuthState, persistWorkspaceSessionState } from '@/utils/authStorage';
+import { clearPersistedAuthState, mapWorkspaceSessionDtoToState, persistPlatformAuthState, persistWorkspaceSessionState } from '@/utils/authStorage';
 import { encryptPasswordWithPublicKey } from '@/utils/passwordEncryption';
 
 const { Title, Text } = Typography;
@@ -72,6 +72,18 @@ export default function LoginPage() {
         platformToken: response.platformToken,
         platformTokenName: response.platformTokenName,
       };
+
+      try {
+        const validatedAdmin = await authApi.getPlatformAdminMe(loginHeaders);
+        if (validatedAdmin.admin) {
+          clearPersistedAuthState();
+          message.warning('平台管理员账号请使用管理员登录入口。');
+          window.location.assign(`/admin-login?identifier=${encodeURIComponent(plmIdCache)}`);
+          return;
+        }
+      } catch {
+        // 普通登录入口只在确认命中平台管理员身份时拦截；管理员接口未命中则继续普通用户流程。
+      }
 
       persistPlatformAuthState(
         {

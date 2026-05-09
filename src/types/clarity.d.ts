@@ -8,7 +8,7 @@ declare module 'react' {
         solid?: string;
         inverse?: string;
         direction?: string;
-        [key: string]: any;
+        [key: string]: string | undefined;
       };
     }
   }

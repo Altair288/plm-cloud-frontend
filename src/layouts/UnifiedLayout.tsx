@@ -66,38 +66,6 @@ const createRouteTab = (
   closable: path !== homePath,
 });
 
-const normalizeStoredTabs = (
-  stored: unknown,
-  homePath: string,
-  homeTitle: string,
-): RouteTab[] => {
-  if (!Array.isArray(stored)) {
-    return [createRouteTab(homePath, homeTitle, homePath)];
-  }
-
-  const normalized = stored
-    .filter((item): item is { key?: unknown; label?: unknown } => Boolean(item && typeof item === "object"))
-    .map((item) => {
-      const key = typeof item.key === "string" ? item.key : "";
-      const label = typeof item.label === "string" ? item.label : "";
-      if (!key) {
-        return null;
-      }
-      return createRouteTab(key, label || normalizeLabelFromPath(key, homePath, homeTitle), homePath);
-    })
-    .filter((item): item is RouteTab => item != null);
-
-  const deduped = normalized.filter(
-    (item, index, items) => items.findIndex((candidate) => candidate.key === item.key) === index,
-  );
-
-  if (!deduped.some((item) => item.key === homePath)) {
-    deduped.unshift(createRouteTab(homePath, homeTitle, homePath));
-  }
-
-  return deduped.length ? deduped : [createRouteTab(homePath, homeTitle, homePath)];
-};
-
 const upsertRouteTab = (
   tabs: RouteTab[],
   path: string,
@@ -203,32 +171,11 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
     breadcrumbTrail[breadcrumbTrail.length - 1]?.name ??
     normalizeLabelFromPath(currentPath, homePath, homeTitle);
 
-  const tabStorageKey = useMemo(
-    () => `plm-open-tabs:${headerAuthMode}:${homePath}`,
-    [headerAuthMode, homePath],
-  );
-
   const [openedTabs, setOpenedTabs] = useState<RouteTab[]>(() => {
-    const fallbackTabs = normalizeStoredTabs([], homePath, homeTitle);
-
-    if (typeof window === "undefined") {
-      return currentPath !== homePath
-        ? [...fallbackTabs, createRouteTab(currentPath, activeLabel, homePath)]
-        : fallbackTabs;
-    }
-
-    try {
-      const raw = window.localStorage.getItem(tabStorageKey);
-      const stored = raw ? JSON.parse(raw) : [];
-      const normalized = normalizeStoredTabs(stored, homePath, homeTitle);
-      return currentPath !== homePath && !normalized.some((tab) => tab.key === currentPath)
-        ? [...normalized, createRouteTab(currentPath, activeLabel, homePath)]
-        : normalized;
-    } catch {
-      return currentPath !== homePath
-        ? [...fallbackTabs, createRouteTab(currentPath, activeLabel, homePath)]
-        : fallbackTabs;
-    }
+    const initialTabs = [createRouteTab(homePath, homeTitle, homePath)];
+    return currentPath !== homePath
+      ? [...initialTabs, createRouteTab(currentPath, activeLabel, homePath)]
+      : initialTabs;
   });
 
   const palette = useMemo<AppPalette>(
@@ -358,19 +305,6 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
 
     return next;
   }, [activeLabel, currentPath, homePath, homeTitle, openedTabs]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const serializedTabs = tabs.map((tab) => ({
-      key: tab.key,
-      label: tab.label,
-    }));
-
-    window.localStorage.setItem(tabStorageKey, JSON.stringify(serializedTabs));
-  }, [tabStorageKey, tabs]);
 
   useEffect(() => {
     const resizeObservers = tabResizeObservers.current;
