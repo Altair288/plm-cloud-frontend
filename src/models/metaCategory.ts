@@ -269,6 +269,9 @@ export interface MetaCategoryBatchTransferResultDto {
   codeMappings?: MetaCategoryBatchTransferCodeMappingDto[] | null;
   code?: string | null;
   message?: string | null;
+  exceptionType?: string | null;
+  rootCauseType?: string | null;
+  rootCauseMessage?: string | null;
   warning?: string[] | null;
 }
 
@@ -325,6 +328,9 @@ export interface MetaCategoryBatchTransferTopologyResultDto {
   success: boolean;
   code?: string | null;
   message?: string | null;
+  exceptionType?: string | null;
+  rootCauseType?: string | null;
+  rootCauseMessage?: string | null;
 }
 
 export interface MetaCategoryBatchTransferTopologyResponseDto {
@@ -338,4 +344,23 @@ export interface MetaCategoryBatchTransferTopologyResponseDto {
   planningWarnings?: string[] | null;
   finalParentMappings?: MetaCategoryBatchTransferTopologyFinalParentMappingDto[] | null;
   results: MetaCategoryBatchTransferTopologyResultDto[];
+}
+
+export interface MetaCategoryBatchTransferStreamStartedEventDto {
+  timestamp?: string;
+  streamType?: string;
+  phase?: "started" | string;
+  action?: MetaCategoryBatchTransferAction | MetaCategoryBatchTransferTopologyAction | string;
+}
+
+export interface MetaCategoryBatchTransferStreamFailedEventDto {
+  timestamp?: string;
+  streamType?: string;
+  phase?: "failed" | string;
+  action?: MetaCategoryBatchTransferAction | MetaCategoryBatchTransferTopologyAction | string;
+  code?: string | null;
+  message?: string | null;
+  exceptionType?: string | null;
+  rootCauseType?: string | null;
+  rootCauseMessage?: string | null;
 }

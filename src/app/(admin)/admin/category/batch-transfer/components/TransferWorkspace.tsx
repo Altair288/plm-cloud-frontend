@@ -20,8 +20,11 @@ import {
 import type {
   MetaCategoryBatchTransferRequestDto,
   MetaCategoryBatchTransferResponseDto,
+  MetaCategoryBatchTransferResultDto,
+  MetaCategoryBatchTransferStreamFailedEventDto,
   MetaCategoryBatchTransferTopologyRequestDto,
   MetaCategoryBatchTransferTopologyResponseDto,
+  MetaCategoryBatchTransferTopologyResultDto,
   MetaCategoryNodeDto,
   MetaCategoryTreeNodeDto,
 } from "@/models/metaCategory";
@@ -239,6 +242,51 @@ const getErrorMessage = (error: unknown, fallback: string) => {
     const candidate = error as { message?: string; error?: string };
     return candidate.message || candidate.error || fallback;
   }
+  return fallback;
+};
+
+type TransferFailureDescriptor = {
+  code?: string | null;
+  message?: string | null;
+  exceptionType?: string | null;
+  rootCauseType?: string | null;
+  rootCauseMessage?: string | null;
+};
+
+const formatTransferFailureDetail = (
+  failure: TransferFailureDescriptor,
+  fallback = "未提供失败原因",
+) => {
+  const summary = [failure.code, failure.message].filter(Boolean).join(" - ");
+  const diagnostics = [
+    failure.rootCauseMessage ? `根因：${failure.rootCauseMessage}` : null,
+    failure.rootCauseType ? `根因类型：${failure.rootCauseType}` : null,
+    failure.exceptionType && failure.exceptionType !== failure.rootCauseType
+      ? `异常类型：${failure.exceptionType}`
+      : null,
+  ].filter(Boolean);
+
+  return [summary || fallback, ...diagnostics].join("；");
+};
+
+const getTransferErrorMessage = (error: unknown, fallback: string) => {
+  if (error && typeof error === "object") {
+    const candidate = error as TransferFailureDescriptor & {
+      error?: string;
+    };
+
+    return formatTransferFailureDetail(
+      {
+        code: candidate.code,
+        message: candidate.message || candidate.error,
+        exceptionType: candidate.exceptionType,
+        rootCauseType: candidate.rootCauseType,
+        rootCauseMessage: candidate.rootCauseMessage,
+      },
+      fallback,
+    );
+  }
+
   return fallback;
 };
 
@@ -638,10 +686,37 @@ const collectFailedTransferMessages = (
         "operationId" in result
           ? result.operationId
           : result.clientOperationId || result.sourceNodeId;
-      const code = result.code || "UNKNOWN_ERROR";
-      const message = result.message || "未提供失败原因";
-      return `${operationId}: ${code} - ${message}`;
+      return `${operationId}: ${formatTransferFailureDetail(result, "未提供失败原因")}`;
     });
+};
+
+const buildExecutionFailedIssueSummaries = (error: unknown): DryRunTimelineItem[] => {
+  const candidate = error as {
+    results?: Array<MetaCategoryBatchTransferResultDto | MetaCategoryBatchTransferTopologyResultDto>;
+  } | null;
+
+  if (candidate?.results?.length) {
+    return candidate.results
+      .filter((item) => !item.success)
+      .map((item, index) => ({
+        key:
+          ("operationId" in item ? item.operationId : item.clientOperationId) ||
+          `${item.sourceNodeId}-${index}`,
+        title: `${item.sourceNodeId} -> ${item.targetParentId ?? ROOT_DROP_TARGET_TITLE}`,
+        detail: formatTransferFailureDetail(item, "未提供失败原因"),
+        color: "red" as const,
+      }));
+  }
+
+  const streamFailure = error as MetaCategoryBatchTransferStreamFailedEventDto | null;
+  return [
+    {
+      key: "execution-failed",
+      title: "服务端执行失败",
+      detail: getTransferErrorMessage(streamFailure, "批量转移执行失败"),
+      color: "red",
+    },
+  ];
 };
 
 const hasAtomicRollbackFailure = (
@@ -1365,10 +1440,10 @@ export default function TransferWorkspace({
           ("operationId" in result ? result.operationId : undefined) ||
           `${result.sourceNodeId}-${index}`,
         title: `${sourceTitle} -> ${targetTitle}`,
-        detail:
-          result.message ||
-          result.code ||
+        detail: formatTransferFailureDetail(
+          result,
           `源节点 ${result.sourceNodeId} 预检失败`,
+        ),
         color: "red",
       };
     });
@@ -1413,7 +1488,7 @@ export default function TransferWorkspace({
           : undefined;
       const response =
         actionType === "move"
-          ? await metaCategoryApi.batchTransferCategoriesWithTopology(
+          ? await metaCategoryApi.batchTransferCategoriesWithTopologyStream(
               buildTopologyBatchTransferRequest(
                 resolvedPreparedMoveOperations || [],
                 false,
@@ -1422,7 +1497,7 @@ export default function TransferWorkspace({
                 },
               ),
             )
-          : await metaCategoryApi.batchTransferCategories(
+          : await metaCategoryApi.batchTransferCategoriesStream(
               buildBatchTransferRequest("copy", false),
             );
 
@@ -1484,12 +1559,14 @@ export default function TransferWorkspace({
 
       return response;
     } catch (error) {
-      messageApi.error(
-        getErrorMessage(
-          error,
-          `${actionType === "copy" ? "复制" : "移动"}失败`,
-        ),
-      );
+      if (options?.showFailureModal !== false) {
+        messageApi.error(
+          getTransferErrorMessage(
+            error,
+            `${actionType === "copy" ? "复制" : "移动"}失败`,
+          ),
+        );
+      }
       throw error;
     } finally {
       setLoading(false);
@@ -1668,6 +1745,11 @@ export default function TransferWorkspace({
                 { showFailureModal: false, skipCompleteCallback: true },
               );
               const isFailed = !response || response.failureCount > 0;
+              const executionFailedIssueSummaries = response
+                ? buildFailedIssueSummaries(
+                    response.results.filter((result) => !result.success),
+                  )
+                : [];
 
               confirmModal.update({
                 title: isFailed ? `${actionLabel}执行结果` : `${actionLabel}完成`,
@@ -1698,7 +1780,7 @@ export default function TransferWorkspace({
                     pendingOperations={pendingOperationSummaries}
                     resolvedOrder={resolvedOrderSummaries}
                     finalPlacements={finalPlacementSummaries}
-                    failedIssues={isFailed ? failedIssueSummaries : []}
+                    failedIssues={isFailed ? executionFailedIssueSummaries : []}
                     warnings={planningWarnings}
                     height={DRY_RUN_MODAL_HEIGHT}
                     executionStage={isFailed ? "failed" : "success"}
@@ -1742,11 +1824,11 @@ export default function TransferWorkspace({
                     pendingOperations={pendingOperationSummaries}
                     resolvedOrder={resolvedOrderSummaries}
                     finalPlacements={finalPlacementSummaries}
-                    failedIssues={failedIssueSummaries}
+                    failedIssues={buildExecutionFailedIssueSummaries(error)}
                     warnings={planningWarnings}
                     height={DRY_RUN_MODAL_HEIGHT}
                     executionStage="failed"
-                    executionSummary={getErrorMessage(error, `批量${actionLabel}执行失败`)}
+                    executionSummary={getTransferErrorMessage(error, `批量${actionLabel}执行失败`)}
                   />
                 ),
               });

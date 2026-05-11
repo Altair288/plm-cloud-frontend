@@ -212,4 +212,8 @@ const mapDtoToView = (dto: ExampleItemDto) => ({
 6. 联调验证清单（主流程 + 边界）
 7. 风险点与回滚建议
 
+## 9. 类型检查及错误处理
+- 所有 TypeScript 代码必须通过 `npx tsc --noEmit` 和 ESLint 检查，确保类型安全和代码规范。
+- npx 和 eslint 命令都需要加上 `if ($LASTEXITCODE -eq 0) { Write-Output "ESLINT_OK"; exit 0 } else { exit $LASTEXITCODE }` 来确保在检查通过时输出明确的成功标识，便于自动化脚本判断。
+
 当用户说“按项目现有方式做接口联调/对接或者实现接口对接”时，直接执行本 skill。
