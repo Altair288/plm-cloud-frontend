@@ -33,8 +33,8 @@ import {
   CloseCircleFilled,
   DeleteOutlined,
   FileExcelOutlined,
+  InboxOutlined,
   InfoCircleFilled,
-  UploadOutlined,
   WarningFilled,
 } from "@ant-design/icons";
 import type {
@@ -525,6 +525,7 @@ interface WorkbookImportUploadStepProps {
   onFileUpload: (file: File) => boolean;
   onRemoveFile: () => void;
   defaultBusinessDomain?: string;
+  compact?: boolean;
 }
 
 export const WorkbookImportUploadStep: React.FC<
@@ -535,7 +536,146 @@ export const WorkbookImportUploadStep: React.FC<
   onFileUpload,
   onRemoveFile,
   defaultBusinessDomain,
+  compact = false,
 }) => {
+  const compactCardStyle: React.CSSProperties = {
+    borderRadius: token.borderRadiusLG,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    background: token.colorBgContainer,
+    boxShadow: `0 1px 2px ${token.colorFillQuaternary}`,
+    overflow: "hidden",
+    minHeight: 0,
+  };
+
+  if (compact) {
+    return (
+      <div
+        style={{
+          display: "grid",
+          gridTemplateRows: "minmax(0, 4fr) minmax(96px, 1fr) minmax(96px, 1fr)",
+          gap: 16,
+          height: "100%",
+          minHeight: 0,
+        }}
+      >
+        {!uploadedFile ? (
+          <Upload.Dragger
+            accept=".xlsx,.xls"
+            beforeUpload={onFileUpload}
+            showUploadList={false}
+            style={{
+              height: "100%",
+              padding: 0,
+              borderRadius: token.borderRadiusLG,
+              border: `1px dashed ${token.colorBorder}`,
+              background: token.colorFillAlter,
+              boxShadow: `inset 0 0 0 1px ${token.colorFillQuaternary}`,
+              overflow: "hidden",
+            }}
+          >
+            <Flex
+              vertical
+              align="center"
+              justify="center"
+              gap={14}
+              style={{ height: "100%", minHeight: 0, padding: "32px 28px" }}
+            >
+              <p className="ant-upload-drag-icon" style={{ margin: 0, lineHeight: 1 }}>
+                <InboxOutlined style={{ fontSize: 46, color: token.colorPrimary }} />
+              </p>
+              <p className="ant-upload-text" style={{ margin: 0 }}>
+                <Text strong style={{ fontSize: 16 }}>
+                  点击或拖拽工作簿到此处上传
+                </Text>
+              </p>
+              <p className="ant-upload-hint" style={{ margin: 0 }}>
+                <Text type="secondary" style={{ textAlign: "center", fontSize: 13 }}>
+                  支持 .xlsx、.xls 模板文件。上传后会基于当前编码模式与重复处理策略自动进入预检验证。
+                </Text>
+              </p>
+              <Flex
+                align="center"
+                justify="center"
+                gap={8}
+                wrap="wrap"
+                style={{ maxWidth: 420 }}
+              >
+                <Tag color="blue">拖拽上传</Tag>
+                <Tag color="geekblue">Excel 模板</Tag>
+                <Tag color="cyan">自动预检</Tag>
+              </Flex>
+              <Text type="secondary" style={{ fontSize: 12, textAlign: "center" }}>
+                鼠标悬停或拖入文件时，上传区域会以蓝色高亮响应。
+              </Text>
+            </Flex>
+          </Upload.Dragger>
+        ) : (
+          <div
+            style={{
+              ...compactCardStyle,
+              height: "100%",
+              padding: "18px 20px",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              gap: 16,
+            }}
+          >
+            <Flex align="flex-start" justify="space-between" gap={16}>
+              <Flex align="center" gap={12} style={{ minWidth: 0 }}>
+                <FileExcelOutlined
+                  style={{ fontSize: 24, color: "#217346", flexShrink: 0 }}
+                />
+                <Flex vertical gap={2} style={{ minWidth: 0 }}>
+                  <Text strong style={{ fontSize: 14 }} ellipsis>
+                    {uploadedFile.name}
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {(uploadedFile.size / 1024).toFixed(1)} KB
+                  </Text>
+                </Flex>
+              </Flex>
+              <Button
+                type="text"
+                size="middle"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={onRemoveFile}
+              >
+                移除
+              </Button>
+            </Flex>
+
+            <Flex vertical gap={8}>
+              <Text strong>文件已就绪</Text>
+              <Text type="secondary">
+                下一步会基于当前编码模式和重复处理策略自动执行预检。
+              </Text>
+            </Flex>
+          </div>
+        )}
+
+        <Alert
+          type="info"
+          showIcon
+          icon={<InfoCircleFilled />}
+          title="工作簿导入说明"
+          description="页面会先创建异步 dry-run 任务，再通过 SSE 与日志接口跟踪进度；预检展示的最终编码仅用于预览，不应被前端缓存为最终主键。"
+          style={{ ...compactCardStyle, height: "100%" }}
+        />
+
+        <Alert
+          type={defaultBusinessDomain ? "warning" : "info"}
+          showIcon
+          icon={defaultBusinessDomain ? <WarningFilled /> : <InfoCircleFilled />}
+          title={defaultBusinessDomain ? `当前分类树业务域：${defaultBusinessDomain}` : "当前分类树业务域"}
+          description={defaultBusinessDomain ? "工作簿实际导入仍以 Excel 中的数据为准，请确认模板中的业务域与当前操作上下文一致。" : "当前未识别到分类树业务域，请确认工作簿中的业务域与本次操作上下文一致。"}
+          style={{ ...compactCardStyle, height: "100%" }}
+        />
+      </div>
+    );
+  }
+
   return (
     <Flex vertical gap={16} style={{ height: "100%", minHeight: 0 }}>
       {!uploadedFile ? (
@@ -543,13 +683,26 @@ export const WorkbookImportUploadStep: React.FC<
           accept=".xlsx,.xls"
           beforeUpload={onFileUpload}
           showUploadList={false}
-          style={{ padding: "32px 0" }}
+          style={{
+            padding: "32px 0",
+            borderRadius: token.borderRadiusLG,
+            border: `1px dashed ${token.colorBorder}`,
+            background: token.colorFillAlter,
+            boxShadow: `inset 0 0 0 1px ${token.colorFillQuaternary}`,
+          }}
         >
-          <Flex vertical align="center" gap={8}>
-            <UploadOutlined
-              style={{ fontSize: 36, color: token.colorPrimary }}
-            />
-            <Text strong>点击或拖拽工作簿到此处上传</Text>
+          <Flex vertical align="center" gap={10}>
+            <p className="ant-upload-drag-icon" style={{ margin: 0, lineHeight: 1 }}>
+              <InboxOutlined style={{ fontSize: 40, color: token.colorPrimary }} />
+            </p>
+            <p className="ant-upload-text" style={{ margin: 0 }}>
+              <Text strong>点击或拖拽工作簿到此处上传</Text>
+            </p>
+            <p className="ant-upload-hint" style={{ margin: 0 }}>
+              <Text type="secondary" style={{ textAlign: "center" }}>
+                支持单个 Excel 模板上传，系统会在下一步自动执行预检。
+              </Text>
+            </p>
           </Flex>
         </Upload.Dragger>
       ) : (
@@ -591,7 +744,7 @@ export const WorkbookImportUploadStep: React.FC<
         showIcon
         icon={<InfoCircleFilled />}
         message="工作簿导入说明"
-        description="页面主链路会先创建异步 dry-run 任务，再通过 SSE 与日志接口跟踪进度；自动编码模式下，预检展示的最终编码仅用于预览，不应被前端缓存为最终主键。"
+        description="页面会先创建异步 dry-run 任务，再通过 SSE 与日志接口跟踪进度；预检展示的最终编码仅用于预览，不应被前端缓存为最终主键。"
         style={{ borderRadius: token.borderRadiusLG }}
       />
 
@@ -600,7 +753,7 @@ export const WorkbookImportUploadStep: React.FC<
           type="warning"
           showIcon
           icon={<WarningFilled />}
-          message={`当前分类树业务域：${defaultBusinessDomain}`}
+          title={`当前分类树业务域：${defaultBusinessDomain}`}
           description="工作簿实际导入仍以 Excel 中的数据为准，请确认模板中的业务域与当前操作上下文一致。"
           style={{ borderRadius: token.borderRadiusLG }}
         />
@@ -620,11 +773,7 @@ export const WorkbookImportUploadStep: React.FC<
       >
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={
-            uploadedFile
-              ? "文件已选择，继续下一步配置导入策略"
-              : "请先上传工作簿"
-          }
+          description={uploadedFile ? "文件已选择，可进入预检验证" : "请先上传工作簿"}
         />
       </Flex>
     </Flex>
@@ -634,17 +783,8 @@ export const WorkbookImportUploadStep: React.FC<
 interface WorkbookImportConfigStepProps {
   token: ThemeToken;
   formState: WorkbookImportFormState;
-  onUpdateCodingOption: (
-    field: "categoryCodeMode" | "attributeCodeMode" | "enumOptionCodeMode",
-    value: string,
-  ) => void;
-  onUpdateDuplicateOption: (
-    field:
-      | "categoryDuplicatePolicy"
-      | "attributeDuplicatePolicy"
-      | "enumOptionDuplicatePolicy",
-    value: string,
-  ) => void;
+  onUpdateUnifiedCodingMode: (value: string) => void;
+  onUpdateUnifiedDuplicatePolicy: (value: string) => void;
   onAtomicChange: (value: boolean) => void;
 }
 
@@ -653,128 +793,86 @@ export const WorkbookImportConfigStep: React.FC<
 > = ({
   token,
   formState,
-  onUpdateCodingOption,
-  onUpdateDuplicateOption,
+  onUpdateUnifiedCodingMode,
+  onUpdateUnifiedDuplicatePolicy,
   onAtomicChange,
 }) => {
+  const unifiedCodingMode = formState.options.codingOptions.enumOptionCodeMode;
+  const unifiedDuplicatePolicy = formState.options.duplicateOptions.enumOptionDuplicatePolicy;
+
   return (
-    <Flex vertical gap={16}>
-      <Title level={5} style={{ margin: 0 }}>
-        编码模式
-      </Title>
-      <Flex vertical gap={12}>
-        <Flex align="center" justify="space-between" style={{ gap: 16 }}>
-          <Text strong style={{ minWidth: 88 }}>
-            分类编码
-          </Text>
-          <Select
-            value={formState.options.codingOptions.categoryCodeMode}
-            options={CODE_MODE_OPTIONS}
-            onChange={(value) =>
-              onUpdateCodingOption("categoryCodeMode", value)
-            }
-            style={{ width: 220 }}
-          />
-        </Flex>
-        <Flex align="center" justify="space-between" style={{ gap: 16 }}>
-          <Text strong style={{ minWidth: 88 }}>
-            属性编码
-          </Text>
-          <Select
-            value={formState.options.codingOptions.attributeCodeMode}
-            options={CODE_MODE_OPTIONS}
-            onChange={(value) =>
-              onUpdateCodingOption("attributeCodeMode", value)
-            }
-            style={{ width: 220 }}
-          />
-        </Flex>
-        <Flex align="center" justify="space-between" style={{ gap: 16 }}>
-          <Text strong style={{ minWidth: 88 }}>
-            枚举值编码
-          </Text>
-          <Select
-            value={formState.options.codingOptions.enumOptionCodeMode}
-            options={CODE_MODE_OPTIONS}
-            onChange={(value) =>
-              onUpdateCodingOption("enumOptionCodeMode", value)
-            }
-            style={{ width: 220 }}
-          />
+    <Flex
+      vertical
+      gap={16}
+      style={{
+        padding: "16px 18px",
+        background: token.colorBgContainer,
+        borderRadius: token.borderRadiusLG,
+        border: `1px solid ${token.colorBorderSecondary}`,
+        boxShadow: `0 1px 2px ${token.colorFillQuaternary}`,
+      }}
+    >
+      <Flex vertical gap={4}>
+        <Title level={5} style={{ margin: 0 }}>
+          导入策略
+        </Title>
+        <Text type="secondary">
+          分类、属性、枚举值统一使用同一套编码与重复处理策略。
+        </Text>
+      </Flex>
+
+      <Flex vertical gap={16}>
+        <Flex vertical gap={4}>
+          <Flex align="center" justify="space-between" style={{ gap: 16 }}>
+            <Flex vertical gap={2}>
+              <Text strong>编码模式</Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                当前会同时作用于分类、属性、枚举值。
+              </Text>
+            </Flex>
+            <Select
+              value={unifiedCodingMode}
+              options={CODE_MODE_OPTIONS}
+              onChange={onUpdateUnifiedCodingMode}
+              style={{ width: 152 }}
+            />
+          </Flex>
+
+          <Flex align="center" justify="space-between" style={{ gap: 16 }}>
+            <Flex vertical gap={2}>
+              <Text strong>重复数据处理</Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                当前会同时作用于分类、属性、枚举值。
+              </Text>
+            </Flex>
+            <Select
+              value={unifiedDuplicatePolicy}
+              options={DUPLICATE_POLICY_OPTIONS}
+              onChange={onUpdateUnifiedDuplicatePolicy}
+              style={{ width: 152 }}
+            />
+          </Flex>
         </Flex>
       </Flex>
 
-      <Title level={5} style={{ margin: 0 }}>
-        重复数据处理
-      </Title>
-      <Flex vertical gap={12}>
-        <Flex align="center" justify="space-between" style={{ gap: 16 }}>
-          <Text strong style={{ minWidth: 88 }}>
-            分类重复
-          </Text>
-          <Select
-            value={formState.options.duplicateOptions.categoryDuplicatePolicy}
-            options={DUPLICATE_POLICY_OPTIONS}
-            onChange={(value) =>
-              onUpdateDuplicateOption("categoryDuplicatePolicy", value)
-            }
-            style={{ width: 220 }}
-          />
-        </Flex>
-        <Flex align="center" justify="space-between" style={{ gap: 16 }}>
-          <Text strong style={{ minWidth: 88 }}>
-            属性重复
-          </Text>
-          <Select
-            value={formState.options.duplicateOptions.attributeDuplicatePolicy}
-            options={DUPLICATE_POLICY_OPTIONS}
-            onChange={(value) =>
-              onUpdateDuplicateOption("attributeDuplicatePolicy", value)
-            }
-            style={{ width: 220 }}
-          />
-        </Flex>
-        <Flex align="center" justify="space-between" style={{ gap: 16 }}>
-          <Text strong style={{ minWidth: 88 }}>
-            枚举值重复
-          </Text>
-          <Select
-            value={formState.options.duplicateOptions.enumOptionDuplicatePolicy}
-            options={DUPLICATE_POLICY_OPTIONS}
-            onChange={(value) =>
-              onUpdateDuplicateOption("enumOptionDuplicatePolicy", value)
-            }
-            style={{ width: 220 }}
-          />
-        </Flex>
-      </Flex>
-
-      <Flex
-        align="center"
-        justify="space-between"
+      <div
         style={{
-          padding: "12px 16px",
-          background: token.colorFillAlter,
-          borderRadius: token.borderRadiusLG,
-          border: `1px solid ${token.colorBorderSecondary}`,
+          borderTop: `1px solid ${token.colorBorderSecondary}`,
+          paddingTop: 12,
         }}
       >
-        <Flex vertical gap={2}>
-          <Text strong style={{ fontSize: 13 }}>
-            原子执行
-          </Text>
+        <Flex align="center" justify="space-between" style={{ gap: 16 }}>
+          <Flex vertical gap={2}>
+            <Text strong style={{ fontSize: 13 }}>
+              原子执行
+            </Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              开启后会尽量以原子方式完成本次导入。
+            </Text>
+          </Flex>
+          <Switch checked={formState.atomic} onChange={onAtomicChange} />
         </Flex>
-        <Switch checked={formState.atomic} onChange={onAtomicChange} />
-      </Flex>
-
-      <Alert
-        type="info"
-        showIcon
-        icon={<InfoCircleFilled />}
-        message="提交格式要求"
-        description="dry-run 会以 multipart/form-data 提交，其中 options 作为单独的 JSON part 上传；正式导入优先基于 dryRunJobId 启动，页面恢复场景才退化为 importSessionId。"
-        style={{ borderRadius: token.borderRadiusLG }}
-      />
+      </div>
     </Flex>
   );
 };
@@ -1370,7 +1468,7 @@ export const WorkbookImportTaskSidePanel: React.FC<
   }, [resizableLogColumns]);
 
   useEffect(() => {
-    if (currentStep < 2 || !taskDrawerOpen || !status) {
+    if (currentStep < 1 || !taskDrawerOpen || !status) {
       return undefined;
     }
 
@@ -1425,7 +1523,7 @@ export const WorkbookImportTaskSidePanel: React.FC<
     };
   }, [currentStep, runtimeState.logs.length, status, taskDrawerOpen]);
 
-  if (currentStep < 2) {
+  if (currentStep < 1) {
     return null;
   }
 
@@ -1593,17 +1691,22 @@ export const WorkbookImportTaskSidePanel: React.FC<
           right: 0,
           bottom: 0,
           width: taskPanelWidth,
+          height: "100%",
+          minHeight: 0,
           borderLeft: `1px solid ${token.colorBorderSecondary}`,
           background: token.colorBgContainer,
           boxShadow: `-12px 0 24px ${token.colorFillSecondary}`,
           display: "flex",
           flexDirection: "column",
-          zIndex: 1,
           transform: taskDrawerOpen
             ? "translateX(0)"
             : `translateX(${taskPanelWidth}px)`,
           opacity: taskDrawerOpen ? 1 : 0,
           transition: "transform 0.18s ease, opacity 0.18s ease",
+          pointerEvents: taskDrawerOpen ? "auto" : "none",
+          overflow: "hidden",
+          zIndex: 1,
+          borderRadius: `${token.borderRadiusLG}px 0 0 ${token.borderRadiusLG}px`,
         }}
       >
         <div

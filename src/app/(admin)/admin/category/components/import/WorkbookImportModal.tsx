@@ -17,7 +17,6 @@ import {
   FileExcelOutlined,
   ImportOutlined,
   SafetyCertificateOutlined,
-  SettingOutlined,
 } from '@ant-design/icons';
 import DraggableModal from '@/components/DraggableModal';
 import { workbookImportApi } from '@/services/workbookImport';
@@ -84,7 +83,6 @@ interface ErrorWithMessage {
 
 const STEP_ICONS = [
   <FileExcelOutlined key="upload" />,
-  <SettingOutlined key="config" />,
   <SafetyCertificateOutlined key="dryrun" />,
   <ImportOutlined key="exec" />,
 ];
@@ -148,7 +146,7 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
   const { message } = App.useApp();
 
   const [currentStep, setCurrentStep] = useState<ImportStep>(0);
-  const [stepStatuses, setStepStatuses] = useState<StepStatus[]>(['process', 'wait', 'wait', 'wait']);
+  const [stepStatuses, setStepStatuses] = useState<StepStatus[]>(['process', 'wait', 'wait']);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [formState, setFormState] = useState(DEFAULT_WORKBOOK_IMPORT_FORM);
   const [dryRunning, setDryRunning] = useState(false);
@@ -277,7 +275,7 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
     dryRunIssueStatsLoadedJobIdRef.current = null;
     dryRunFailureNoticeRef.current = null;
     setCurrentStep(0);
-    setStepStatuses(['process', 'wait', 'wait', 'wait']);
+    setStepStatuses(['process', 'wait', 'wait']);
     setUploadedFile(null);
     setFormState(DEFAULT_WORKBOOK_IMPORT_FORM);
     setDryRunResult(null);
@@ -337,12 +335,12 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
     if (kind === 'dryRun') {
       setDryRunning(!terminal);
       if (snapshot.status === 'FAILED') {
-        markStep(2, 'error');
+        markStep(1, 'error');
       }
     } else {
       setImporting(!terminal);
       if (terminal) {
-        markStep(3, snapshot.status === 'FAILED' ? 'error' : 'finish');
+        markStep(2, snapshot.status === 'FAILED' ? 'error' : 'finish');
       }
     }
 
@@ -544,8 +542,8 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
     setDryRunResult(null);
     setPreviewPage(1);
     setPreviewEntityIssueStats(createEmptyPreviewEntityIssueStats());
+    markStep(1, 'wait');
     markStep(2, 'wait');
-    markStep(3, 'wait');
     clearAllRuntimeState();
   }, [clearAllRuntimeState, markStep]);
 
@@ -561,29 +559,31 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
     invalidateDryRun();
   }, [invalidateDryRun]);
 
-  const updateCodingOption = useCallback((field: 'categoryCodeMode' | 'attributeCodeMode' | 'enumOptionCodeMode', value: string) => {
+  const updateUnifiedCodingMode = useCallback((value: string) => {
     invalidateDryRun();
     setFormState((prev) => ({
       ...prev,
       options: {
         ...prev.options,
         codingOptions: {
-          ...prev.options.codingOptions,
-          [field]: value,
+          categoryCodeMode: value as typeof prev.options.codingOptions.categoryCodeMode,
+          attributeCodeMode: value as typeof prev.options.codingOptions.attributeCodeMode,
+          enumOptionCodeMode: value as typeof prev.options.codingOptions.enumOptionCodeMode,
         },
       },
     }));
   }, [invalidateDryRun]);
 
-  const updateDuplicateOption = useCallback((field: 'categoryDuplicatePolicy' | 'attributeDuplicatePolicy' | 'enumOptionDuplicatePolicy', value: string) => {
+  const updateUnifiedDuplicatePolicy = useCallback((value: string) => {
     invalidateDryRun();
     setFormState((prev) => ({
       ...prev,
       options: {
         ...prev.options,
         duplicateOptions: {
-          ...prev.options.duplicateOptions,
-          [field]: value,
+          categoryDuplicatePolicy: value as typeof prev.options.duplicateOptions.categoryDuplicatePolicy,
+          attributeDuplicatePolicy: value as typeof prev.options.duplicateOptions.attributeDuplicatePolicy,
+          enumOptionDuplicatePolicy: value as typeof prev.options.duplicateOptions.enumOptionDuplicatePolicy,
         },
       },
     }));
@@ -591,7 +591,7 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
 
   const goNext = useCallback(() => {
     const next = (currentStep + 1) as ImportStep;
-    if (next > 3) {
+    if (next > 2) {
       return;
     }
 
@@ -626,8 +626,8 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
     setDryRunResult(null);
     setPreviewEntityIssueStats(createEmptyPreviewEntityIssueStats());
     clearAllRuntimeState();
-    markStep(2, 'process');
-    markStep(3, 'wait');
+    markStep(1, 'process');
+    markStep(2, 'wait');
 
     try {
       const response = await workbookImportApi.startDryRunJob(uploadedFile, formState.options, formState.operator || 'admin');
@@ -638,7 +638,7 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
       message.success('预检任务已创建');
     } catch (error) {
       setDryRunning(false);
-      markStep(2, 'error');
+      markStep(1, 'error');
       message.error(getErrorMessage(error, '启动预检任务失败'));
     }
   }, [clearAllRuntimeState, formState.operator, formState.options, markStep, message, uploadedFile]);
@@ -650,9 +650,9 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
     }
 
     clearRuntimeState('import');
-    markStep(2, 'finish');
-    markStep(3, 'process');
-    setCurrentStep(3);
+    markStep(1, 'finish');
+    markStep(2, 'process');
+    setCurrentStep(2);
     setImporting(true);
 
     try {
@@ -671,9 +671,9 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
       message.success('导入任务已启动');
     } catch (error) {
       setImporting(false);
-      setCurrentStep(2);
-      markStep(2, 'process');
-      markStep(3, 'wait');
+      setCurrentStep(1);
+      markStep(1, 'process');
+      markStep(2, 'wait');
       message.error(getErrorMessage(error, '启动导入任务失败'));
     }
   }, [clearRuntimeState, dryRunResult, dryRunRuntime.jobId, formState.atomic, formState.operator, markStep, message]);
@@ -728,7 +728,7 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
         startTransition(() => {
           setDryRunResult(cachedResult);
         });
-        markStep(2, cachedResult.summary.canImport ? 'process' : 'error');
+        markStep(1, cachedResult.summary.canImport ? 'process' : 'error');
         return;
       }
 
@@ -745,7 +745,7 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
         startTransition(() => {
           setDryRunResult(result);
         });
-        markStep(2, result.summary.canImport ? 'process' : 'error');
+        markStep(1, result.summary.canImport ? 'process' : 'error');
         if (dryRunLoadedJobIdRef.current !== activeJobId) {
           dryRunLoadedJobIdRef.current = activeJobId;
           message.success('预检完成');
@@ -754,7 +754,7 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
         if (cancelled || dryRunResultRequestRef.current !== requestKey) {
           return;
         }
-        markStep(2, 'error');
+        markStep(1, 'error');
         message.error(getErrorMessage(error, '加载预检结果失败'));
       }
     };
@@ -807,7 +807,7 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
   }, [dryRunRuntime.jobId, dryRunStatusValue]);
 
   useEffect(() => {
-    if (!open || currentStep !== 2 || !uploadedFile || dryRunning || dryRunResult || dryRunRuntime.jobId || dryRunRuntime.status) {
+    if (!open || currentStep !== 1 || !uploadedFile || dryRunning || dryRunResult || dryRunRuntime.jobId || dryRunRuntime.status) {
       return;
     }
 
@@ -821,7 +821,7 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
   }, [currentStep, dryRunResult, dryRunRuntime.jobId, dryRunRuntime.status, dryRunning, open, runDryRun, uploadedFile]);
 
   useEffect(() => {
-    if (!open || currentStep !== 2 || !dryRunResult) {
+    if (!open || currentStep !== 1 || !dryRunResult) {
       return undefined;
     }
 
@@ -926,9 +926,9 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
       case 0:
         return !!uploadedFile;
       case 1:
-        return true;
-      case 2:
         return !!dryRunResult?.summary.canImport;
+      case 2:
+        return false;
       default:
         return false;
     }
@@ -961,30 +961,46 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
   const closeTaskDrawer = useCallback(() => {
     setTaskDrawerOpen(false);
   }, []);
+
   const renderStep0 = () => (
-    <WorkbookImportUploadStep
-      token={token}
-      uploadedFile={uploadedFile}
-      onFileUpload={handleFileUpload}
-      onRemoveFile={handleRemoveFile}
-      defaultBusinessDomain={defaultBusinessDomain}
-    />
-  );
-
-  const renderStep1 = () => (
-    <WorkbookImportConfigStep
-      token={token}
-      formState={formState}
-      onUpdateCodingOption={updateCodingOption}
-      onUpdateDuplicateOption={updateDuplicateOption}
-      onAtomicChange={(value) => {
-        invalidateDryRun();
-        setFormState((prev) => ({ ...prev, atomic: value }));
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)',
+        gap: 20,
+        height: '100%',
+        minHeight: 0,
+        alignItems: 'stretch',
+        paddingBottom: 12,
       }}
-    />
+    >
+      <div style={{ minWidth: 0, minHeight: 0, height: '100%' }}>
+        <WorkbookImportUploadStep
+          token={token}
+          uploadedFile={uploadedFile}
+          onFileUpload={handleFileUpload}
+          onRemoveFile={handleRemoveFile}
+          defaultBusinessDomain={defaultBusinessDomain}
+          compact
+        />
+      </div>
+
+      <div style={{ minWidth: 0 }}>
+        <WorkbookImportConfigStep
+          token={token}
+          formState={formState}
+          onUpdateUnifiedCodingMode={updateUnifiedCodingMode}
+          onUpdateUnifiedDuplicatePolicy={updateUnifiedDuplicatePolicy}
+          onAtomicChange={(value) => {
+            invalidateDryRun();
+            setFormState((prev) => ({ ...prev, atomic: value }));
+          }}
+        />
+      </div>
+    </div>
   );
 
-  const renderStep2 = () => {
+  const renderStep1 = () => {
     const dryRunStatus = dryRunRuntime.status;
     const dryRunFinished = isTerminalStatus(dryRunStatus?.status);
     const dryRunSucceeded = dryRunStatus?.status === 'COMPLETED';
@@ -1011,7 +1027,7 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
             <Alert
               type={dryRunFinished ? (dryRunSucceeded ? 'success' : 'error') : 'info'}
               showIcon
-              message={`${STATUS_LABELS[dryRunStatus.status] || dryRunStatus.status} · ${STAGE_LABELS[dryRunStatus.currentStage] || dryRunStatus.currentStage}`}
+              title={`${STATUS_LABELS[dryRunStatus.status] || dryRunStatus.status} · ${STAGE_LABELS[dryRunStatus.currentStage] || dryRunStatus.currentStage}`}
               description={`SSE ${dryRunRuntime.sseConnected ? '已连接' : '未连接，当前依赖轮询补齐状态与日志'} · dryRunJobId: ${dryRunStatus.jobId}`}
               style={{ borderRadius: token.borderRadiusLG }}
             />
@@ -1069,7 +1085,7 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
     );
   };
 
-  const renderStep3 = () => {
+  const renderStep2 = () => {
     const importStatus = importRuntime.status;
 
     return (
@@ -1086,7 +1102,7 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
             <Alert
               type={executionFinished ? (importSucceeded ? 'success' : 'error') : 'info'}
               showIcon
-              message={`${STATUS_LABELS[importStatus.status] || importStatus.status} · ${STAGE_LABELS[importStatus.currentStage] || importStatus.currentStage}`}
+              title={`${STATUS_LABELS[importStatus.status] || importStatus.status} · ${STAGE_LABELS[importStatus.currentStage] || importStatus.currentStage}`}
               description={`SSE ${importRuntime.sseConnected ? '已连接' : '未连接，当前依赖轮询补齐状态与日志'} · importJobId: ${importStatus.jobId}`}
               style={{ borderRadius: token.borderRadiusLG }}
             />
@@ -1114,14 +1130,14 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
 
   const renderFooter = () => (
     <Flex align="center" style={{ width: '100%' }}>
-      {currentStep > 0 && currentStep < 3 && !dryRunning && !importing ? (
+      {currentStep > 0 && currentStep < 2 && !dryRunning && !importing ? (
         <Button size="middle" icon={<ArrowLeftOutlined />} onClick={goPrev}>
           上一步
         </Button>
       ) : null}
 
       <Flex gap={8} justify="flex-end" style={{ marginLeft: 'auto' }}>
-        {currentStep === 3 ? (
+        {currentStep === 2 ? (
           <Button
             size="middle"
             type="primary"
@@ -1147,11 +1163,11 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
             <Button
               size="middle"
               type="primary"
-              icon={currentStep === 2 ? <ImportOutlined /> : <ArrowRightOutlined />}
-              onClick={currentStep === 2 ? handleConfirmImport : goNext}
+              icon={currentStep === 1 ? <ImportOutlined /> : <ArrowRightOutlined />}
+              onClick={currentStep === 1 ? handleConfirmImport : goNext}
               disabled={!canGoNext || dryRunning}
             >
-              {currentStep === 2 ? '确认导入' : '下一步'}
+              {currentStep === 1 ? '确认导入' : '下一步'}
             </Button>
           </>
         )}
@@ -1190,7 +1206,7 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
         }))}
       />
 
-      <div style={{ flex: 1, minHeight: 0, overflow: currentStep === 0 || currentStep === 2 || currentStep === 3 ? 'hidden' : 'auto' }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <div
           style={{
             position: 'relative',
@@ -1203,16 +1219,15 @@ const WorkbookImportModal: React.FC<WorkbookImportModalProps> = ({
             style={{
               height: '100%',
               minHeight: 0,
-              overflowY: currentStep === 3 ? 'auto' : 'hidden',
+              width: '100%',
+              overflowY: currentStep === 0 || currentStep === 2 ? 'auto' : 'hidden',
               overflowX: 'hidden',
-              paddingRight: taskDrawerOpen && currentStep >= 2 ? 12 : 0,
               paddingBottom: 12,
             }}
           >
             {currentStep === 0 && renderStep0()}
             {currentStep === 1 && renderStep1()}
             {currentStep === 2 && renderStep2()}
-            {currentStep === 3 && renderStep3()}
           </div>
           <WorkbookImportTaskSidePanel
             token={token}

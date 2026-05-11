@@ -8,12 +8,11 @@ import type {
   WorkbookImportResolvedAction,
 } from '@/models/workbookImport';
 
-export type ImportStep = 0 | 1 | 2 | 3;
+export type ImportStep = 0 | 1 | 2;
 export type StepStatus = 'wait' | 'process' | 'finish' | 'error';
 
 export const IMPORT_STEPS = [
-  { title: '上传工作簿' },
-  { title: '导入配置' },
+  { title: '配置上传' },
   { title: '预检验证' },
   { title: '执行导入' },
 ] as const;
@@ -29,9 +28,9 @@ export const DEFAULT_WORKBOOK_IMPORT_FORM: WorkbookImportFormState = {
   atomic: true,
   options: {
     codingOptions: {
-      categoryCodeMode: 'EXCEL_MANUAL',
-      attributeCodeMode: 'EXCEL_MANUAL',
-      enumOptionCodeMode: 'EXCEL_MANUAL',
+      categoryCodeMode: 'SYSTEM_RULE_AUTO',
+      attributeCodeMode: 'SYSTEM_RULE_AUTO',
+      enumOptionCodeMode: 'SYSTEM_RULE_AUTO',
     },
     duplicateOptions: {
       categoryDuplicatePolicy: 'FAIL_ON_DUPLICATE',
@@ -42,8 +41,8 @@ export const DEFAULT_WORKBOOK_IMPORT_FORM: WorkbookImportFormState = {
 };
 
 export const CODE_MODE_OPTIONS: Array<{ label: string; value: WorkbookImportCodeMode }> = [
-  { label: 'Excel 手动编码', value: 'EXCEL_MANUAL' },
-  { label: '系统规则自动编码', value: 'SYSTEM_RULE_AUTO' },
+  { label: '使用 Excel 编码', value: 'EXCEL_MANUAL' },
+  { label: '使用系统编码', value: 'SYSTEM_RULE_AUTO' },
 ];
 
 export const DUPLICATE_POLICY_OPTIONS: Array<{ label: string; value: WorkbookImportDuplicatePolicy }> = [
