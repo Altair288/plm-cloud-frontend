@@ -22,6 +22,7 @@ export interface AppPalette {
   notificationBg: string;
   notificationBorder: string;
   tabHomeIconBg: string;
+  globalTopHeaderBg?: string; // 全局顶部导航背景色（如果与headerBg不同，则使用此属性覆盖）
 }
 
 export const lightPalette: AppPalette = {
@@ -45,6 +46,7 @@ export const lightPalette: AppPalette = {
   notificationBg: 'rgba(15, 98, 254, 0.08)', // 通知背景色
   notificationBorder: 'rgba(15, 98, 254, 0.15)', // 通知边框颜色
   tabHomeIconBg: '#f1f5ff', // 首页标签图标背景
+  globalTopHeaderBg: '#0d233a', // 全局顶部导航背景色（如果与headerBg不同，则使用此属性覆盖）
 };
 
 export const darkPalette: AppPalette = {
@@ -68,6 +70,7 @@ export const darkPalette: AppPalette = {
   notificationBg: 'rgba(255, 255, 255, 0.08)', // 通知背景色
   notificationBorder: 'rgba(255, 255, 255, 0.08)', // 通知边框颜色
   tabHomeIconBg: 'rgba(255, 255, 255, 0.14)', // 首页标签图标背景
+  globalTopHeaderBg: '#0d233a', // 全局顶部导航背景色（如果与headerBg不同，则使用此属性覆盖）
 };
 
 export const getPalette = (mode: ThemeMode): AppPalette =>

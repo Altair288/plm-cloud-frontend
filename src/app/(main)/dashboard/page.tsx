@@ -110,7 +110,9 @@ export default function Dashboard() {
                   title: item.title,
                   value: item.value,
                   suffix: item.suffix,
-                  valueStyle: item.valueStyle,
+                  styles: item.valueStyle
+                    ? { content: item.valueStyle }
+                    : undefined,
                 }}
               />
             </Col>

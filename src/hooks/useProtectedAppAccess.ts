@@ -22,19 +22,19 @@ export const useProtectedAppAccess = (
 ): boolean => {
   const router = useRouter();
   const { showLoading, hideLoading } = useGlobalLoading();
-  const persistedHeaders = readPersistedAuthHeaders();
-  const persistedSnapshot = readPersistedAuthSnapshot();
-  const platformToken = persistedHeaders.platformToken;
-  const platformTokenName = persistedHeaders.platformTokenName;
-  const hasPersistedUserAccess = Boolean(
-    persistedSnapshot.platformAuth.principalType === 'user'
-    && platformToken
-    && platformTokenName,
-  );
-  const [checkingAccess, setCheckingAccess] = useState(!hasPersistedUserAccess);
+  const [checkingAccess, setCheckingAccess] = useState(true);
 
   useEffect(() => {
     let active = true;
+    const persistedHeaders = readPersistedAuthHeaders();
+    const persistedSnapshot = readPersistedAuthSnapshot();
+    const platformToken = persistedHeaders.platformToken;
+    const platformTokenName = persistedHeaders.platformTokenName;
+    const hasPersistedUserAccess = Boolean(
+      persistedSnapshot.platformAuth.principalType === 'user'
+      && platformToken
+      && platformTokenName,
+    );
     const loadingId = hasPersistedUserAccess
       ? null
       : showLoading(options?.loadingMessage ?? '正在验证访问权限...');
@@ -229,7 +229,7 @@ export const useProtectedAppAccess = (
         hideLoading(loadingId);
       }
     };
-  }, [hasPersistedUserAccess, hideLoading, options?.loadingMessage, platformToken, platformTokenName, router, showLoading]);
+  }, [hideLoading, options?.loadingMessage, router, showLoading]);
 
   return checkingAccess;
 };

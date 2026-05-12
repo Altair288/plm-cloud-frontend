@@ -8,7 +8,7 @@ import { GlobalLoadingProvider } from '@/components/providers/GlobalLoadingProvi
 export default function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <GlobalLoadingProvider>
-      <AntdApp>
+      <AntdApp component="div">
         <DictionaryProvider initialScenes={["category-admin"]}>{children}</DictionaryProvider>
       </AntdApp>
     </GlobalLoadingProvider>

@@ -1180,13 +1180,12 @@ const CategoryManagementPage: React.FC = () => {
     return (
       <div
         style={{
-          height: "calc(100vh - 163px)",
+          height: "100%",
+          minHeight: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           background: "var(--ant-color-bg-container, #fff)",
-          borderRadius: 8,
-          border: "1px solid var(--ant-color-border-secondary, #f0f0f0)",
         }}
       >
         <Spin tip="正在加载业务领域配置..." />
@@ -1198,13 +1197,12 @@ const CategoryManagementPage: React.FC = () => {
     return (
       <div
         style={{
-          height: "calc(100vh - 163px)",
+          height: "100%",
+          minHeight: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           background: "var(--ant-color-bg-container, #fff)",
-          borderRadius: 8,
-          border: "1px solid var(--ant-color-border-secondary, #f0f0f0)",
         }}
       >
         <div style={{ color: "#999", fontSize: 16 }}>
@@ -1217,10 +1215,11 @@ const CategoryManagementPage: React.FC = () => {
   return (
     <div
       style={{
-        height: "calc(100vh - 163px)",
+        height: "100%",
+        minHeight: 0,
         display: "flex",
         flexDirection: "column",
-        gap: 16,
+        gap: 0,
         overflow: "hidden",
       }}
     >
@@ -1230,9 +1229,6 @@ const CategoryManagementPage: React.FC = () => {
           flex: 1,
           minHeight: 0,
           background: "var(--ant-color-bg-container, #fff)",
-          borderRadius: 8,
-          border: "1px solid var(--ant-color-border-secondary, #f0f0f0)",
-          boxShadow: "0 0 10px rgba(0, 0, 0, 0.05)",
           overflow: "hidden",
         }}
       >

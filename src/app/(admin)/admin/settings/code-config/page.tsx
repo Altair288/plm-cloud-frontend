@@ -357,10 +357,11 @@ export default function CodeSettingPage() {
 
   return (
     <div style={{
-      height: "calc(100vh - 163px)",
+      height: "100%",
+      minHeight: 0,
       display: "flex",
       flexDirection: "column",
-      gap: 16,
+      gap: 0,
       overflow: "hidden",
     }}>
       <Splitter
@@ -369,9 +370,6 @@ export default function CodeSettingPage() {
           flex: 1,
           minHeight: 0,
           background: "var(--ant-color-bg-container, #fff)",
-          borderRadius: 8,
-          border: `1px solid ${token.colorBorderSecondary}`,
-          boxShadow: "0 0 10px rgba(0, 0, 0, 0.05)",
           overflow: "hidden",
         }}
       >

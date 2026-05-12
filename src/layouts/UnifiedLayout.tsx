@@ -2,10 +2,8 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, ConfigProvider, Tabs, theme } from "antd";
+import { ProLayout } from '@ant-design/pro-components';
 import type { TabsProps } from "antd";
-import dynamic from 'next/dynamic';
-const ProLayout = dynamic(() => import('@ant-design/pro-components').then(mod => mod.ProLayout), { ssr: false });
-const AntdApp = dynamic(() => import('antd').then(mod => mod.App), { ssr: false });
 import HeaderRight from "@/layouts/components/HeaderRight";
 import WorkspaceSwitcher from "@/layouts/components/WorkspaceSwitcher";
 import { usePathname, useRouter } from "next/navigation";
@@ -132,18 +130,8 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
   const currentPath = pathname === "/" ? homePath : pathname;
 
   const [collapsed, setCollapsed] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-
-    const stored = window.localStorage.getItem("plm-theme-mode");
-    if (stored) {
-      return stored === "dark";
-    }
-
-    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
-  });
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [themePreferenceLoaded, setThemePreferenceLoaded] = useState(false);
 
   const matchedMenuPath = useMemo(
     () => findMenuPath(menuData, currentPath) ?? [],
@@ -368,6 +356,25 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
     if (typeof window === "undefined") {
       return;
     }
+
+    const stored = window.localStorage.getItem("plm-theme-mode");
+    if (stored) {
+      setIsDarkMode(stored === "dark");
+      setThemePreferenceLoaded(true);
+      return;
+    }
+
+    setIsDarkMode(
+      window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false,
+    );
+    setThemePreferenceLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !themePreferenceLoaded) {
+      return;
+    }
+
     window.localStorage.setItem(
       "plm-theme-mode",
       isDarkMode ? "dark" : "light"
@@ -393,7 +400,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
     rootStyle.setProperty("--tab-underline-color", palette.borderColor);
     rootStyle.setProperty("--tab-close-color", palette.iconColor);
     rootStyle.setProperty("--tab-home-icon-bg", palette.tabHomeIconBg);
-  }, [isDarkMode, palette]);
+  }, [isDarkMode, palette, themePreferenceLoaded]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -478,7 +485,6 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
         components: currentComponentTokens,
       }}
     >
-      <AntdApp>
       <ProLayout
         suppressHydrationWarning
         title={title}
@@ -590,12 +596,13 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
       >
         <div
           style={{
-            padding: 16,
-            minHeight: `calc(100vh - ${themeTokens.headerHeight}px)`,
+            height: `calc(100vh - ${themeTokens.headerHeight}px)`,
+            minHeight: 0,
             background: palette.bgLayout,
             display: "flex",
             flexDirection: "column",
-            gap: 16,
+            gap: 0,
+            overflow: "hidden",
           }}
         >
           {contentVariant === 'plain' ? (
@@ -603,9 +610,10 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
               style={{
                 flex: 1,
                 minHeight: 0,
-                overflow: 'auto',
+                overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
+                background: palette.bgContainer,
               }}
             >
               {children}
@@ -614,8 +622,6 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
             <div
               style={{
                 background: palette.bgContainer,
-                borderRadius: 12,
-                boxShadow: `0 12px 40px -16px ${palette.shadowColor}`,
                 display: "flex",
                 flexDirection: "column",
                 flex: 1,
@@ -625,6 +631,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
               {showTabs ? (
                 <Tabs
                   className="layout-tabs"
+                  style={{ flexShrink: 0 }}
                   activeKey={currentPath}
                   onChange={handleTabChange}
                   tabBarGutter={0}
@@ -646,10 +653,9 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
               ) : null}
               <div
                 style={{
-                  padding: 16,
                   flex: 1,
                   minHeight: 0,
-                  overflow: "auto",
+                  overflow: "hidden",
                 }}
               >
                 {children}
@@ -658,7 +664,6 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = ({
           )}
         </div>
       </ProLayout>
-      </AntdApp>
     </ConfigProvider>
   );
 };
