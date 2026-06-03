@@ -138,6 +138,15 @@ const menuData: MenuItem[] = [
       { path: "/user/notification", name: "通知偏好" },
     ],
   },
+  {
+    path: "/blueprints",
+    name: "蓝图中心",
+    icon: <SettingOutlined />,
+    children: [
+      { path: "/blueprints/list", name: "蓝图列表" },
+      { path: "/blueprints/create", name: "创建蓝图" },
+    ],
+  },
 ];
 
 const BasicLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
