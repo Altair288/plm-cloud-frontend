@@ -67,6 +67,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           name: '编码配置',
           icon: <CodeOutlined />,
         },
+        {
+          path: '/admin/settings/storage-config',
+          name: '存储配置',
+          icon: <SettingOutlined />,
+        }
       ],
     },
   ];
